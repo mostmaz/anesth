@@ -1,0 +1,28 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const patient_routes_1 = __importDefault(require("./patient.routes"));
+const governorate_routes_1 = __importDefault(require("./governorate.routes"));
+const shift_routes_1 = __importDefault(require("./shift.routes"));
+const vitals_routes_1 = __importDefault(require("./vitals.routes"));
+const medication_routes_1 = __importDefault(require("./medication.routes"));
+const io_routes_1 = __importDefault(require("./io.routes"));
+const checkin_routes_1 = __importDefault(require("./checkin.routes"));
+const order_routes_1 = __importDefault(require("./order.routes"));
+const investigation_routes_1 = __importDefault(require("./investigation.routes"));
+const note_routes_1 = __importDefault(require("./note.routes"));
+const router = (0, express_1.Router)();
+router.use('/patients', patient_routes_1.default);
+router.use('/shifts', shift_routes_1.default);
+router.use('/governorates', governorate_routes_1.default);
+router.use('/vitals', vitals_routes_1.default);
+router.use('/medications', medication_routes_1.default);
+router.use('/io', io_routes_1.default);
+router.use('/checkin', checkin_routes_1.default);
+router.use('/orders', order_routes_1.default);
+router.use('/investigations', investigation_routes_1.default);
+router.use('/notes', note_routes_1.default);
+exports.default = router;
