@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { marApi, type Medication } from '../../api/marApi';
+import { assignmentApi } from '../../api/assignmentApi';
 import { apiClient } from '../../api/client';
 import { type Patient } from '../../types';
 
@@ -8,6 +9,7 @@ export default function MARPrintView() {
     const { id } = useParams();
     const [patient, setPatient] = useState<Patient | null>(null);
     const [medications, setMedications] = useState<Medication[]>([]);
+    const [assignments, setAssignments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Calculate dates for the last 7 days (or next? usually current + history)
@@ -25,12 +27,14 @@ export default function MARPrintView() {
         if (!id) return;
         const fetchData = async () => {
             try {
-                const [p, m] = await Promise.all([
+                const [p, m, a] = await Promise.all([
                     apiClient.get<Patient>(`/patients/${id}`),
-                    marApi.getMAR(id)
+                    marApi.getMAR(id),
+                    assignmentApi.getActive().catch(() => [])
                 ]);
                 setPatient(p);
                 setMedications(m);
+                setAssignments(a);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -44,6 +48,11 @@ export default function MARPrintView() {
 
     if (loading) return <div className="p-10 text-center">Loading MAR...</div>;
     if (!patient) return <div className="p-10 text-center">Patient not found</div>;
+
+    const assignedNurses = assignments
+        .filter((a: any) => a.patientId === patient.id)
+        .map((a: any) => a.user.name)
+        .join(', ');
 
     const getAdminsForDate = (med: Medication, date: Date) => {
         const dateStr = date.toLocaleDateString();
@@ -67,9 +76,16 @@ export default function MARPrintView() {
                     </button>
                 </div>
                 <div className="text-right">
-                    <div className="text-xl font-black">{patient.lastName.toUpperCase()}, {patient.firstName}</div>
-                    <div className="text-sm font-mono font-bold">MRN: {patient.mrn}</div>
+                    <div>
+                        <h1 className="text-2xl font-bold">{patient.name}</h1>
+                        <p>MRN: {patient.mrn} | DOB: {new Date(patient.dob).toLocaleDateString()}</p>
+                    </div>
                     <div className="text-xs text-slate-500">POB / Gender: {patient.gender}</div>
+                    {assignedNurses && (
+                        <div className="text-xs text-slate-700 font-bold mt-1">
+                            Nurse: {assignedNurses}
+                        </div>
+                    )}
                 </div>
             </div>
 

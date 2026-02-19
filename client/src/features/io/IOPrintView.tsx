@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { ioApi, type IOEntry } from '../../api/ioApi';
+import { assignmentApi } from '../../api/assignmentApi';
 import { apiClient } from '../../api/client';
 import { type Patient } from '../../types';
 
@@ -10,6 +11,7 @@ export default function IOPrintView() {
     const [searchParams] = useSearchParams();
     const [patient, setPatient] = useState<Patient | null>(null);
     const [history, setHistory] = useState<IOEntry[]>([]);
+    const [assignments, setAssignments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     const startTime = searchParams.get('startTime');
@@ -20,13 +22,10 @@ export default function IOPrintView() {
 
         const fetchData = async () => {
             try {
-                const [p, h] = await Promise.all([
+                const [p, h, a] = await Promise.all([
                     apiClient.get<Patient>(`/patients/${id}`),
-                    ioApi.getHistory(id) // Ideally backend supports filtering, but for now we filter locally or add backend support later. 
-                    // Assuming for now getHistory returns all recent or we filter here if needed. 
-                    // If we need precise 12h, we might need to update backend or filter on frontend.
-                    // Given the previous task, I should probably filter here if backend doesn't support it yet, 
-                    // or just show recent for now. I'll filter logic here to match the 12h window if provided.
+                    ioApi.getHistory(id), // Ideally backend supports filtering, but for now we filter locally or add backend support later. 
+                    assignmentApi.getActive().catch(() => [])
                 ]);
 
                 let filteredHistory = h;
@@ -41,6 +40,7 @@ export default function IOPrintView() {
 
                 setPatient(p);
                 setHistory(filteredHistory);
+                setAssignments(a);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -57,6 +57,11 @@ export default function IOPrintView() {
     const totalOutput = history.filter(h => h.type === 'OUTPUT').reduce((acc, curr) => acc + curr.amount, 0);
     const balance = totalInput - totalOutput;
 
+    const assignedNurses = assignments
+        .filter((a: any) => a.patientId === patient.id)
+        .map((a: any) => a.user.name)
+        .join(', ');
+
     return (
         <div className="p-8 bg-white min-h-screen text-slate-900 mx-auto max-w-[21cm] border shadow-sm print:border-none print:shadow-none print:p-0">
             {/* Header */}
@@ -68,9 +73,16 @@ export default function IOPrintView() {
                     </p>
                 </div>
                 <div className="text-right">
-                    <div className="text-xl font-black">{patient.lastName.toUpperCase()}, {patient.firstName}</div>
-                    <div className="text-sm font-mono font-bold">MRN: {patient.mrn}</div>
+                    <div>
+                        <h1 className="text-2xl font-bold">{patient.name}</h1>
+                        <p>MRN: {patient.mrn} | DOB: {new Date(patient.dob).toLocaleDateString()}</p>
+                    </div>
                     <div className="text-xs text-slate-500">POB / Gender: {patient.gender}</div>
+                    {assignedNurses && (
+                        <div className="text-xs text-slate-700 font-bold mt-1">
+                            Nurse: {assignedNurses}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -93,36 +105,36 @@ export default function IOPrintView() {
             </div>
 
             {/* Detailed Table */}
-            <div className="mb-8 overflow-x-auto">
-                <table className="w-full text-xs text-left border-collapse table-fixed">
+            <div className="mb-4 overflow-x-auto">
+                <table className="w-full text-[10px] text-left border-collapse table-fixed">
                     <thead>
                         <tr className="bg-slate-100 border-b border-slate-300">
-                            <th className="border-r p-2 w-1/6">Time</th>
-                            <th className="border-r p-2 w-1/6">Type</th>
-                            <th className="border-r p-2 w-1/4">Category</th>
-                            <th className="border-r p-2 text-right w-1/6">Amount (mL)</th>
-                            <th className="p-2 w-1/4">Notes</th>
+                            <th className="border-r p-1 w-1/6">Time</th>
+                            <th className="border-r p-1 w-1/6">Type</th>
+                            <th className="border-r p-1 w-1/4">Category</th>
+                            <th className="border-r p-1 text-right w-1/6">Amount (mL)</th>
+                            <th className="p-1 w-1/4">Notes</th>
                         </tr>
                     </thead>
                     <tbody>
                         {history.map((entry, i) => (
                             <tr key={entry.id} className={`border-b border-slate-200 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                                <td className="border-r p-2 font-mono">
+                                <td className="border-r p-1 font-mono">
                                     {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </td>
-                                <td className="border-r p-2 font-bold">
+                                <td className="border-r p-1 font-bold">
                                     <span className={entry.type === 'INPUT' ? 'text-blue-700' : 'text-amber-700'}>
                                         {entry.type}
                                     </span>
                                 </td>
-                                <td className="border-r p-2">{entry.category}</td>
-                                <td className="border-r p-2 text-right font-mono">{entry.amount}</td>
-                                <td className="p-2 italic text-slate-500">{entry.notes || '-'}</td>
+                                <td className="border-r p-1">{entry.category}</td>
+                                <td className="border-r p-1 text-right font-mono">{entry.amount}</td>
+                                <td className="p-1 italic text-slate-500">{entry.notes || '-'}</td>
                             </tr>
                         ))}
                         {history.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="p-8 text-center text-slate-400 italic">No entries recorded in this period</td>
+                                <td colSpan={5} className="p-4 text-center text-slate-400 italic">No entries recorded in this period</td>
                             </tr>
                         )}
                     </tbody>
@@ -130,12 +142,12 @@ export default function IOPrintView() {
             </div>
 
             {/* Footer / Signature */}
-            <div className="mt-auto border-t pt-8 grid grid-cols-2 gap-20">
-                <div className="border-b border-dotted h-12 flex items-end text-xs text-slate-500">Attending Physician Signature</div>
-                <div className="border-b border-dotted h-12 flex items-end text-xs text-slate-500">Charge Nurse Signature</div>
+            <div className="mt-auto border-t pt-4 grid grid-cols-2 gap-20">
+                <div className="border-b border-dotted h-8 flex items-end text-[10px] text-slate-500">Attending Physician Signature</div>
+                <div className="border-b border-dotted h-8 flex items-end text-[10px] text-slate-500">Charge Nurse Signature</div>
             </div>
 
-            <div className="text-[10px] text-slate-400 mt-12 text-center">
+            <div className="text-[9px] text-slate-400 mt-4 text-center">
                 Printed via ICU Manager • Confidential Clinical Document • Page 1 of 1
             </div>
 

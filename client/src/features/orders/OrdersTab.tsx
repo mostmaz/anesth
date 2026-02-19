@@ -61,8 +61,7 @@ export default function OrdersTab({ patientId }: OrdersTabProps) {
         }
     };
 
-    const pendingOrders = orders.filter(o => o.status === 'PENDING');
-    const activeOrders = orders.filter(o => o.status === 'APPROVED');
+    const activeOrders = orders.filter(o => o.status === 'APPROVED' || o.status === 'PENDING');
     const historyOrders = orders.filter(o => ['COMPLETED', 'DISCONTINUED'].includes(o.status));
 
     const OrderCard = ({ order }: { order: ClinicalOrder }) => (
@@ -140,27 +139,17 @@ export default function OrdersTab({ patientId }: OrdersTabProps) {
                 )}
             </div>
 
-            <Tabs defaultValue="pending" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+            <Tabs defaultValue="active" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 lg:w-[300px]">
                     <TabsTrigger value="active" className="relative">
                         Active
                         <Badge variant="secondary" className="ml-2 bg-emerald-100 text-emerald-800 h-5 px-1.5">{activeOrders.length}</Badge>
-                    </TabsTrigger>
-                    <TabsTrigger value="pending" className="relative">
-                        Pending
-                        {pendingOrders.length > 0 && (
-                            <Badge variant="destructive" className="ml-2 h-5 px-1.5 animate-pulse">{pendingOrders.length}</Badge>
-                        )}
                     </TabsTrigger>
                     <TabsTrigger value="history">History</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="active" className="mt-4 space-y-4">
                     {activeOrders.length === 0 ? <div className="text-center p-8 text-muted-foreground">No active orders</div> : activeOrders.map(o => <OrderCard key={o.id} order={o} />)}
-                </TabsContent>
-
-                <TabsContent value="pending" className="mt-4 space-y-4">
-                    {pendingOrders.length === 0 ? <div className="text-center p-8 text-muted-foreground">No pending orders</div> : pendingOrders.map(o => <OrderCard key={o.id} order={o} />)}
                 </TabsContent>
 
                 <TabsContent value="history" className="mt-4 space-y-4">

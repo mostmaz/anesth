@@ -35,7 +35,7 @@ export default function AppShell() {
     const menuItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
         { icon: Users, label: 'My Shift', path: '/shift' },
-        { icon: ClipboardList, label: 'Admin', path: '/admin' },
+        ...(user?.role === 'SENIOR' ? [{ icon: ClipboardList, label: 'Admin', path: '/admin' }] : []),
     ];
 
     return (
@@ -50,7 +50,7 @@ export default function AppShell() {
 
             {/* Sidebar */}
             <aside className={cn(
-                "fixed lg:relative inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-200 ease-in-out lg:transform-none flex flex-col h-screen",
+                "fixed lg:relative inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-200 ease-in-out lg:transform-none flex flex-col h-screen print:hidden",
                 sidebarOpen ? "translate-x-0" : "-translate-x-full"
             )}>
                 <div className="h-16 flex items-center px-6 border-b border-slate-800">
@@ -107,7 +107,7 @@ export default function AppShell() {
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 {/* Mobile Header */}
-                <header className="lg:hidden h-16 bg-white border-b border-slate-200 flex items-center px-4">
+                <header className="lg:hidden h-16 bg-white border-b border-slate-200 flex items-center px-4 print:hidden">
                     <button
                         onClick={() => setSidebarOpen(true)}
                         className="text-slate-500 hover:text-slate-700"

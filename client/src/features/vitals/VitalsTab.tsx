@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '../../components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import TrendChart from './TrendChart';
 import { vitalsApi, type VitalSign } from '../../api/vitalsApi';
@@ -61,25 +62,43 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
         }
     };
 
-    const handlePrintShift = () => {
-        const now = new Date();
-        let start = new Date(now);
-        let end = new Date(now);
+    const [printDialogOpen, setPrintDialogOpen] = useState(false);
+    const [printRange, setPrintRange] = useState<'SHIFT' | 'CUSTOM'>('SHIFT');
+    const [customStart, setCustomStart] = useState('');
+    const [customEnd, setCustomEnd] = useState('');
 
-        // Simple 12h shift logic: Day (8am-8pm) / Night (8pm-8am)
-        if (now.getHours() >= 8 && now.getHours() < 20) {
-            start.setHours(8, 0, 0, 0);
-            end.setHours(20, 0, 0, 0);
-        } else {
-            if (now.getHours() < 8) {
-                start.setDate(start.getDate() - 1);
+    const handlePrint = () => {
+        let start = new Date();
+        let end = new Date();
+
+        if (printRange === 'SHIFT') {
+            const now = new Date();
+            // Simple 12h shift logic: Day (8am-8pm) / Night (8pm-8am)
+            if (now.getHours() >= 8 && now.getHours() < 20) {
+                start = new Date(now);
+                start.setHours(8, 0, 0, 0);
+                end = new Date(now);
+                end.setHours(20, 0, 0, 0);
+            } else {
+                start = new Date(now);
+                if (now.getHours() < 8) {
+                    start.setDate(start.getDate() - 1);
+                }
+                start.setHours(20, 0, 0, 0);
+                end = new Date(start);
+                end.setDate(end.getDate() + 1);
+                end.setHours(8, 0, 0, 0);
             }
-            start.setHours(20, 0, 0, 0);
-            end = new Date(start);
-            end.setDate(end.getDate() + 1);
-            end.setHours(8, 0, 0, 0);
+        } else {
+            if (!customStart || !customEnd) {
+                toast.error("Please select start and end times");
+                return;
+            }
+            start = new Date(customStart);
+            end = new Date(customEnd);
         }
 
+        setPrintDialogOpen(false);
         navigate(`/print-vitals/${patientId}?startTime=${start.toISOString()}&endTime=${end.toISOString()}`);
     };
 
@@ -90,10 +109,69 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                     <h3 className="text-lg font-bold text-slate-800">Vital Signs Trends</h3>
                     <p className="text-sm text-slate-500">Real-time monitoring and reporting</p>
                 </div>
-                <Button variant="outline" onClick={handlePrintShift} className="gap-2">
-                    <Printer className="w-4 h-4" />
-                    Print 12h Shift Report
-                </Button>
+
+                <Dialog open={printDialogOpen} onOpenChange={setPrintDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" className="gap-2">
+                            <Printer className="w-4 h-4" />
+                            Print Report
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Print Vitals Report</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="shift"
+                                    name="range"
+                                    checked={printRange === 'SHIFT'}
+                                    onChange={() => setPrintRange('SHIFT')}
+                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                                />
+                                <Label htmlFor="shift">Current Shift (12h)</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="custom"
+                                    name="range"
+                                    checked={printRange === 'CUSTOM'}
+                                    onChange={() => setPrintRange('CUSTOM')}
+                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                                />
+                                <Label htmlFor="custom">Custom Range</Label>
+                            </div>
+
+                            {printRange === 'CUSTOM' && (
+                                <div className="grid grid-cols-2 gap-4 pl-6">
+                                    <div className="space-y-2">
+                                        <Label>Start Time</Label>
+                                        <Input
+                                            type="datetime-local"
+                                            value={customStart}
+                                            onChange={(e) => setCustomStart(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>End Time</Label>
+                                        <Input
+                                            type="datetime-local"
+                                            value={customEnd}
+                                            onChange={(e) => setCustomEnd(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setPrintDialogOpen(false)}>Cancel</Button>
+                            <Button onClick={handlePrint}>Generate Report</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             {/* Visual Trends */}
@@ -173,7 +251,7 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Time</TableHead>
+                                    <TableHead>Date & Time</TableHead>
                                     <TableHead>HR</TableHead>
                                     <TableHead>BP</TableHead>
                                     <TableHead>SpO2</TableHead>
@@ -184,7 +262,12 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                             <TableBody>
                                 {vitals.map((entry) => (
                                     <TableRow key={entry.id}>
-                                        <TableCell>{new Date(entry.timestamp).toLocaleTimeString()}</TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">{new Date(entry.timestamp).toLocaleDateString()}</span>
+                                                <span className="text-xs text-slate-500">{new Date(entry.timestamp).toLocaleTimeString()}</span>
+                                            </div>
+                                        </TableCell>
                                         <TableCell>{entry.heartRate}</TableCell>
                                         <TableCell>{entry.bpSys}/{entry.bpDia}</TableCell>
                                         <TableCell>{entry.spo2}%</TableCell>

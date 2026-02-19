@@ -62,7 +62,7 @@ export default function PrintableChart() {
     if (loading) return <div className="p-8 text-center">Preparing chart...</div>;
     if (!data.patient) return <div className="p-8 text-center">Patient not found</div>;
 
-
+    const { patient } = data;
 
     return (
         <div className="p-8 max-w-5xl mx-auto bg-white min-h-screen text-slate-900 print:p-0 print:max-w-none">
@@ -72,9 +72,11 @@ export default function PrintableChart() {
                     <div className="text-sm text-slate-500">Generated: {new Date().toLocaleString()}</div>
                 </div>
                 <div className="text-right">
-                    <div className="text-xl font-bold">{data.patient.lastName}, {data.patient.firstName}</div>
-                    <div className="text-sm">MRN: <span className="font-mono font-bold">{data.patient.mrn}</span></div>
-                    <div className="text-sm">DOB: {new Date(data.patient.dob).toLocaleDateString()} ({data.patient.gender})</div>
+                    <h1 className="text-3xl font-bold text-gray-900">{patient.name}</h1>
+                    <div className="flex gap-4 text-sm text-gray-500 mt-1">
+                        <span>MRN: {patient.mrn}</span>
+                        <span>DOB: {new Date(patient.dob).toLocaleDateString()} ({patient.gender})</span>
+                    </div>
                 </div>
             </div>
 

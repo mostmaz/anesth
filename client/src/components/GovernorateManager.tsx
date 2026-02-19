@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trash2, Plus, MapPin } from 'lucide-react';
 
-const API_URL = 'http://localhost:3000/api/governorates';
+const API_URL = 'http://localhost:3001/api/governorates';
 
 export function GovernorateManager() {
     const [newGovernorate, setNewGovernorate] = useState('');

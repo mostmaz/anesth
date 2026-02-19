@@ -11,7 +11,7 @@ router.get('/pending', async (req, res) => {
             where: { status: 'PENDING' },
             orderBy: { createdAt: 'desc' },
             include: {
-                patient: { select: { firstName: true, lastName: true, mrn: true } },
+                patient: { select: { name: true, mrn: true } },
                 author: { select: { name: true, role: true } }
             },
             take: 10 // Limit for dashboard
@@ -33,7 +33,7 @@ router.get('/recent', async (req, res) => {
             },
             orderBy: { createdAt: 'desc' },
             include: {
-                patient: { select: { firstName: true, lastName: true, mrn: true } },
+                patient: { select: { name: true, mrn: true } },
                 author: { select: { name: true, role: true } }
             },
             take: 10
@@ -50,11 +50,11 @@ router.get('/active', async (req, res) => {
     try {
         const orders = await prisma.clinicalOrder.findMany({
             where: {
-                status: 'APPROVED'
+                status: { in: ['APPROVED', 'PENDING'] }
             },
             orderBy: { createdAt: 'desc' },
             include: {
-                patient: { select: { firstName: true, lastName: true, mrn: true } },
+                patient: { select: { name: true, mrn: true } },
                 author: { select: { name: true, role: true } }
             },
             take: 20
@@ -75,7 +75,7 @@ router.get('/completed', async (req, res) => {
             },
             orderBy: { updatedAt: 'desc' },
             include: {
-                patient: { select: { firstName: true, lastName: true, mrn: true } },
+                patient: { select: { name: true, mrn: true } },
                 author: { select: { name: true, role: true } }
             },
             take: 20
@@ -114,9 +114,9 @@ router.post('/', async (req, res) => {
         const user = await prisma.user.findUnique({ where: { id: authorId } });
         if (!user) return res.status(404).json({ error: 'User not found' });
 
-        // Logic: Seniors approve immediately, others are Pending
-        const initialStatus = user.role === 'SENIOR' ? 'APPROVED' : 'PENDING';
-        const approverId = user.role === 'SENIOR' ? user.id : null;
+        // Logic: All orders are immediately APPROVED (Active) as per user request to remove Pending state
+        const initialStatus = 'APPROVED';
+        const approverId = authorId; // Auto-approved by author
 
         const order = await prisma.clinicalOrder.create({
             data: {

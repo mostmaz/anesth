@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { type Patient } from '../../types';
+import { calculateAge } from '../../lib/utils';
 
 export default function PatientList() {
     const navigate = useNavigate();
@@ -12,8 +13,14 @@ export default function PatientList() {
     useEffect(() => {
         const fetchPatients = async () => {
             try {
-                const data = await apiClient.get<Patient[]>('/patients');
-                setPatients(data);
+                const data = await apiClient.get<any[]>('/patients'); // Cast to any to access admissions
+                // Filter out fully discharged patients
+                const active = data.filter((p: any) => {
+                    const hasAdmissions = p.admissions && p.admissions.length > 0;
+                    if (!hasAdmissions) return true; // Keep new patients
+                    return p.admissions.some((a: any) => !a.dischargedAt);
+                });
+                setPatients(active);
             } catch (err: any) {
                 setError(err.message);
             } finally {
@@ -46,10 +53,10 @@ export default function PatientList() {
                             className="hover:bg-gray-50 cursor-pointer transition-colors"
                         >
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{patient.mrn}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{patient.firstName} {patient.lastName}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{patient.name}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{patient.gender}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {new Date(patient.dob).toLocaleDateString()}
+                                {calculateAge(patient.dob)}
                             </td>
                         </tr>
                     ))}

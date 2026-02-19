@@ -14,8 +14,8 @@ export const ocrService = {
 
         try {
             const genAI = new GoogleGenerativeAI(API_KEY);
-            // Use gemini-2.5-flash as it was detected as available and working.
-            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+            // Using gemini-3-pro-preview as requested by user
+            const model = genAI.getGenerativeModel({ model: 'gemini-3-pro-preview' });
 
             if (!fs.existsSync(filePath)) {
                 console.error("ocrService: File not found at:", filePath);
@@ -60,6 +60,7 @@ export const ocrService = {
 
             const responseText = result.response.text();
             console.log("ocrService: Gemini response received length:", responseText.length);
+            console.log("ocrService: Raw response:", responseText); // Debug logging
 
             // Clean up markdown if present
             const jsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();

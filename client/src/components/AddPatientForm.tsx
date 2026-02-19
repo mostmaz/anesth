@@ -8,8 +8,7 @@ interface AddPatientFormProps {
 
 export default function AddPatientForm({ onSuccess, onCancel }: AddPatientFormProps) {
     const [formData, setFormData] = useState({
-        firstName: '',
-        lastName: '',
+        name: '',
         mrn: '',
         dob: '',
         gender: 'Male', // Default
@@ -28,7 +27,7 @@ export default function AddPatientForm({ onSuccess, onCancel }: AddPatientFormPr
         setError(null);
 
         try {
-            if (!formData.firstName || !formData.lastName || !formData.mrn || !formData.dob) {
+            if (!formData.name || !formData.mrn || !formData.dob) {
                 throw new Error('Please fill in all required fields.');
             }
 
@@ -52,29 +51,16 @@ export default function AddPatientForm({ onSuccess, onCancel }: AddPatientFormPr
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                        <input
-                            type="text"
-                            name="firstName"
-                            value={formData.firstName}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                        <input
-                            type="text"
-                            name="lastName"
-                            value={formData.lastName}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            required
-                        />
-                    </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Patient Name</label>
+                    <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required
+                    />
                 </div>
 
                 <div>

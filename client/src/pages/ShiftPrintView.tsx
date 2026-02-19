@@ -71,7 +71,7 @@ export default function ShiftPrintView() {
                             {data.vitals.map((v: any, idx: number) => (
                                 <tr key={idx}>
                                     <td className="border p-1">{new Date(v.timestamp).toLocaleTimeString()}</td>
-                                    <td className="border p-1">{v.patient.lastName}, {v.patient.firstName}</td>
+                                    <td className="border p-2">{v.patient.name}</td>
                                     <td className="border p-1 text-center">{v.heartRate}</td>
                                     <td className="border p-1 text-center">{v.bpSys}/{v.bpDia}</td>
                                     <td className="border p-1 text-center">{v.spo2}%</td>

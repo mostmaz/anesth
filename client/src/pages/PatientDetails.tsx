@@ -8,6 +8,7 @@ import OrdersTab from '../features/orders/OrdersTab';
 import InvestigationsTab from '../features/investigations/InvestigationsTab';
 import NotesTab from '../features/notes/NotesTab';
 import HandoverTab from '../features/handover/HandoverTab';
+import InterventionsTab from '../features/interventions/InterventionsTab';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiClient } from '../api/client';
@@ -71,6 +72,7 @@ export default function PatientDetails() {
                         <TabsTrigger value="investigations">Investigations</TabsTrigger>
                         <TabsTrigger value="radiology">Radiology</TabsTrigger>
                         <TabsTrigger value="cardiology">Cardiology</TabsTrigger>
+                        <TabsTrigger value="interventions">Interventions</TabsTrigger>
                         <TabsTrigger value="notes">Notes</TabsTrigger>
                     </TabsList>
 
@@ -154,15 +156,30 @@ export default function PatientDetails() {
                     </TabsContent>
 
                     <TabsContent value="investigations">
-                        <InvestigationsTab patientId={patient.id} defaultTab="labs" />
+                        <InvestigationsTab
+                            patientId={patient.id}
+                            patientMrn={patient.mrn}
+                            patientName={patient.name}
+                            defaultTab="labs"
+                        />
                     </TabsContent>
 
                     <TabsContent value="radiology">
-                        <InvestigationsTab patientId={patient.id} defaultTab="imaging" />
+                        <InvestigationsTab
+                            patientId={patient.id}
+                            patientMrn={patient.mrn}
+                            patientName={patient.name}
+                            defaultTab="imaging"
+                        />
                     </TabsContent>
 
                     <TabsContent value="cardiology">
-                        <InvestigationsTab patientId={patient.id} defaultTab="cardiology" />
+                        <InvestigationsTab
+                            patientId={patient.id}
+                            patientMrn={patient.mrn}
+                            patientName={patient.name}
+                            defaultTab="cardiology"
+                        />
                     </TabsContent>
 
                     <TabsContent value="notes">

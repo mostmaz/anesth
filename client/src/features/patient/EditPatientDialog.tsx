@@ -19,6 +19,8 @@ export default function EditPatientDialog({ patient, onUpdate }: EditPatientDial
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
+        name: patient.name,
+        mrn: patient.mrn,
         diagnosis: patient.diagnosis || '',
         comorbidities: patient.comorbidities ? patient.comorbidities.join(', ') : '',
         bed: ''
@@ -28,6 +30,8 @@ export default function EditPatientDialog({ patient, onUpdate }: EditPatientDial
         setLoading(true);
         try {
             await apiClient.patch(`/patients/${patient.id}`, {
+                name: formData.name,
+                mrn: formData.mrn,
                 diagnosis: formData.diagnosis,
                 comorbidities: formData.comorbidities.split(',').map(s => s.trim()).filter(Boolean)
             });
@@ -54,6 +58,20 @@ export default function EditPatientDialog({ patient, onUpdate }: EditPatientDial
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                     <div className="space-y-2">
+                        <Label>Patient Name</Label>
+                        <Input
+                            value={formData.name}
+                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>MRN</Label>
+                        <Input
+                            value={formData.mrn}
+                            onChange={(e) => setFormData(prev => ({ ...prev, mrn: e.target.value }))}
+                        />
+                    </div>
+                    <div className="space-y-2">
                         <Label>Primary Diagnosis</Label>
                         <Input
                             value={formData.diagnosis}
@@ -70,11 +88,34 @@ export default function EditPatientDialog({ patient, onUpdate }: EditPatientDial
                         />
                     </div>
                 </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                    <Button onClick={handleSubmit} disabled={loading}>
-                        {loading ? 'Saving...' : 'Save Changes'}
+                <DialogFooter className="mr-auto w-full flex justify-between sm:justify-between">
+                    <Button
+                        variant="destructive"
+                        onClick={async () => {
+                            if (confirm("Are you SURE you want to delete this patient? ALL DATA will be lost permanently.")) {
+                                try {
+                                    await apiClient.delete(`/patients/${patient.id}`);
+                                    toast.success("Patient deleted");
+                                    setOpen(false);
+                                    // Refresh window or navigate to home? 
+                                    // Ideally, onUpdate should handle it, but if we are viewing the patient details, we should leave.
+                                    // Assuming onUpdate handles list refresh.
+                                    // If we are on details page, we might want to go back.
+                                    window.location.href = '/dashboard';
+                                } catch (e) {
+                                    toast.error("Failed to delete patient");
+                                }
+                            }
+                        }}
+                    >
+                        Delete Patient
                     </Button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                        <Button onClick={handleSubmit} disabled={loading}>
+                            {loading ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                    </div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
