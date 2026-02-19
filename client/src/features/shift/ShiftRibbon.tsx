@@ -19,7 +19,7 @@ export default function ShiftRibbon() {
 
     return (
         <div className={cn(
-            "w-full h-12 px-4 flex items-center justify-between border-b text-sm font-medium",
+            "w-full h-12 px-4 flex items-center justify-between border-b text-sm font-medium print:hidden",
             isNight ? "bg-indigo-950 text-indigo-100 border-indigo-900" : "bg-blue-50 text-blue-900 border-blue-100"
         )}>
             <div className="flex items-center space-x-4">

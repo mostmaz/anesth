@@ -13,7 +13,7 @@ export interface VitalSign {
 
 export const vitalsApi = {
     getVitals: async (patientId: string, startTime?: string, endTime?: string): Promise<VitalSign[]> => {
-        let url = `http://localhost:3000/api/vitals/${patientId}`;
+        let url = `http://localhost:3001/api/vitals/${patientId}`;
         const params = new URLSearchParams();
         if (startTime) params.append('startTime', startTime);
         if (endTime) params.append('endTime', endTime);
@@ -25,7 +25,7 @@ export const vitalsApi = {
     },
 
     addVitals: async (data: { patientId: string; heartRate: number | null; bpSys: number | null; bpDia: number | null; spo2: number | null; temp: number | null; rbs: number | null }): Promise<VitalSign> => {
-        const response = await fetch('http://localhost:3000/api/vitals', {
+        const response = await fetch('http://localhost:3001/api/vitals', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),

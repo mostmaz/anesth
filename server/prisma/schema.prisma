@@ -37,6 +37,21 @@ model User {
   investigations Investigation[]
   specialistNotes SpecialistNote[]
   administeredMeds MedicationAdministration[]
+  assignments  PatientAssignment[]
+}
+
+model PatientAssignment {
+  id        String   @id @default(uuid())
+  patientId String
+  userId    String
+  shiftId   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  endedAt   DateTime?
+
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+  shift     Shift?   @relation(fields: [shiftId], references: [id])
 }
 
 model Shift {
@@ -50,13 +65,14 @@ model Shift {
   user      User      @relation(fields: [userId], references: [id])
   ioEntries IntakeOutput[]
   checkIns  NurseCheckIn[]
+  assignments PatientAssignment[]
 }
 
 model Patient {
   id        String   @id @default(uuid())
   mrn       String   @unique
-  firstName String
-  lastName  String
+
+  name      String
   dob       DateTime
   gender    String
   comorbidities String[] @default([])
@@ -71,6 +87,7 @@ model Patient {
   checkIns    NurseCheckIn[]
   orders      ClinicalOrder[]
   investigations Investigation[]
+  assignments    PatientAssignment[]
   specialistNotes SpecialistNote[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -84,7 +101,7 @@ model Admission {
   admittedAt DateTime @default(now())
   dischargedAt DateTime?
 
-  patient   Patient  @relation(fields: [patientId], references: [id])
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
 }
 
 // Clinical Notes
@@ -101,7 +118,7 @@ model ClinicalNote {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  patient   Patient  @relation(fields: [patientId], references: [id])
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   author    User     @relation(fields: [authorId], references: [id])
 }
 
@@ -139,7 +156,7 @@ model VitalSign {
   
   timestamp DateTime @default(now())
   
-  patient   Patient  @relation(fields: [patientId], references: [id])
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
 }
 
 model Medication {
@@ -152,7 +169,7 @@ model Medication {
   otherInstructions String? // e.g., "Take with food"
   patientId   String?
   
-  patient     Patient? @relation(fields: [patientId], references: [id])
+  patient     Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
   administrations MedicationAdministration[]
 }
 
@@ -175,7 +192,7 @@ model MedicationAdministration {
   timestamp    DateTime @default(now())
   userId       String?  // Nurse who administered
   
-  patient      Patient    @relation(fields: [patientId], references: [id])
+  patient      Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
   medication   Medication @relation(fields: [medicationId], references: [id])
   user         User?      @relation(fields: [userId], references: [id])
 }
@@ -193,7 +210,7 @@ model IntakeOutput {
   notes     String?
   timestamp DateTime @default(now())
 
-  patient   Patient @relation(fields: [patientId], references: [id])
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
   user      User    @relation(fields: [userId], references: [id])
   shift     Shift?  @relation(fields: [shiftId], references: [id])
 }
@@ -210,7 +227,7 @@ model NurseCheckIn {
   notes         String?
   timestamp     DateTime @default(now())
 
-  patient   Patient @relation(fields: [patientId], references: [id])
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
   user      User    @relation(fields: [userId], references: [id])
   shift     Shift?  @relation(fields: [shiftId], references: [id])
 }
@@ -238,6 +255,7 @@ enum OrderType {
   NURSING
   DIET
   CONSULT
+  PROCEDURE
 }
 
 enum Priority {
@@ -263,7 +281,7 @@ model ClinicalOrder {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
-  patient   Patient @relation(fields: [patientId], references: [id])
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
   author    User    @relation("CreatedOrders", fields: [authorId], references: [id])
   approver  User?   @relation("ApprovedOrders", fields: [approverId], references: [id])
   investigations Investigation[]
@@ -358,7 +376,7 @@ model SpecialistNote {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  patient   Patient @relation(fields: [patientId], references: [id])
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
   author    User    @relation(fields: [authorId], references: [id])
 }
 
@@ -379,8 +397,10 @@ model Investigation {
   
   conductedAt DateTime @default(now()) // When the test was done
   createdAt   DateTime @default(now()) // When it was entered in system
+  
+  externalId  String?   // Lab Accession Number (Not unique, can have multiple reports per AccNo)
 
-  patient   Patient       @relation(fields: [patientId], references: [id])
+  patient   Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
   order     ClinicalOrder? @relation(fields: [orderId], references: [id])
   author    User          @relation(fields: [authorId], references: [id])
 }

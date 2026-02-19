@@ -64,6 +64,15 @@ export default function ShiftManager() {
                         >
                             End Shift
                         </Button>
+                        {user.role === 'SENIOR' && (
+                            <Button
+                                variant="outline"
+                                className="w-full border-slate-600 hover:bg-slate-700"
+                                onClick={handleViewHistory}
+                            >
+                                View Shift History
+                            </Button>
+                        )}
                     </CardContent>
                 </Card>
             </div>

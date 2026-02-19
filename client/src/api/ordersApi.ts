@@ -2,7 +2,7 @@
 import { apiClient } from './client';
 
 export type OrderStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'COMPLETED' | 'DISCONTINUED';
-export type OrderType = 'MEDICATION' | 'LAB' | 'IMAGING' | 'PROTOCOL' | 'NURSING' | 'DIET' | 'CONSULT';
+export type OrderType = 'MEDICATION' | 'LAB' | 'IMAGING' | 'PROTOCOL' | 'NURSING' | 'DIET' | 'CONSULT' | 'PROCEDURE';
 export type Priority = 'ROUTINE' | 'URGENT' | 'STAT';
 
 export interface ClinicalOrder {
@@ -17,6 +17,7 @@ export interface ClinicalOrder {
     details?: any;
     notes?: string;
     createdAt: string;
+    updatedAt: string;
     author: {
         name: string;
         role: string;

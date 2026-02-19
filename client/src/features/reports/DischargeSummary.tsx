@@ -80,11 +80,11 @@ export default function DischargeSummary() {
             <div className="border-b pb-4 mb-6">
                 <div className="flex justify-between items-start">
                     <div>
-                        <h1 className="text-2xl font-bold uppercase tracking-tight">Discharge Summary</h1>
+                        <span className="font-semibold">Patient Name:</span> {patient.name}
                         <div className="text-sm text-slate-500">Date: {new Date().toLocaleDateString()}</div>
                     </div>
                     <div className="text-right">
-                        <div className="text-xl font-bold">{patient.lastName}, {patient.firstName}</div>
+                        <div className="text-xl font-bold">{patient.name}</div>
                         <div className="text-sm">MRN: <span className="font-mono">{patient.mrn}</span></div>
                     </div>
                 </div>
@@ -132,6 +132,31 @@ export default function DischargeSummary() {
                     Electronically Signatures
                 </div>
                 <div className="w-64 border-b border-black h-8"></div>
+            </div>
+
+            <div className="mt-8 flex justify-end print:hidden">
+                <Button
+                    variant="destructive"
+                    size="lg"
+                    className="w-full sm:w-auto"
+                    onClick={async () => {
+                        if (confirm("Are you sure you want to discharge this patient? This will close their current admission.")) {
+                            try {
+                                await apiClient.patch(`/patients/${id}/discharge`, {});
+                                toast.success("Patient discharged successfully");
+                                if (window.opener) {
+                                    window.opener.location.reload();
+                                }
+                                window.close(); // Close the tab
+                            } catch (error) {
+                                console.error(error);
+                                toast.error("Failed to discharge patient");
+                            }
+                        }
+                    }}
+                >
+                    Confirm Discharge & Close File
+                </Button>
             </div>
         </div>
     );

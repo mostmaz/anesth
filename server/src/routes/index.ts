@@ -14,8 +14,13 @@ import specialistRoutes from './specialist.routes';
 import uploadRoutes from './upload.routes';
 import ocrRoutes from './ocr.routes';
 import seedRoutes from './seed.routes';
+import labRoutes from './lab.routes';
+import assignmentRoutes from './assignment.routes';
+import userRoutes from './user.routes';
 
 const router = Router();
+
+router.use('/users', userRoutes);
 
 router.use('/patients', patientRoutes);
 router.use('/shifts', shiftRoutes);
@@ -31,5 +36,7 @@ router.use('/specialist', specialistRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/ocr', ocrRoutes);
 router.use('/seed', seedRoutes);
+router.use('/lab', labRoutes);
+router.use('/assignments', assignmentRoutes);
 
 export default router;

@@ -41,6 +41,30 @@ router.get('/catalog', async (req, res) => {
     }
 });
 
+// POST /catalog - Add new drug to catalog
+router.post('/catalog', async (req, res) => {
+    try {
+        const { name, defaultDose, defaultRoute } = req.body;
+        const drug = await prisma.drugCatalog.create({
+            data: { name, defaultDose, defaultRoute }
+        });
+        res.json(drug);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to add drug" });
+    }
+});
+
+// DELETE /catalog/:id - Remove drug from catalog
+router.delete('/catalog/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await prisma.drugCatalog.delete({ where: { id } });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to delete drug" });
+    }
+});
+
 // POST /prescribe - Add new medication to patient
 router.post('/prescribe', async (req, res) => {
     try {

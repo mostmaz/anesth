@@ -12,6 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "../../components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '../../components/ui/dialog';
 import { Plus, Droplets, ArrowDown, ArrowUp, Printer } from 'lucide-react';
 import { ioApi, type IOEntry } from '../../api/ioApi';
 import { useAuthStore } from '../../stores/authStore';
@@ -46,25 +47,43 @@ export default function IOTab({ patientId }: IOTabProps) {
         }
     };
 
-    const handlePrintShift = () => {
-        const now = new Date();
-        let start = new Date(now);
-        let end = new Date(now);
+    const [printDialogOpen, setPrintDialogOpen] = useState(false);
+    const [printRange, setPrintRange] = useState<'SHIFT' | 'CUSTOM'>('SHIFT');
+    const [customStart, setCustomStart] = useState('');
+    const [customEnd, setCustomEnd] = useState('');
 
-        // Simple 12h shift logic: Day (8am-8pm) / Night (8pm-8am)
-        if (now.getHours() >= 8 && now.getHours() < 20) {
-            start.setHours(8, 0, 0, 0);
-            end.setHours(20, 0, 0, 0);
-        } else {
-            if (now.getHours() < 8) {
-                start.setDate(start.getDate() - 1);
+    const handlePrint = () => {
+        let start = new Date();
+        let end = new Date();
+
+        if (printRange === 'SHIFT') {
+            const now = new Date();
+            // Simple 12h shift logic: Day (8am-8pm) / Night (8pm-8am)
+            if (now.getHours() >= 8 && now.getHours() < 20) {
+                start = new Date(now);
+                start.setHours(8, 0, 0, 0);
+                end = new Date(now);
+                end.setHours(20, 0, 0, 0);
+            } else {
+                start = new Date(now);
+                if (now.getHours() < 8) {
+                    start.setDate(start.getDate() - 1);
+                }
+                start.setHours(20, 0, 0, 0);
+                end = new Date(start);
+                end.setDate(end.getDate() + 1);
+                end.setHours(8, 0, 0, 0);
             }
-            start.setHours(20, 0, 0, 0);
-            end = new Date(start);
-            end.setDate(end.getDate() + 1);
-            end.setHours(8, 0, 0, 0);
+        } else {
+            if (!customStart || !customEnd) {
+                toast.error("Please select start and end times");
+                return;
+            }
+            start = new Date(customStart);
+            end = new Date(customEnd);
         }
 
+        setPrintDialogOpen(false);
         navigate(`/print-io/${patientId}?startTime=${start.toISOString()}&endTime=${end.toISOString()}`);
     };
 
@@ -98,10 +117,68 @@ export default function IOTab({ patientId }: IOTabProps) {
     return (
         <div className="space-y-6">
             <div className="flex justify-end">
-                <Button onClick={handlePrintShift} variant="outline" size="sm">
-                    <Printer className="w-4 h-4 mr-2" />
-                    Print 12h Shift Report
-                </Button>
+                <Dialog open={printDialogOpen} onOpenChange={setPrintDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                            <Printer className="w-4 h-4 mr-2" />
+                            Print Report
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Print I/O Report</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="shift-io"
+                                    name="range-io"
+                                    checked={printRange === 'SHIFT'}
+                                    onChange={() => setPrintRange('SHIFT')}
+                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                                />
+                                <Label htmlFor="shift-io">Current Shift (12h)</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="custom-io"
+                                    name="range-io"
+                                    checked={printRange === 'CUSTOM'}
+                                    onChange={() => setPrintRange('CUSTOM')}
+                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                                />
+                                <Label htmlFor="custom-io">Custom Range</Label>
+                            </div>
+
+                            {printRange === 'CUSTOM' && (
+                                <div className="grid grid-cols-2 gap-4 pl-6">
+                                    <div className="space-y-2">
+                                        <Label>Start Time</Label>
+                                        <Input
+                                            type="datetime-local"
+                                            value={customStart}
+                                            onChange={(e) => setCustomStart(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>End Time</Label>
+                                        <Input
+                                            type="datetime-local"
+                                            value={customEnd}
+                                            onChange={(e) => setCustomEnd(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setPrintDialogOpen(false)}>Cancel</Button>
+                            <Button onClick={handlePrint}>Generate Report</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
             {/* Summary Cards */}
             <div className="grid grid-cols-3 gap-4">
@@ -214,7 +291,7 @@ export default function IOTab({ patientId }: IOTabProps) {
                         <table className="min-w-full text-sm">
                             <thead>
                                 <tr className="border-b">
-                                    <th className="text-left p-2">Time</th>
+                                    <th className="text-left p-2">Date & Time</th>
                                     <th className="text-left p-2">Type</th>
                                     <th className="text-left p-2">Category</th>
                                     <th className="text-right p-2">Amount</th>
@@ -225,7 +302,12 @@ export default function IOTab({ patientId }: IOTabProps) {
                             <tbody>
                                 {history.map((entry) => (
                                     <tr key={entry.id} className="border-b hover:bg-slate-50">
-                                        <td className="p-2">{new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                                        <td className="p-2">
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">{new Date(entry.timestamp).toLocaleDateString()}</span>
+                                                <span className="text-xs text-slate-500">{new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                            </div>
+                                        </td>
                                         <td className="p-2">
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${entry.type === 'INPUT' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'}`}>
                                                 {entry.type}
@@ -242,6 +324,6 @@ export default function IOTab({ patientId }: IOTabProps) {
                     </div>
                 </CardContent>
             </Card>
-        </div>
+        </div >
     );
 }

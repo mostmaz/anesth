@@ -13,6 +13,7 @@ import { Button } from '../../components/ui/button';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 import { Separator } from '../../components/ui/separator';
 import { Bed, Stethoscope, Printer, Activity } from 'lucide-react';
+import { calculateAge } from '../../lib/utils';
 
 import EditPatientDialog from './EditPatientDialog';
 
@@ -72,16 +73,16 @@ export default function PatientHeader({ patient, onUpdate }: PatientHeaderProps)
                     <div className="flex items-center space-x-4">
                         <Avatar className="h-12 w-12 border-2 border-muted">
                             <AvatarFallback className="bg-blue-100 text-blue-700 font-bold">
-                                {patient.firstName[0]}{patient.lastName[0]}
+                                {patient.name.substring(0, 2).toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
                         <div>
                             <div className="flex items-center space-x-2">
                                 <h1 className="text-xl font-bold text-foreground">
-                                    {patient.lastName}, {patient.firstName}
+                                    {patient.name}
                                 </h1>
                                 <Badge variant="outline" className="text-muted-foreground">
-                                    {new Date().getFullYear() - new Date(patient.dob).getFullYear()}y {patient.gender.charAt(0)}
+                                    {calculateAge(patient.dob)} / {patient.gender.charAt(0)}
                                 </Badge>
                                 {onUpdate && <EditPatientDialog patient={patient} onUpdate={onUpdate} />}
                                 <Badge className="bg-red-100 text-red-800 hover:bg-red-200 border-red-200">

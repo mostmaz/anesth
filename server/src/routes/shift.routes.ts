@@ -20,7 +20,60 @@ router.get('/active/:userId', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch active shift' });
     }
+}
 });
+
+// GET staff on duty (Seniors + Active Nurses)
+router.get('/staff-on-duty', async (req, res) => {
+    try {
+        // 1. Get all Seniors (assuming they are always "On Call" or we can filter by shift if they track it)
+        // For now, let's get all Seniors.
+        const seniors = await prisma.user.findMany({
+            where: { role: 'SENIOR' },
+            select: { id: true, name: true, role: true }
+        });
+
+        // 2. Get active Nurses (those with active shifts)
+        const activeSystemShifts = await prisma.shift.findMany({
+            where: { isActive: true, user: { role: 'NURSE' } },
+            include: {
+                user: {
+                    select: { id: true, name: true, role: true }
+                }
+            }
+        });
+
+        // 3. Get active assignments for these nurses to show where they are assigned
+        // We can fetch all active assignments and map them
+        const activeAssignments = await prisma.patientAssignment.findMany({
+            where: { isActive: true },
+            include: {
+                patient: { select: { name: true, mrn: true } },
+                user: { select: { id: true } }
+            }
+        });
+
+        // Format the response
+        const nursesOnDuty = activeSystemShifts.map(shift => {
+            const assignment = activeAssignments.find(a => a.user.id === shift.user.id);
+            return {
+                ...shift.user,
+                shiftType: shift.type,
+                assignment: assignment ? assignment.patient.name : 'Unassigned' // or null
+            };
+        });
+
+        res.json({
+            seniors,
+            nurses: nursesOnDuty
+        });
+
+    } catch (error) {
+        console.error("Error fetching staff on duty:", error);
+        res.status(500).json({ error: 'Failed to fetch staff on duty' });
+    }
+});
+
 
 // POST start a new shift
 router.post('/start', async (req, res) => {

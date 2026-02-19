@@ -58,7 +58,7 @@ export function InvestigationDetailDialog({ investigation, onClose, patientId }:
                     {result.imageUrl && (
                         <div className="bg-slate-50 p-4 rounded-lg flex justify-center">
                             <img
-                                src={`http://localhost:3000${result.imageUrl}`}
+                                src={`http://localhost:3001${result.imageUrl}`}
                                 alt="Investigation Result"
                                 className="max-h-[300px] w-auto rounded shadow-sm"
                             />

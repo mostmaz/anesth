@@ -15,8 +15,7 @@ router.post('/mrn-139494', async (req, res) => {
             patient = await prisma.patient.create({
                 data: {
                     mrn: '139494',
-                    firstName: 'Test',
-                    lastName: 'Patient-139494',
+                    name: 'Test Patient-139494',
                     dob: new Date('1975-05-15'),
                     gender: 'Male',
                     diagnosis: 'Post-Op Observation',

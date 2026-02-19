@@ -3,8 +3,7 @@ import { apiClient } from '../api/client';
 
 interface Patient {
     id: string;
-    firstName: string;
-    lastName: string;
+    name: string;
     mrn: string;
     gender: string;
     dob: string;
@@ -56,7 +55,7 @@ export default function PatientList() {
                             {patients.map((patient) => (
                                 <tr key={patient.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{patient.mrn}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{patient.firstName} {patient.lastName}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{patient.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{patient.gender}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {new Date(patient.dob).toLocaleDateString()}

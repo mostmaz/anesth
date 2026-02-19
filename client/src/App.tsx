@@ -12,6 +12,7 @@ import IOPrintView from './features/io/IOPrintView';
 import MARPrintView from './features/medication/MARPrintView';
 import ShiftHistory from './pages/ShiftHistory';
 import ShiftPrintView from './pages/ShiftPrintView';
+import AdminPanel from './pages/AdminPanel';
 import { useAuthStore } from './stores/authStore';
 import { type ReactNode } from 'react';
 
@@ -72,7 +73,14 @@ function App() {
 
             <Route path="/shift" element={<ShiftManager />} />
             <Route path="/shifts/history" element={<ShiftHistory />} />
-            <Route path="/admin" element={<div className="p-8">Admin Panel (Coming Soon)</div>} />
+            import AdminPanel from './pages/AdminPanel';
+
+            // ... inside Routes
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <AdminPanel />
+              </ProtectedRoute>
+            } />
           </Route>
 
           <Route path="/print/shift/:id" element={
