@@ -26,6 +26,7 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
+    "node-ssh": "^13.2.1",
     "puppeteer": "^24.37.3"
   },
   "devDependencies": {

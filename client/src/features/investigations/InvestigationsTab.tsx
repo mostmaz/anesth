@@ -312,7 +312,7 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                                                     <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
                                                         <div className="p-4 bg-black/5 flex justify-center items-center min-h-[200px]">
                                                             <img
-                                                                src={`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${lab.result.imageUrl}`}
+                                                                src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`}
                                                                 alt="Result"
                                                                 className="max-w-full h-auto rounded shadow-sm"
                                                             />
@@ -396,7 +396,7 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                                                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
                                                     <div className="p-4 bg-black/5 flex justify-center items-center min-h-[200px]">
                                                         <img
-                                                            src={`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${img.result.imageUrl}`}
+                                                            src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${img.result.imageUrl}`}
                                                             alt="Investigation result"
                                                             className="max-w-full h-auto rounded shadow-sm"
                                                         />
@@ -472,7 +472,7 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                                                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
                                                     <div className="p-4 bg-black/5 flex justify-center items-center min-h-[200px]">
                                                         <img
-                                                            src={`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${img.result.imageUrl}`}
+                                                            src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${img.result.imageUrl}`}
                                                             alt="Investigation result"
                                                             className="max-w-full h-auto rounded shadow-sm"
                                                         />
