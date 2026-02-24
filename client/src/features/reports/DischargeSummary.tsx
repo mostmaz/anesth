@@ -140,18 +140,31 @@ export default function DischargeSummary() {
                     size="lg"
                     className="w-full sm:w-auto"
                     onClick={async () => {
-                        if (confirm("Are you sure you want to discharge this patient? This will close their current admission.")) {
-                            try {
-                                await apiClient.patch(`/patients/${id}/discharge`, {});
-                                toast.success("Patient discharged successfully");
-                                if (window.opener) {
-                                    window.opener.location.reload();
+                        console.log("Initiating discharge for patient ID:", id);
+                        try {
+                            await apiClient.patch(`/patients/${id}/discharge`, {
+                                dischargedAt: new Date().toISOString()
+                            });
+                            toast.success("Patient discharged successfully");
+
+                            setTimeout(() => {
+                                // Attempt window close (may be blocked by browser)
+                                try {
+                                    if (window.opener) {
+                                        window.opener.location.reload();
+                                    }
+                                    window.close();
+                                } catch (e) {
+                                    console.error("Window close blocked", e);
                                 }
-                                window.close(); // Close the tab
-                            } catch (error) {
-                                console.error(error);
-                                toast.error("Failed to discharge patient");
-                            }
+
+                                // Fallback redirect if window is still open
+                                window.location.href = '/dashboard';
+                            }, 1500);
+
+                        } catch (error) {
+                            console.error("Discharge failed:", error);
+                            toast.error("Failed to discharge patient");
                         }
                     }}
                 >

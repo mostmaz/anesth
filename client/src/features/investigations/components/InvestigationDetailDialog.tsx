@@ -79,16 +79,16 @@ export function InvestigationDetailDialog({ investigation, onClose, patientId }:
                                 </thead>
                                 <tbody className="divide-y">
                                     {entries.map(([key, val]) => (
-                                        <tr key={key} className="hover:bg-slate-50/50">
-                                            <td className="px-4 py-3 font-medium">{key}</td>
-                                            <td className="px-4 py-3 font-bold text-base text-slate-900">{String(val)}</td>
+                                        <tr key={key as string} className="hover:bg-slate-50/50">
+                                            <td className="px-4 py-3 font-medium">{key as string}</td>
+                                            <td className="px-4 py-3 font-bold text-base text-slate-900">{String(val as any)}</td>
                                             <td className="px-4 py-3 text-muted-foreground">-</td> {/* Placeholder for Normal Range */}
                                             <td className="px-4 py-3 text-right">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
                                                     className="h-8 w-8 p-0"
-                                                    onClick={() => setSelectedParameter(key)}
+                                                    onClick={() => setSelectedParameter(key as string)}
                                                 >
                                                     <TrendingUp className="h-4 w-4 text-blue-600" />
                                                 </Button>

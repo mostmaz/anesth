@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { type User } from '../types';
@@ -10,26 +11,23 @@ interface AuthState {
     logout: () => void;
 }
 
-// Mock initial user for dev speed until login is implemented
-const MOCK_USER: User = {
-    id: 'mock-nurse-id',
-    username: 'nursajane',
-    name: 'Jane Doe',
-    role: 'NURSE'
+// Initial state
+const INITIAL_STATE = {
+    user: null,
+    token: null,
+    isAuthenticated: false,
 };
 
 export const useAuthStore = create<AuthState>()(
     persist(
         (set) => ({
-            user: MOCK_USER, // Default will still be mock if nothing in storage
-            token: 'mock-token',
-            isAuthenticated: true,
+            ...INITIAL_STATE,
             login: (token, user) => set({ token, user, isAuthenticated: true }),
-            logout: () => set({ token: null, user: null, isAuthenticated: false }),
+            logout: () => set({ ...INITIAL_STATE }),
         }),
         {
-            name: 'auth-storage', // name of the item in the storage (must be unique)
-            storage: createJSONStorage(() => localStorage), // (optional) by default, 'localStorage' is used
+            name: 'auth-storage',
+            storage: createJSONStorage(() => localStorage),
         }
     )
 );

@@ -32,4 +32,6 @@ export interface Admission {
     diagnosis?: string;
     admittedAt: string;
     dischargedAt?: string;
+    doctor?: { id: string; name: string };
+    specialty?: { id: string; name: string };
 }

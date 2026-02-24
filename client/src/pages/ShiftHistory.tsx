@@ -14,7 +14,8 @@ export default function ShiftHistory() {
         const fetchShifts = async () => {
             try {
                 const response = await apiClient.get<any[]>('/shifts/history');
-                setShifts(response.data);
+                const sorted = response.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+                setShifts(sorted);
             } catch (error) {
                 console.error("Failed to fetch shift history", error);
             } finally {

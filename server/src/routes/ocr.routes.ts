@@ -6,7 +6,7 @@ const router = Router();
 
 router.post('/analyze', async (req, res) => {
     try {
-        const { filePath } = req.body;
+        const { filePath, mode } = req.body;
 
         if (!filePath) {
             return res.status(400).json({ error: 'File path is required' });
@@ -18,9 +18,9 @@ router.post('/analyze', async (req, res) => {
         const normalizedPath = filePath.replace(/^[/\\]/, '');
         const absolutePath = path.join(__dirname, '../../', normalizedPath);
 
-        console.log(`OCR Analysis Request: ${filePath} -> ${absolutePath}`);
+        console.log(`OCR Analysis Request [Mode: ${mode || 'LAB'}]: ${filePath} -> ${absolutePath}`);
 
-        const data = await ocrService.analyzeImage(absolutePath);
+        const data = await ocrService.analyzeImage(absolutePath, mode);
         res.json(data);
     } catch (error) {
         console.error('OCR Error:', error);

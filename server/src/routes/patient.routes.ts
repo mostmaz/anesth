@@ -7,7 +7,11 @@ const router = Router();
 router.get('/', async (req, res) => {
     try {
         const patients = await prisma.patient.findMany({
-            include: { admissions: true }
+            include: {
+                admissions: {
+                    include: { doctor: true, specialty: true }
+                }
+            }
         });
         res.json(patients);
     } catch (error) {
@@ -21,7 +25,11 @@ router.get('/:id', async (req, res) => {
         const { id } = req.params;
         const patient = await prisma.patient.findUnique({
             where: { id },
-            include: { admissions: true }
+            include: {
+                admissions: {
+                    include: { doctor: true, specialty: true }
+                }
+            }
         });
         if (!patient) {
             return res.status(404).json({ error: 'Patient not found' });
@@ -35,7 +43,7 @@ router.get('/:id', async (req, res) => {
 // CREATE patient
 router.post('/', async (req, res) => {
     try {
-        const { name, mrn, dob, gender, diagnosis, comorbidities, authorId } = req.body;
+        const { name, mrn, dob, gender, diagnosis, comorbidities, authorId, doctorId, specialtyId } = req.body;
 
         // 1. Create Patient
         const patient = await prisma.patient.create({
@@ -49,7 +57,9 @@ router.post('/', async (req, res) => {
                 admissions: {
                     create: {
                         diagnosis: diagnosis,
-                        admittedAt: new Date()
+                        admittedAt: new Date(),
+                        doctorId: doctorId || undefined,
+                        specialtyId: specialtyId || undefined
                     }
                 }
             }
@@ -90,7 +100,7 @@ router.post('/', async (req, res) => {
 router.patch('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, mrn, dob, gender, diagnosis, comorbidities } = req.body;
+        const { name, mrn, dob, gender, diagnosis, comorbidities, doctorId, specialtyId } = req.body;
 
         const patient = await prisma.patient.update({
             where: { id },
@@ -103,6 +113,22 @@ router.patch('/:id', async (req, res) => {
                 comorbidities
             }
         });
+
+        if (doctorId !== undefined || specialtyId !== undefined) {
+            const activeAdmission = await prisma.admission.findFirst({
+                where: { patientId: id, dischargedAt: null }
+            });
+            if (activeAdmission) {
+                await prisma.admission.update({
+                    where: { id: activeAdmission.id },
+                    data: {
+                        doctorId: doctorId || undefined,
+                        specialtyId: specialtyId || undefined
+                    }
+                });
+            }
+        }
+
         res.json(patient);
     } catch (error) {
         console.error("Error updating patient:", error);

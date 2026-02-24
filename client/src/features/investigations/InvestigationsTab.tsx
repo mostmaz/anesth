@@ -37,10 +37,13 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [isLabImportOpen, setIsLabImportOpen] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [isDeletingAll, setIsDeletingAll] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     const fetchInvestigations = async () => {
         try {
             const data = await investigationsApi.getAll(patientId);
+            console.log("Fetched investigations for patient:", data);
             setInvestigations(data);
         } catch (error) {
             console.error("Failed to load investigations", error);
@@ -61,6 +64,8 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                 name: patientName,
                 authorId: user?.id
             });
+
+            console.log("Lab sync response:", result);
 
             if (result.success && result.count > 0) {
                 console.log(`Auto-synced ${result.count} new reports`);
@@ -91,17 +96,23 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
         }
     };
 
+    const handleDeleteAll = async () => {
+        setIsDeletingAll(true);
+        try {
+            await investigationsApi.deleteAll(patientId);
+            setInvestigations([]);
+            setIsDeleteDialogOpen(false);
+        } catch (error) {
+            console.error("Failed to delete all investigations", error);
+            alert("Failed to delete all investigations.");
+            fetchInvestigations();
+        } finally {
+            setIsDeletingAll(false);
+        }
+    };
+
     useEffect(() => {
         fetchInvestigations();
-
-        // Initial sync on mount if MRN is present
-        if (patientMrn) {
-            syncLabs();
-
-            // Poll every 10 minutes
-            const interval = setInterval(syncLabs, 10 * 60 * 1000);
-            return () => clearInterval(interval);
-        }
     }, [patientId, patientMrn]);
 
     // Helper to normalize test names
@@ -158,17 +169,49 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                         variant="default" // Primary action
                         size="sm"
                         onClick={syncLabs}
-                        disabled={isSyncing}
+                        disabled={isSyncing || isDeletingAll}
                         className="bg-blue-600 hover:bg-blue-700"
                     >
                         <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
                         {isSyncing ? 'Syncing...' : 'Sync All'}
                     </Button>
-                    <Button variant="outline" onClick={() => setIsLabImportOpen(true)}>
+                    <Button variant="outline" onClick={() => setIsLabImportOpen(true)} disabled={isDeletingAll}>
                         <Microscope className="w-4 h-4 mr-2" />
                         Import Lab
                     </Button>
                     <UploadExternalResultDialog patientId={patientId} onSuccess={fetchInvestigations} />
+                    {investigations.length > 0 && (
+                        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    disabled={isDeletingAll}
+                                >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    {isDeletingAll ? 'Deleting...' : 'Delete All'}
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px]">
+                                <div className="p-4 space-y-4">
+                                    <h3 className="text-lg font-medium text-red-600 flex items-center gap-2">
+                                        <Trash2 className="w-5 h-5" /> Delete All Investigations
+                                    </h3>
+                                    <p className="text-sm text-slate-500">
+                                        Are you sure you want to delete ALL investigations for this patient? This action cannot be undone.
+                                    </p>
+                                    <div className="flex justify-end gap-2 pt-4">
+                                        <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeletingAll}>
+                                            Cancel
+                                        </Button>
+                                        <Button variant="destructive" onClick={handleDeleteAll} disabled={isDeletingAll}>
+                                            {isDeletingAll ? 'Deleting...' : 'Yes, Delete All'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                    )}
                 </div>
             </div>
 
@@ -269,7 +312,7 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                                                     <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
                                                         <div className="p-4 bg-black/5 flex justify-center items-center min-h-[200px]">
                                                             <img
-                                                                src={`http://localhost:3001${lab.result.imageUrl}`}
+                                                                src={`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${lab.result.imageUrl}`}
                                                                 alt="Result"
                                                                 className="max-w-full h-auto rounded shadow-sm"
                                                             />
@@ -353,7 +396,7 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                                                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
                                                     <div className="p-4 bg-black/5 flex justify-center items-center min-h-[200px]">
                                                         <img
-                                                            src={`http://localhost:3001${img.result.imageUrl}`}
+                                                            src={`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${img.result.imageUrl}`}
                                                             alt="Investigation result"
                                                             className="max-w-full h-auto rounded shadow-sm"
                                                         />
@@ -429,7 +472,7 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                                                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
                                                     <div className="p-4 bg-black/5 flex justify-center items-center min-h-[200px]">
                                                         <img
-                                                            src={`http://localhost:3001${img.result.imageUrl}`}
+                                                            src={`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}${img.result.imageUrl}`}
                                                             alt="Investigation result"
                                                             className="max-w-full h-auto rounded shadow-sm"
                                                         />
@@ -503,17 +546,54 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                                     }
                                 }
 
-                                await investigationsApi.create({
+                                let parsedDate = new Date();
+                                if (item.date) {
+                                    if (item.date.includes('/')) {
+                                        const [d, m, y] = item.date.split('/');
+                                        parsedDate = new Date(`${y}-${m}-${d}`);
+                                    } else if (item.date.includes('-')) {
+                                        const parts = item.date.split('-');
+                                        if (parts[0].length === 4) {
+                                            parsedDate = new Date(item.date);
+                                        } else {
+                                            parsedDate = new Date(parts.reverse().join('-'));
+                                        }
+                                    } else {
+                                        parsedDate = new Date(item.date);
+                                    }
+                                }
+                                if (isNaN(parsedDate.getTime())) parsedDate = new Date();
+
+                                if (item.time) {
+                                    const timeStr = item.time.toString().trim();
+                                    const timeMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM|a\.m\.|p\.m\.|a|p)?/i);
+                                    if (timeMatch) {
+                                        let hours = parseInt(timeMatch[1], 10);
+                                        const mins = parseInt(timeMatch[2], 10);
+                                        const amorpm = timeMatch[3];
+                                        if (amorpm) {
+                                            if (amorpm.toUpperCase().startsWith('P') && hours < 12) hours += 12;
+                                            if (amorpm.toUpperCase().startsWith('A') && hours === 12) hours = 0;
+                                        }
+                                        parsedDate.setHours(hours, mins, 0, 0);
+                                    }
+                                }
+
+                                const investigationData = {
                                     patientId,
                                     authorId: user?.id || 'mock-nurse-id',
                                     type: (item.type || 'LAB') as 'LAB' | 'IMAGING',
                                     category: item.category || 'External',
                                     title: item.title || patient.name + ' Report',
-                                    status: 'FINAL',
+                                    status: 'FINAL' as const,
                                     result: { ...resultData, imageUrl: relativePath },
                                     impression: 'Imported from Lab Results',
-                                    conductedAt: item.date ? new Date(item.date).toISOString() : new Date().toISOString(),
-                                });
+                                    conductedAt: parsedDate.toISOString(),
+                                };
+
+                                console.log("Creating new synced investigation:", investigationData);
+
+                                await investigationsApi.create(investigationData);
                                 newItems++;
                             }
 

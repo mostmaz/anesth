@@ -6,10 +6,10 @@ const prisma = new PrismaClient();
 const labService = new LabImportService();
 
 export function startLabSyncJob() {
-    console.log("Starting Lab Sync Scheduler (Every 10 minutes)");
+    console.log("Starting Lab Sync Scheduler (Every 60 minutes)");
 
-    // Schedule: */10 * * * * (Every 10 minutes)
-    cron.schedule('*/10 * * * *', async () => {
+    // Schedule: 0 * * * * (At minute 0 past every hour)
+    cron.schedule('0 * * * *', async () => {
         console.log(`[Cron] Running Lab Sync Job at ${new Date().toISOString()}`);
 
         try {

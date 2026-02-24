@@ -56,6 +56,20 @@ router.post('/', async (req, res) => {
     }
 });
 
+// Delete All Investigations for a Patient
+router.delete('/patient/:patientId/all', async (req, res) => {
+    try {
+        const { patientId } = req.params;
+        await prisma.investigation.deleteMany({
+            where: { patientId }
+        });
+        res.status(204).send();
+    } catch (error) {
+        console.error('Error deleting all patient investigations:', error);
+        res.status(500).json({ error: 'Failed to delete investigations' });
+    }
+});
+
 // Delete Investigation
 router.delete('/:id', async (req, res) => {
     try {

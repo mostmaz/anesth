@@ -7,7 +7,6 @@ import { Trash2, UserPlus } from 'lucide-react';
 
 export default function UserManagementTab() {
     const [users, setUsers] = useState<User[]>([]);
-    const [loading, setLoading] = useState(false);
 
     // New User Form State
     const [newName, setNewName] = useState('');
@@ -16,14 +15,11 @@ export default function UserManagementTab() {
     const [newRole, setNewRole] = useState<'SENIOR' | 'RESIDENT' | 'NURSE'>('NURSE');
 
     const fetchUsers = async () => {
-        setLoading(true);
         try {
             const data = await adminApi.getUsers();
             setUsers(data);
         } catch (error) {
             toast.error("Failed to load users");
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -104,8 +100,8 @@ export default function UserManagementTab() {
                                 <td className="p-3 text-muted-foreground">{user.username}</td>
                                 <td className="p-3">
                                     <span className={`inline-flex px-2 py-1 rounded text-xs font-semibold ${user.role === 'SENIOR' ? 'bg-purple-100 text-purple-700' :
-                                            user.role === 'RESIDENT' ? 'bg-blue-100 text-blue-700' :
-                                                'bg-emerald-100 text-emerald-700'
+                                        user.role === 'RESIDENT' ? 'bg-blue-100 text-blue-700' :
+                                            'bg-emerald-100 text-emerald-700'
                                         }`}>
                                         {user.role}
                                     </span>
