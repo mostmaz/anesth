@@ -1,10 +1,12 @@
-const API_URL = 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export const apiClient = {
     get: async <T>(endpoint: string): Promise<T> => {
         const response = await fetch(`${API_URL}${endpoint}`);
         if (!response.ok) {
-            throw new Error(`API Error: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error("API Error Body:", errorText);
+            throw new Error(`API Error: ${response.statusText} (${response.status}) - ${errorText}`);
         }
         return response.json();
     },
@@ -17,7 +19,9 @@ export const apiClient = {
             body: JSON.stringify(data),
         });
         if (!response.ok) {
-            throw new Error(`API Error: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error("API Error Body:", errorText);
+            throw new Error(`API Error: ${response.statusText} (${response.status}) - ${errorText}`);
         }
         return response.json();
     },

@@ -177,9 +177,11 @@ export class LabImportService {
 
             const patients = await page.evaluate(() => {
                 const rows = Array.from(document.querySelectorAll('table.k-grid-table tbody tr'));
-                return rows.map((tr, idx) => {
+                const records: any[] = [];
+
+                rows.forEach((tr, idx) => {
                     const cells = Array.from(tr.querySelectorAll('td'));
-                    if (cells.length < 9) return null; // We need at least 9 cols based on inspection
+                    if (cells.length < 9) return; // We need at least 9 cols based on inspection
 
                     // Column mapping based on inspection:
                     // 0: Acc. No.
@@ -192,28 +194,57 @@ export class LabImportService {
                     const dateStr = (cells[1] as HTMLElement)?.innerText?.trim();
                     const mrn = (cells[2] as HTMLElement)?.innerText?.trim();
                     const name = (cells[3] as HTMLElement)?.innerText?.trim();
-                    const titleLong = (cells[6] as HTMLElement)?.innerText?.trim();
 
-                    // Cleanup title (remove / Chemistry etc if needed, but keeping it is fine for now)
-                    const title = titleLong ? titleLong.split('/')[0].trim() : 'Unknown Test';
+                    if (!name) return;
 
-                    if (!name) return null;
+                    // The Report Type cell might contain multiple tests separated by newlines
+                    // e.g. "CBC\nPT"
+                    const reportTypeCell = cells[6] as HTMLElement;
 
-                    return {
-                        id: mrn || Math.random().toString(36).substr(2, 9),
-                        name: name,
-                        mrn: mrn,
-                        date: dateStr,
-                        gender: 'Unknown',
-                        dob: '',
-                        accNo: accNo,
-                        title: title,
-                        rowIndex: idx // Capture index for precise selection later
-                    };
-                }).filter(p => p !== null);
+                    if (reportTypeCell) {
+                        // We extract all text nodes or handle innerText lines
+                        const textContent = reportTypeCell.innerText || '';
+
+                        // Split by newline to get individual reports. 
+                        const lines = textContent.split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0);
+
+                        if (lines.length > 0) {
+                            lines.forEach(lineTitle => {
+                                // Sometimes titles might still have ' / Chemistry' attached, we can optionally clean it
+                                const title = lineTitle.split('/')[0].trim();
+
+                                records.push({
+                                    id: `${mrn}-${title}`, // Use a composite id
+                                    name: name,
+                                    mrn: mrn,
+                                    date: dateStr,
+                                    gender: 'Unknown',
+                                    dob: '',
+                                    accNo: accNo,
+                                    title: title,
+                                    rowIndex: idx // Capture index for precise selection later
+                                });
+                            });
+                        } else {
+                            // Fallback if cell was somehow empty but row was valid
+                            records.push({
+                                id: mrn || Math.random().toString(36).substr(2, 9),
+                                name: name,
+                                mrn: mrn,
+                                date: dateStr,
+                                gender: 'Unknown',
+                                dob: '',
+                                accNo: accNo,
+                                title: 'Unknown Test',
+                                rowIndex: idx
+                            });
+                        }
+                    }
+                });
+                return records;
             });
 
-            console.log(`Found ${patients.length} patients.`);
+            console.log(`Found ${patients.length} patient records (tests).`);
 
             // Update Cache
             LabImportService.patientCache = patients;
@@ -309,15 +340,26 @@ export class LabImportService {
             if (!newPage) {
                 console.log("No new tab detected, checking current page...");
                 await new Promise(r => setTimeout(r, 5000));
+                await page.setViewport({ width: 1280, height: 1024 });
                 screenshotPath = `uploads/import-${Date.now()}.png`;
                 const absolutePath = require('path').resolve(screenshotPath);
                 await page.screenshot({ path: absolutePath, fullPage: true });
                 return { screenshotPath: absolutePath, accNo: targetAccNo };
             } else {
+                await newPage.setViewport({ width: 1280, height: 1024 });
                 await newPage.waitForNetworkIdle({ timeout: 10000 }).catch(() => { });
+                await new Promise(r => setTimeout(r, 2000)); // Give it a moment to render
                 screenshotPath = `uploads/import-${Date.now()}.png`;
                 const absolutePath = require('path').resolve(screenshotPath);
-                await newPage.screenshot({ path: absolutePath, fullPage: true });
+
+                // Fallback catch for screenshot errors
+                try {
+                    await newPage.screenshot({ path: absolutePath, fullPage: true });
+                } catch (screenshotError) {
+                    console.error("Screenshot failed on newPage, trying without fullPage:", screenshotError);
+                    await newPage.screenshot({ path: absolutePath }); // try standard if fullPage fails
+                }
+
                 return { screenshotPath: absolutePath, accNo: targetAccNo };
             }
 
@@ -329,7 +371,7 @@ export class LabImportService {
         }
     }
 
-    async syncPatientLabResults(username: string, password: string, mrn: string, existingSignatures: Set<string>): Promise<any[]> {
+    async syncPatientLabResults(username: string, password: string, mrn: string, existingAccNos: Set<string>): Promise<any[]> {
         console.log(`Syncing results for MRN: ${mrn}`);
 
         const browser = await this.launchBrowser();
@@ -342,25 +384,61 @@ export class LabImportService {
             // Get List including rowIndex
             await page.waitForSelector('table.k-grid-table', { timeout: 30000 });
             const rows = await page.evaluate(() => {
-                return Array.from(document.querySelectorAll('table.k-grid-table tbody tr')).map((tr, idx) => {
+                const records: any[] = [];
+                Array.from(document.querySelectorAll('table.k-grid-table tbody tr')).forEach((tr, idx) => {
                     const cells = Array.from(tr.querySelectorAll('td'));
-                    if (cells.length < 7) return null; // We need at least 9 cols based on inspection
-                    const titleLong = (cells[6] as HTMLElement)?.innerText?.trim();
-                    const title = titleLong ? titleLong.split('/')[0].trim() : 'Unknown Test';
+                    if (cells.length < 7) return; // We need at least 7 cols based on inspection
 
-                    return {
-                        accNo: (cells[0] as HTMLElement)?.innerText?.trim(),
-                        date: (cells[1] as HTMLElement)?.innerText?.trim(),
-                        mrn: (cells[2] as HTMLElement)?.innerText?.trim(),
-                        name: (cells[3] as HTMLElement)?.innerText?.trim(),
-                        title: title,
-                        rowIndex: idx // Capture the exact row index
-                    };
-                }).filter(r => r !== null);
+                    const accNo = (cells[0] as HTMLElement)?.innerText?.trim();
+                    const dateStr = (cells[1] as HTMLElement)?.innerText?.trim();
+                    const mrn = (cells[2] as HTMLElement)?.innerText?.trim();
+                    const name = (cells[3] as HTMLElement)?.innerText?.trim();
+
+                    const reportTypeCell = cells[6] as HTMLElement;
+                    if (reportTypeCell) {
+                        const textContent = reportTypeCell.innerText || '';
+                        const lines = textContent.split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0);
+
+                        if (lines.length > 0) {
+                            lines.forEach((lineTitle, sIdx) => {
+                                const title = lineTitle.split('/')[0].trim();
+                                records.push({
+                                    accNo: accNo,
+                                    date: dateStr,
+                                    mrn: mrn,
+                                    name: name,
+                                    title: title,
+                                    rowIndex: idx, // Capture the exact row index
+                                    subIndex: sIdx // Capture which button to click
+                                });
+                            });
+                        } else {
+                            records.push({
+                                accNo: accNo,
+                                date: dateStr,
+                                mrn: mrn,
+                                name: name,
+                                title: 'Unknown Test',
+                                rowIndex: idx, // Capture the exact row index
+                                subIndex: 0
+                            });
+                        }
+                    }
+                });
+                return records;
             });
 
-            const matches = rows.filter(r => r && r.mrn === mrn);
-            console.log(`Found ${matches.length} matches for MRN ${mrn}`);
+            let matches = rows.filter(r => r && r.mrn === mrn);
+
+            // Deduplicate early using the existingAccNos set to save API usage
+            matches = matches.filter(r => !existingAccNos.has(r.accNo));
+            console.log(`Found ${matches.length} new/unprocessed matches for MRN ${mrn}`);
+
+            // Limit to the most recent 5 to save time and API quota during auto-sync
+            if (matches.length > 5) {
+                matches = matches.slice(0, 5);
+                console.log(`Limiting to latest 5 matches for auto-sync.`);
+            }
 
             // Process matches in parallel chunks to avoid browser context overload/timeout
             // But puppeteer page interaction must be sequential if using same page.
@@ -378,11 +456,22 @@ export class LabImportService {
                     // Trigger click
                     const [newTarget] = await Promise.all([
                         browser.waitForTarget(target => target.opener() === page.target(), { timeout: 10000 }).catch(e => null),
-                        page.evaluate((idx) => {
+                        page.evaluate((idx, subIdx) => {
                             const rows = document.querySelectorAll('table.k-grid-table tbody tr');
-                            const btn = rows[idx].querySelector('a.k-button') || rows[idx].querySelector('a');
-                            if (btn) (btn as HTMLElement).click();
-                        }, match.rowIndex)
+                            const row = rows[idx];
+                            if (!row) return;
+
+                            const fileOps = row.querySelectorAll('file-operation');
+                            if (fileOps && fileOps.length > subIdx) {
+                                // There are multiple view buttons, pick the correct one corresponding to the line item
+                                const btn = fileOps[subIdx].querySelector('a');
+                                if (btn) (btn as HTMLElement).click();
+                            } else {
+                                // Fallback
+                                const btn = row.querySelector('a.k-button') || row.querySelector('a');
+                                if (btn) (btn as HTMLElement).click();
+                            }
+                        }, match.rowIndex, match.subIndex || 0)
                     ]);
 
                     if (newTarget) {
@@ -428,11 +517,20 @@ export class LabImportService {
         const results = [];
 
         try {
-            // We are ignoring existing for now to ensure we get everything, based on "fix naming" request.
-            // Or we can pass empty set.
-            const existingSignatures = new Set<string>();
+            // Find existing accession numbers for this patient to prevent redundant processing
+            const existingInvestigations = await prisma.investigation.findMany({
+                where: {
+                    patientId: patientId,
+                    externalId: { not: null }
+                },
+                select: { externalId: true }
+            });
 
-            const newReports = await this.syncPatientLabResults(username, password, mrn, existingSignatures);
+            const existingAccNos = new Set<string>();
+            existingInvestigations.forEach((inv: any) => existingAccNos.add(inv.externalId));
+            console.log(`Pre-filtering ${existingAccNos.size} existing accession numbers for patient ${patientId}`);
+
+            const newReports = await this.syncPatientLabResults(username, password, mrn, existingAccNos);
 
             let ocrService = require('./ocrService');
             if (ocrService.default) ocrService = ocrService.default;
@@ -447,61 +545,61 @@ export class LabImportService {
                     const analysisResults = await ocrService.analyzeImage(report.screenshotPath);
 
                     if (analysisResults && analysisResults.length > 0) {
-                        const item = analysisResults[0];
-                        const relativePath = '/uploads/' + require('path').basename(report.screenshotPath);
+                        const createdItems = [];
 
-                        // Prioritize AI title
-                        const finalTitle = item.title || report.title || 'Lab Report';
+                        // Process ALL results returned by the AI, not just the first one
+                        for (const item of analysisResults) {
+                            const relativePath = '/uploads/' + require('path').basename(report.screenshotPath);
 
-                        // Deduplication Check:
-                        // We check for (Patient + ExternalId + FinalTitle + Date) to be sure.
-                        // If multiple reports have same Title (e.g. "Lab Report") and same AccNo, we might have an issue.
-                        // We should try to append something unique if title is generic.
+                            // Prioritize AI title
+                            const finalTitle = item.title || report.title || 'Lab Report';
 
-                        let uniqueTitle = finalTitle;
-                        if (uniqueTitle === 'Lab Report' || uniqueTitle === 'Unknown Test') {
-                            uniqueTitle = `${report.title} (${report.rowIndex})`; // Fallback to scraped title
-                        }
-
-                        const exists = await prisma.investigation.findFirst({
-                            where: {
-                                patientId,
-                                externalId: report.accNo,
-                                title: uniqueTitle,
-                                // Add check for approx date to allow re-testing same thing on different days? 
-                                // But AccNo usually changes per visit. If AccNo is same, it's same order.
+                            // Deduplication Check
+                            let uniqueTitle = finalTitle;
+                            if (uniqueTitle === 'Lab Report' || uniqueTitle === 'Unknown Test') {
+                                uniqueTitle = `${report.title} (${report.rowIndex})`;
                             }
-                        });
 
-                        if (!exists) {
-                            const newInv = await prisma.investigation.create({
-                                data: {
+                            const exists = await prisma.investigation.findFirst({
+                                where: {
                                     patientId,
-                                    authorId: authorId,
-                                    type: (item.type || 'LAB') as 'LAB' | 'IMAGING',
-                                    category: item.category || 'External',
+                                    externalId: report.accNo,
                                     title: uniqueTitle,
-                                    status: 'FINAL',
-                                    result: { ...item.results, imageUrl: relativePath },
-                                    impression: 'Auto-synced from Lab Results',
-                                    conductedAt: report.date ? new Date(report.date.split('-').reverse().join('-')) : new Date(),
-                                    externalId: report.accNo
                                 }
                             });
-                            return newInv;
-                        } else {
-                            console.log(`Skipping duplicate: ${report.accNo} - ${finalTitle}`);
-                            return null; // Marked as duplicate
+
+                            if (!exists) {
+                                const newInv = await prisma.investigation.create({
+                                    data: {
+                                        patientId,
+                                        authorId: authorId,
+                                        type: (item.type || 'LAB') as 'LAB' | 'IMAGING',
+                                        category: item.category || 'External',
+                                        title: uniqueTitle,
+                                        status: 'FINAL',
+                                        result: { ...item.results, imageUrl: relativePath },
+                                        impression: 'Auto-synced from Lab Results',
+                                        conductedAt: report.date ? new Date(report.date.split('-').reverse().join('-')) : new Date(),
+                                        externalId: report.accNo
+                                    }
+                                });
+                                createdItems.push(newInv);
+                            } else {
+                                console.log(`Skipping duplicate: ${report.accNo} - ${finalTitle}`);
+                            }
                         }
+                        return createdItems;
                     }
+                    return [];
                 } catch (e) {
                     console.error(`Failed to process/save ${report.accNo}`, e);
-                    return null;
+                    return [];
                 }
             });
 
             const processed = await Promise.all(analysisPromises);
-            results.push(...processed.filter(r => r !== null));
+            // Flatten the array of arrays
+            results.push(...processed.flat());
 
             return results;
         } finally {

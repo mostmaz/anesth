@@ -98,10 +98,37 @@ model Admission {
   patientId String
   bed       String?
   diagnosis String?
+  
+  doctorId  String?
+  specialtyId String?
+  
   admittedAt DateTime @default(now())
   dischargedAt DateTime?
 
   patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor    Doctor?  @relation(fields: [doctorId], references: [id])
+  specialty Specialty? @relation(fields: [specialtyId], references: [id])
+}
+
+model Doctor {
+  id          String   @id @default(uuid())
+  name        String
+  specialtyId String?
+  
+  specialty   Specialty? @relation(fields: [specialtyId], references: [id])
+  admissions  Admission[]
+  
+  createdAt   DateTime @default(now())
+}
+
+model Specialty {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  
+  doctors     Doctor[]
+  admissions  Admission[]
+  
+  createdAt   DateTime @default(now())
 }
 
 // Clinical Notes
@@ -167,7 +194,9 @@ model Medication {
   frequency   String?  // e.g., Q4H
   infusionRate String? // e.g., 5ml/hr
   otherInstructions String? // e.g., "Take with food"
+  isActive    Boolean  @default(true)
   patientId   String?
+  startedAt   DateTime @default(now())
   
   patient     Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
   administrations MedicationAdministration[]
@@ -301,6 +330,7 @@ model SpecialistNote {
   
   // Header
   date      DateTime @default(now())
+  shiftType String?  // "Day" | "Night"
   apacheScore String?
   
   // Background

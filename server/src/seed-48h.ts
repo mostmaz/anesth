@@ -1,5 +1,7 @@
 import prisma from './prisma';
 
+import bcrypt from 'bcryptjs';
+
 async function main() {
     console.log("Starting 48h data seed...");
 
@@ -10,8 +12,7 @@ async function main() {
             patient = await prisma.patient.create({
                 data: {
                     mrn: '12345',
-                    firstName: 'John',
-                    lastName: 'Doe',
+                    name: 'John Doe',
                     dob: new Date('1980-01-01'),
                     gender: 'Male',
                     diagnosis: 'Sepsis',
@@ -30,18 +31,18 @@ async function main() {
         }
 
         // 2. Get or Create Nurse User
-        let nurse = await prisma.user.findUnique({ where: { username: 'nurse' } });
-        if (!nurse) {
-            nurse = await prisma.user.create({
-                data: {
-                    name: 'Jane Nurse',
-                    username: 'nurse',
-                    passwordHash: 'mock-hash',
-                    role: 'NURSE'
-                }
-            });
-            console.log('Created nurse: Jane Nurse');
-        }
+        const passwordHash = await bcrypt.hash('password', 10);
+        const nurse = await prisma.user.upsert({
+            where: { username: 'nurse' },
+            update: { passwordHash }, // Ensure password is correct even if user exists
+            create: {
+                name: 'Jane Nurse',
+                username: 'nurse',
+                passwordHash,
+                role: 'NURSE'
+            }
+        });
+        console.log('Upserted nurse: Jane Nurse');
 
         const patientId = patient.id;
         const userId = nurse.id;

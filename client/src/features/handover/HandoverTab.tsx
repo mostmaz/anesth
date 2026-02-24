@@ -5,19 +5,20 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/ca
 import { Plus, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import SpecialistNoteForm from './SpecialistNoteForm';
 import { apiClient } from '../../api/client';
+import { Patient } from '../../types';
 
 interface HandoverTabProps {
-    patientId: string;
+    patient: Patient;
 }
 
-export default function HandoverTab({ patientId }: HandoverTabProps) {
+export default function HandoverTab({ patient }: HandoverTabProps) {
     const [showForm, setShowForm] = useState(false);
     const [notes, setNotes] = useState<any[]>([]);
     const [expandedNote, setExpandedNote] = useState<string | null>(null);
 
     const fetchNotes = async () => {
         try {
-            const data = await apiClient.get<any[]>(`/specialist/patient/${patientId}`);
+            const data = await apiClient.get<any[]>(`/specialist/patient/${patient.id}`);
             setNotes(data || []);
         } catch (error) {
             console.error("Failed to fetch notes", error);
@@ -26,7 +27,7 @@ export default function HandoverTab({ patientId }: HandoverTabProps) {
 
     useEffect(() => {
         fetchNotes();
-    }, [patientId]);
+    }, [patient.id]);
 
     const handleSuccess = () => {
         setShowForm(false);
@@ -47,7 +48,7 @@ export default function HandoverTab({ patientId }: HandoverTabProps) {
             {showForm && (
                 <div className="animate-in fade-in slide-in-from-top-4">
                     <SpecialistNoteForm
-                        patientId={patientId}
+                        patient={patient}
                         onSuccess={handleSuccess}
                         initialData={latestNote}
                     />
@@ -71,10 +72,15 @@ export default function HandoverTab({ patientId }: HandoverTabProps) {
                                 <div className="flex items-center gap-4">
                                     <FileText className="w-5 h-5 text-slate-700" />
                                     <div>
-                                        <CardTitle className="text-base">
+                                        <CardTitle className="text-base flex items-center gap-2">
                                             Handover Note - {new Date(note.date).toLocaleDateString()}
+                                            {note.shiftType && (
+                                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${note.shiftType === 'Night' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-orange-50 text-orange-700 border-orange-200'}`}>
+                                                    {note.shiftType} Shift
+                                                </span>
+                                            )}
                                         </CardTitle>
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="text-xs text-muted-foreground mt-1">
                                             Author: {note.author?.name || 'Unknown'} | APACHE: {note.apacheScore || 'N/A'}
                                         </p>
                                     </div>

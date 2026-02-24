@@ -1,4 +1,5 @@
 import prisma from './prisma';
+import bcrypt from 'bcryptjs';
 
 async function main() {
     try {
@@ -16,35 +17,35 @@ async function main() {
             console.log('Created patient: John Doe');
         }
 
+        const passwordHash = await bcrypt.hash('password', 10);
+
         // Seed Nurse User
-        const existingUser = await prisma.user.findUnique({ where: { username: 'nurse' } });
-        if (!existingUser) {
-            await prisma.user.create({
-                data: {
-                    id: 'mock-nurse-id', // Force ID to match frontend mock
-                    name: 'Jane Nurse',
-                    username: 'nurse',
-                    passwordHash: 'hashed-password', // Mock hash
-                    role: 'NURSE'
-                }
-            });
-            console.log('Created user: Jane Nurse (mock-nurse-id)');
-        }
+        await prisma.user.upsert({
+            where: { username: 'nurse' },
+            update: { passwordHash },
+            create: {
+                id: 'mock-nurse-id',
+                name: 'Jane Nurse',
+                username: 'nurse',
+                passwordHash,
+                role: 'NURSE'
+            }
+        });
+        console.log('Upserted user: Jane Nurse');
 
         // Seed Senior User
-        const existingSenior = await prisma.user.findUnique({ where: { username: 'senior' } });
-        if (!existingSenior) {
-            await prisma.user.create({
-                data: {
-                    id: 'mock-senior-id',
-                    name: 'Dr. House',
-                    username: 'senior',
-                    passwordHash: 'hashed-password',
-                    role: 'SENIOR'
-                }
-            });
-            console.log('Created user: Dr. House (mock-senior-id)');
-        }
+        await prisma.user.upsert({
+            where: { username: 'senior' },
+            update: { passwordHash },
+            create: {
+                id: 'mock-senior-id',
+                name: 'Dr. House',
+                username: 'senior',
+                passwordHash,
+                role: 'SENIOR'
+            }
+        });
+        console.log('Upserted user: Dr. House');
 
     } catch (error) {
         console.error('Error seeding database:', error);

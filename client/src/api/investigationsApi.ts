@@ -47,5 +47,9 @@ export const investigationsApi = {
 
     delete: async (id: string) => {
         return apiClient.delete(`/investigations/${id}`);
+    },
+
+    deleteAll: async (patientId: string) => {
+        return apiClient.delete(`/investigations/patient/${patientId}/all`);
     }
 };

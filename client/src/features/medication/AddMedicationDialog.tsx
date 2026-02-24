@@ -48,6 +48,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
     const [frequency, setFrequency] = useState('1'); // Default to 1 (OD)
     const [infusionRate, setInfusionRate] = useState('');
     const [instructions, setInstructions] = useState('');
+    const [startedAt, setStartedAt] = useState<string>(new Date().toISOString().split('T')[0]);
 
     // Autocomplete State
     const [suggestions, setSuggestions] = useState<{ name: string, defaultDose?: string, defaultRoute?: string }[]>([]);
@@ -104,7 +105,8 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                 route,
                 frequency: freqLabel,
                 infusionRate,
-                otherInstructions: instructions
+                otherInstructions: instructions,
+                startedAt: new Date(startedAt).toISOString()
             });
             toast.success("Medication added");
             setOpen(false);
@@ -115,6 +117,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
             setInfusionRate('');
             setInstructions('');
             setFrequency('1');
+            setStartedAt(new Date().toISOString().split('T')[0]);
         } catch (error) {
             toast.error("Failed to add medication");
         } finally {
@@ -181,6 +184,8 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                                     <SelectItem value="IM">IM (Intramuscular)</SelectItem>
                                     <SelectItem value="SC">SC (Subcutaneous)</SelectItem>
                                     <SelectItem value="NEB">Nebulizer</SelectItem>
+                                    <SelectItem value="LOCAL">Local</SelectItem>
+                                    <SelectItem value="EYE_DROP">Eye Drop</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -209,9 +214,15 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="instructions">Other Instructions</Label>
-                        <Input id="instructions" value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Optional details..." />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="startedAt">Start Date</Label>
+                            <Input id="startedAt" type="date" required value={startedAt} onChange={e => setStartedAt(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="instructions">Other Instructions</Label>
+                            <Input id="instructions" value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Optional details..." />
+                        </div>
                     </div>
 
                     <Button type="submit" className="w-full" disabled={loading}>

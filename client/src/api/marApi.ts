@@ -6,6 +6,8 @@ export interface Medication {
     frequency?: string;
     infusionRate?: string;
     otherInstructions?: string;
+    isActive: boolean;
+    startedAt: string;
     administrations: MedicationAdministration[];
 }
 
@@ -41,6 +43,7 @@ export const marApi = {
         frequency?: string;
         infusionRate?: string;
         otherInstructions?: string;
+        startedAt?: string;
     }): Promise<Medication> => {
         const response = await fetch('http://localhost:3001/api/medications/prescribe', {
             method: 'POST',
@@ -59,5 +62,33 @@ export const marApi = {
         });
         if (!response.ok) throw new Error('Failed to administer medication');
         return response.json();
+    },
+
+    editMedication: async (id: string, data: { dose: string; route: string; frequency?: string; infusionRate?: string; otherInstructions?: string; }): Promise<Medication> => {
+        const response = await fetch(`http://localhost:3001/api/medications/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error('Failed to edit medication');
+        return response.json();
+    },
+
+    discontinueMedication: async (id: string): Promise<Medication> => {
+        const response = await fetch(`http://localhost:3001/api/medications/${id}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isActive: false }),
+        });
+        if (!response.ok) throw new Error('Failed to discontinue medication');
+        return response.json();
+    },
+
+    deleteAdministration: async (id: string, userId: string): Promise<void> => {
+        const response = await fetch(`http://localhost:3001/api/medications/administration/${id}`, {
+            method: 'DELETE',
+            headers: { 'X-User-Id': userId }
+        });
+        if (!response.ok) throw new Error('Failed to delete administration');
     }
 };

@@ -12,8 +12,8 @@ export default function ShiftPrintView() {
     useEffect(() => {
         const fetchShiftData = async () => {
             try {
-                const response = await apiClient.get(`/shifts/${id}/report`);
-                setData(response.data);
+                const response = await apiClient.get<any>(`/shifts/${id}/report`);
+                setData(response);
             } catch (error) {
                 console.error("Failed to load shift report", error);
             } finally {

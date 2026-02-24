@@ -11,32 +11,40 @@ import { Separator } from '../../components/ui/separator';
 import { apiClient } from '../../api/client';
 import { useAuthStore } from '../../stores/authStore';
 import { toast } from 'sonner';
+import { Patient } from '../../types';
 
 interface SpecialistNoteFormProps {
-    patientId: string;
+    patient: Patient;
     onSuccess: () => void;
     initialData?: any;
 }
 
-export default function SpecialistNoteForm({ patientId, onSuccess, initialData }: SpecialistNoteFormProps) {
+export default function SpecialistNoteForm({ patient, onSuccess, initialData }: SpecialistNoteFormProps) {
     const { user } = useAuthStore();
     const [loading, setLoading] = useState(false);
 
-    // Using simple unchecked form handling or react-hook-form for this many fields is better.
-    // Given the complexity, standard react-hook-form is best.
+    // Compute default background checks based on patient comorbidities if initialData is lacking
+    const pmh = patient.comorbidities?.map(c => c.toLowerCase()) || [];
+
+    // Find comorbidities that don't match the standard checkboxes to put in "Other"
+    const knownComorbidities = ['htn', 'hypertension', 'ht', 'dm', 'diabetes', 't2dm', 'asthma', 'copd', 'ihd', 'cad', 'stroke', 'cva'];
+    const otherComorbidities = patient.comorbidities?.filter(c => !knownComorbidities.includes(c.toLowerCase())) || [];
+    const defaultOther = otherComorbidities.join(', ');
+
     const { register, handleSubmit, setValue, watch, reset } = useForm({
         defaultValues: {
             date: new Date().toISOString().split('T')[0],
+            shiftType: 'Day',
             apacheScore: '',
 
             // Persistent fields (Background)
-            histHT: initialData?.histHT ?? false,
-            histDM: initialData?.histDM ?? false,
-            histAsthma: initialData?.histAsthma ?? false,
-            histCOPD: initialData?.histCOPD ?? false,
-            histIHD: initialData?.histIHD ?? false,
-            histStroke: initialData?.histStroke ?? false,
-            histOther: initialData?.histOther ?? '',
+            histHT: initialData?.histHT ?? (pmh.includes('htn') || pmh.includes('hypertension') || pmh.includes('ht')),
+            histDM: initialData?.histDM ?? (pmh.includes('dm') || pmh.includes('diabetes') || pmh.includes('t2dm')),
+            histAsthma: initialData?.histAsthma ?? (pmh.includes('asthma')),
+            histCOPD: initialData?.histCOPD ?? (pmh.includes('copd')),
+            histIHD: initialData?.histIHD ?? (pmh.includes('ihd') || pmh.includes('cad')),
+            histStroke: initialData?.histStroke ?? (pmh.includes('stroke') || pmh.includes('cva')),
+            histOther: initialData?.histOther ?? defaultOther,
 
             neuroGCS: '',
             neuroRASS: '',
@@ -98,7 +106,7 @@ export default function SpecialistNoteForm({ patientId, onSuccess, initialData }
         try {
             await apiClient.post('/specialist', {
                 ...data,
-                patientId,
+                patientId: patient.id,
                 authorId: user.id
             });
             toast.success("Handover note saved");
@@ -136,10 +144,20 @@ export default function SpecialistNoteForm({ patientId, onSuccess, initialData }
                 <CardContent className="p-6 space-y-6">
 
                     {/* Header Info */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <Label>Date</Label>
                             <Input type="date" {...register('date')} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Shift</Label>
+                            <select
+                                {...register('shiftType')}
+                                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="Day">Day Shift</option>
+                                <option value="Night">Night Shift</option>
+                            </select>
                         </div>
                         <div className="space-y-2">
                             <Label>APACHE Score</Label>

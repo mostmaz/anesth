@@ -68,7 +68,7 @@ router.delete('/catalog/:id', async (req, res) => {
 // POST /prescribe - Add new medication to patient
 router.post('/prescribe', async (req, res) => {
     try {
-        const { name, dose, route, frequency, infusionRate, otherInstructions, patientId } = req.body;
+        const { name, dose, route, frequency, infusionRate, otherInstructions, patientId, startedAt } = req.body;
 
         // 1. Ensure in Catalog (Auto-add)
         // Check if exists first to avoid unique constraint if race condition, though upsert handles it.
@@ -96,7 +96,8 @@ router.post('/prescribe', async (req, res) => {
                 frequency,
                 infusionRate,
                 otherInstructions,
-                patientId
+                patientId,
+                startedAt: startedAt ? new Date(startedAt) : undefined
             }
         });
         res.json(prescription);
@@ -129,6 +130,71 @@ router.post('/administer', async (req, res) => {
     } catch (error) {
         console.error("Administer Error:", error);
         res.status(500).json({ error: 'Failed to administer' });
+    }
+});
+
+// PUT /:id - Edit an existing medication order
+router.put('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { dose, route, frequency, infusionRate, otherInstructions } = req.body;
+
+        const updated = await prisma.medication.update({
+            where: { id },
+            data: {
+                defaultDose: dose,
+                route,
+                frequency,
+                infusionRate,
+                otherInstructions
+            }
+        });
+        res.json(updated);
+    } catch (error) {
+        console.error("Edit Medication Error:", error);
+        res.status(500).json({ error: 'Failed to edit medication' });
+    }
+});
+
+// PUT /:id/status - Update active status (Discontinue)
+router.put('/:id/status', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { isActive } = req.body;
+
+        const updated = await prisma.medication.update({
+            where: { id },
+            data: { isActive }
+        });
+        res.json(updated);
+    } catch (error) {
+        console.error("Update Medication Status Error:", error);
+        res.status(500).json({ error: 'Failed to update medication status' });
+    }
+});
+
+// DELETE /administration/:id - Delete an administration (requires SENIOR checking)
+router.delete('/administration/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.headers['x-user-id'] as string;
+
+        if (!userId) {
+            return res.status(401).json({ error: 'User ID is required' });
+        }
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user || user.role !== 'SENIOR') {
+            return res.status(403).json({ error: 'Only a SENIOR can delete an administration record' });
+        }
+
+        await prisma.medicationAdministration.delete({
+            where: { id }
+        });
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Delete Administration Error:", error);
+        res.status(500).json({ error: 'Failed to delete administration' });
     }
 });
 

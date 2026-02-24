@@ -1,3 +1,4 @@
+
 import prisma from './prisma';
 
 async function main() {
@@ -7,8 +8,7 @@ async function main() {
             const patient = await prisma.patient.create({
                 data: {
                     mrn: '99999',
-                    firstName: 'Jane',
-                    lastName: 'Smith',
+                    name: 'Jane Smith',
                     dob: new Date('1990-05-15'),
                     gender: 'Female'
                 }

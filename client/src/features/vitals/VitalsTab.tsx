@@ -10,6 +10,7 @@ import TrendChart from './TrendChart';
 import { vitalsApi, type VitalSign } from '../../api/vitalsApi';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Printer } from 'lucide-react';
+import { UploadVitalsDialog } from './UploadVitalsDialog';
 
 interface VitalsTabProps {
     patientId?: string;
@@ -186,8 +187,20 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Entry Form */}
                 <Card className="lg:col-span-1 h-fit">
-                    <CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                         <CardTitle>Add New Vitals</CardTitle>
+                        <UploadVitalsDialog
+                            onVitalsExtracted={(data) => {
+                                setNewEntry(prev => ({
+                                    ...prev,
+                                    hr: data.hr || prev.hr,
+                                    bpSys: data.bpSys || prev.bpSys,
+                                    bpDia: data.bpDia || prev.bpDia,
+                                    spo2: data.spo2 || prev.spo2,
+                                    temp: data.temp || prev.temp,
+                                }));
+                            }}
+                        />
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleAddVitals} className="space-y-4">

@@ -20,7 +20,7 @@ export const uploadApi = {
         return response.json() as Promise<Array<{ url: string; filename: string; originalName: string }>>;
     },
 
-    analyzeImage: async (filePath: string) => {
+    analyzeImage: async (filePath: string, mode?: string) => {
         // We use the apiClient here if possible, but the file is setup with fetch. 
         // Let's stick to the pattern or use the defined API_URL.
         // Actually, better to use the apiClient from '../api/client' if available, but for now I will match the style.
@@ -32,7 +32,7 @@ export const uploadApi = {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ filePath }),
+            body: JSON.stringify({ filePath, mode }),
         });
 
         if (!response.ok) {

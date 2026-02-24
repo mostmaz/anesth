@@ -1,3 +1,4 @@
+
 import { Router } from 'express';
 import prisma from '../prisma';
 
@@ -20,14 +21,12 @@ router.get('/active/:userId', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch active shift' });
     }
-}
 });
 
 // GET staff on duty (Seniors + Active Nurses)
 router.get('/staff-on-duty', async (req, res) => {
     try {
-        // 1. Get all Seniors (assuming they are always "On Call" or we can filter by shift if they track it)
-        // For now, let's get all Seniors.
+        // 1. Get all Seniors
         const seniors = await prisma.user.findMany({
             where: { role: 'SENIOR' },
             select: { id: true, name: true, role: true }
@@ -43,8 +42,7 @@ router.get('/staff-on-duty', async (req, res) => {
             }
         });
 
-        // 3. Get active assignments for these nurses to show where they are assigned
-        // We can fetch all active assignments and map them
+        // 3. Get active assignments
         const activeAssignments = await prisma.patientAssignment.findMany({
             where: { isActive: true },
             include: {
@@ -59,7 +57,7 @@ router.get('/staff-on-duty', async (req, res) => {
             return {
                 ...shift.user,
                 shiftType: shift.type,
-                assignment: assignment ? assignment.patient.name : 'Unassigned' // or null
+                assignment: assignment ? assignment.patient.name : 'Unassigned'
             };
         });
 
@@ -73,7 +71,6 @@ router.get('/staff-on-duty', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch staff on duty' });
     }
 });
-
 
 // POST start a new shift
 router.post('/start', async (req, res) => {
@@ -92,7 +89,7 @@ router.post('/start', async (req, res) => {
         const shift = await prisma.shift.create({
             data: {
                 userId,
-                type, // Ensure this matches enum 'DAY' | 'NIGHT'
+                type,
                 startTime: new Date(),
                 isActive: true
             }

@@ -73,9 +73,6 @@ function App() {
 
             <Route path="/shift" element={<ShiftManager />} />
             <Route path="/shifts/history" element={<ShiftHistory />} />
-            import AdminPanel from './pages/AdminPanel';
-
-            // ... inside Routes
             <Route path="/admin" element={
               <ProtectedRoute>
                 <AdminPanel />
