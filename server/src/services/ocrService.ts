@@ -49,6 +49,7 @@ export const ocrService = {
                     
                     IMPORTANT: You must SEPARATE distinct panels into their own objects. 
                     Specifically, if you see data for "Renal Function" (Creatinine, Urea), "CRP" (C-Reactive Protein), "Electrolytes" (Na, K, Cl), or "Coagulation" (PT, PTT, INR), create a SEPARATE object for each one.
+                    CRITICAL COAGULATION RULE: If you see tests like "Partial Thromboplastin Time", "Partial Thromboplastin Time (Ptt)", "Partial Thromboplastin Time (PTT)", "Prothrombin Time", "PT", "PTT", or "INR", you MUST group all of them together into a single object with "title": "Coagulation". Do NOT create separate objects for PT and PTT.
                     Even if multiple distinct tests (like CBC and PT) are printed together on the same page, you MUST output a separate object for EACH distinct test type. Do NOT miss any test found on the page.
                     
                     CRITICAL EXCEPTION 1: If the results contain "pH" (indicating an Arterial Blood Gas / ABG test), do NOT separate ANY parameters. 
@@ -113,6 +114,22 @@ export const ocrService = {
                         parsed.splice(diffIndex, 1);
                     } else if (cbcIndex !== -1) {
                         parsed[cbcIndex].title = "CBC"; // Normalize title
+                    }
+
+                    // Programmatic merge for Coagulation parameters (PT, PTT, INR)
+                    const coagTitles = ["COAGULATION", "PROTHROMBIN TIME", "PARTIAL THROMBOPLASTIN TIME", "IN VITRO B", "PT", "PTT", "INR"];
+                    let coagGroups = parsed.filter(p => p.title && coagTitles.some(t => p.title.toUpperCase().includes(t)));
+                    if (coagGroups.length > 1) {
+                        console.log("ocrService: Programmatically merging scattered Coagulation tests");
+                        let primary = coagGroups[0];
+                        for (let i = 1; i < coagGroups.length; i++) {
+                            primary.results = { ...primary.results, ...coagGroups[i].results };
+                            // Remove the merged piece from original array
+                            parsed.splice(parsed.indexOf(coagGroups[i]), 1);
+                        }
+                        primary.title = "Coagulation";
+                    } else if (coagGroups.length === 1) {
+                        coagGroups[0].title = "Coagulation"; // Normalize title
                     }
                 }
 
