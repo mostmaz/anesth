@@ -1,31 +1,22 @@
 const { NodeSSH } = require('node-ssh');
 
-async function tryConnect(maxRetries = 5) {
-    const ssh = new NodeSSH();
-    for (let i = 1; i <= maxRetries; i++) {
-        try {
-            console.log(`Attempt ${i}/${maxRetries}...`);
-            await ssh.connect({ host: '161.35.216.33', username: 'root', password: '150893412C@c', readyTimeout: 60000 });
-            console.log('Connected!\n');
-            return ssh;
-        } catch (e) {
-            console.log(`Attempt ${i} failed: ${e.message}`);
-            if (i < maxRetries) await new Promise(r => setTimeout(r, 10000));
-        }
-    }
-    throw new Error('All retries failed');
-}
-
 (async () => {
-    const ssh = await tryConnect(6);
-    const exec = async (label, cmd) => {
-        console.log(`$ ${label}`);
-        const r = await ssh.execCommand(cmd, { cwd: '/root/anesth' });
-        if (r.stdout) console.log(r.stdout);
-        if (r.stderr) console.error(r.stderr);
-        console.log('');
-    };
-    await exec('docker ps', 'docker ps --format "{{.Names}}\\t{{.Status}}"');
-    await exec('server logs (last 20)', 'docker logs --tail 20 icu_server_prod 2>&1');
+    const ssh = new NodeSSH();
+    await ssh.connect({ host: '161.35.216.33', username: 'root', password: '150893412C@c', readyTimeout: 30000 });
+
+    console.log('--- Resetting Postgres Password ---');
+    let r = await ssh.execCommand(`docker exec icu_postgres_prod psql -U postgres -c "ALTER USER postgres WITH PASSWORD 'postgres';"`);
+    console.log(r.stdout || r.stderr);
+
+    console.log('\n--- Testing connection from node over TCP ---');
+    r = await ssh.execCommand(
+        `docker exec icu_server_prod node -e "const {Client}=require('pg');const c=new Client({connectionString:process.env.DATABASE_URL});c.connect().then(()=>c.query('SELECT 1')).then(()=>console.log('SUCCESS')).catch(e=>console.error('FAIL:', e.message)).finally(()=>c.end())"`
+    );
+    console.log(r.stdout || r.stderr);
+
+    console.log('\n--- Restarting Server ---');
+    r = await ssh.execCommand('docker restart icu_server_prod');
+    console.log('Restarted.', r.stdout);
+
     ssh.dispose();
 })().catch(e => { console.error(e.message); process.exit(1); });
