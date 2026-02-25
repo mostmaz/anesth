@@ -24,6 +24,7 @@ services:
       - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-postgres}@db:5432/icu_db?schema=public
       - PORT=3001
       - JWT_SECRET=${JWT_SECRET:-fallback_secret_for_dev_only}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     ports:
       - "3001:3001"
     depends_on:
