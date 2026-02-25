@@ -93,9 +93,10 @@ export default function Dashboard() {
             } else {
                 toast.success("Signed in successfully");
             }
-            fetchData();
+            fetchData(); // Always refresh
         } catch (err: any) {
-            toast.error(err.message || "Failed to sign in");
+            const msg = err.message || "Failed to sign in";
+            toast.error(msg.includes('400') || msg.includes('already') ? 'You are already signed in to another patient.' : msg);
         }
     };
 
@@ -120,13 +121,15 @@ export default function Dashboard() {
         try {
             const result = await assignmentApi.assign(patientId, user.id);
             if (result.pending) {
-                toast.info("Patient is already occupied. Your request was submitted — waiting for approval.");
+                toast.info("Patient is occupied — your request was submitted. Waiting for senior/resident approval.");
+                setShowAssignmentDialog(false); // Let nurse browse while waiting
             } else {
                 toast.success("Signed in successfully");
-                fetchData();
             }
+            fetchData(); // Always refresh
         } catch (err: any) {
-            toast.error(err.message || "Failed to sign in");
+            const msg = err.message || '';
+            toast.error(msg.includes('already') ? 'You are already signed in to another patient.' : (msg || 'Failed to sign in'));
         }
     };
 
