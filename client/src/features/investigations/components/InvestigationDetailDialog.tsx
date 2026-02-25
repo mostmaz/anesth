@@ -58,7 +58,7 @@ export function InvestigationDetailDialog({ investigation, onClose, patientId }:
                     {result.imageUrl && (
                         <div className="bg-slate-50 p-4 rounded-lg flex justify-center">
                             <img
-                                src={`http://localhost:3001${result.imageUrl}`}
+                                src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${result.imageUrl}`}
                                 alt="Investigation Result"
                                 className="max-h-[300px] w-auto rounded shadow-sm"
                             />
