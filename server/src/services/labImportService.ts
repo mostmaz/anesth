@@ -12,6 +12,12 @@ export class LabImportService {
         const fs = require('fs');
         let executablePath = '';
         const possiblePaths = [
+            // Linux (Docker)
+            '/usr/bin/google-chrome',
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/chromium',
+            '/usr/bin/chromium-browser',
+            // Windows
             'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
             'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
         ];
@@ -32,7 +38,15 @@ export class LabImportService {
         return puppeteer.launch({
             headless: true,
             executablePath: executablePath || undefined,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1280,800']
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',   // Critical for Docker — avoids /dev/shm crash
+                '--disable-gpu',
+                '--no-zygote',
+                '--single-process',
+                '--window-size=1280,800'
+            ]
         });
     }
 
