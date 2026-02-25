@@ -22,12 +22,12 @@ RUN apt-get update && apt-get install -y \
     libasound2 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
+    libxfixes3 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY package*.json ./
-ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN npm install
 
 COPY prisma ./prisma/
