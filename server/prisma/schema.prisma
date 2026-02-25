@@ -45,9 +45,10 @@ model PatientAssignment {
   patientId String
   userId    String
   shiftId   String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  endedAt   DateTime?
+  isActive   Boolean  @default(true)
+  isPending  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  endedAt    DateTime?
 
   patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id])

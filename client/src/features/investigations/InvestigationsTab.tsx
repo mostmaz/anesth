@@ -173,7 +173,7 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                         className="bg-blue-600 hover:bg-blue-700"
                     >
                         <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-                        {isSyncing ? 'Syncing...' : 'Sync All'}
+                        {isSyncing ? 'Syncing...' : 'Sync Reports'}
                     </Button>
                     <Button variant="outline" onClick={() => setIsLabImportOpen(true)} disabled={isDeletingAll}>
                         <Microscope className="w-4 h-4 mr-2" />

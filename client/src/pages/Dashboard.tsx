@@ -9,10 +9,10 @@ import { apiClient } from '../api/client';
 import { useAuthStore } from '../stores/authStore';
 import { useShiftStore } from '../stores/shiftStore';
 import { Patient } from '../types';
-import { Activity, Users, ClipboardList, AlertTriangle, Clock, CheckCircle2 } from 'lucide-react';
+import { Activity, Users, ClipboardList, AlertTriangle, Clock, CheckCircle2, LogOut, CheckCheck, X } from 'lucide-react';
 
 import { ordersApi } from '../api/ordersApi';
-import { assignmentApi } from '../api/assignmentApi';
+import { assignmentApi, Assignment } from '../api/assignmentApi';
 import { shiftApi } from '../api/shiftApi';
 import { toast } from 'sonner';
 
@@ -22,10 +22,11 @@ import { Dialog, DialogContent } from '../components/ui/dialog';
 export default function Dashboard() {
     const navigate = useNavigate();
     const { user } = useAuthStore();
-    const { activeShift } = useShiftStore();
+    const { activeShift, endShift } = useShiftStore();
     const [patients, setPatients] = useState<Patient[]>([]);
     const [isAddPatientOpen, setIsAddPatientOpen] = useState(false);
     const [assignments, setAssignments] = useState<any[]>([]);
+    const [pendingAssignments, setPendingAssignments] = useState<Assignment[]>([]);
 
     // New State for Staff of the Day
     const [staffOnDuty, setStaffOnDuty] = useState<{ seniors: any[], nurses: any[] }>({ seniors: [], nurses: [] });
@@ -40,15 +41,17 @@ export default function Dashboard() {
 
     const fetchData = async () => {
         try {
-            const [pts, activeData, recentData, activeAssignments, staffData] = await Promise.all([
+            const [pts, activeData, recentData, activeAssignments, staffData, pendingData] = await Promise.all([
                 apiClient.get<Patient[]>('/patients'),
                 ordersApi.getActiveOrders().catch(() => []),
                 ordersApi.getRecentOrders().catch(() => []),
                 assignmentApi.getActive().catch(() => []),
-                shiftApi.getStaffOnDuty().catch(() => ({ seniors: [], nurses: [] }))
+                shiftApi.getStaffOnDuty().catch(() => ({ seniors: [], nurses: [] })),
+                assignmentApi.getPending().catch(() => [])
             ]);
 
             setStaffOnDuty(staffData);
+            setPendingAssignments(pendingData);
 
             setPatients(pts.filter((p: any) => {
                 const hasAdmissions = p.admissions && p.admissions.length > 0;
@@ -59,18 +62,14 @@ export default function Dashboard() {
 
             setAssignments(activeAssignments);
 
-            // Check if current user is a Nurse, has active shift, but NO assignment
+            // Block nurse: must pick a patient before doing anything
             if (user?.role === 'NURSE' && activeShift) {
                 const myAssignment = activeAssignments.find((a: any) => a.userId === user.id);
-                if (!myAssignment) {
-                    setShowAssignmentDialog(true);
-                } else {
-                    setShowAssignmentDialog(false);
-                }
+                setShowAssignmentDialog(!myAssignment);
             }
 
             setStats({
-                critical: Math.floor(Math.random() * 2), // Placeholder logic
+                critical: Math.floor(Math.random() * 2),
                 activeOrders: activeData || [],
                 recentOrders: recentData || [],
                 newAdmissions: 1
@@ -85,11 +84,15 @@ export default function Dashboard() {
     }, []);
 
     const handleSignIn = async (patientId: string, e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent card click
+        e.stopPropagation();
         if (!user) return;
         try {
-            await assignmentApi.assign(patientId, user.id);
-            toast.success("Signed in successfully");
+            const result = await assignmentApi.assign(patientId, user.id);
+            if (result.pending) {
+                toast.info("Request submitted — waiting for senior/resident approval.");
+            } else {
+                toast.success("Signed in successfully");
+            }
             fetchData();
         } catch (err: any) {
             toast.error(err.message || "Failed to sign in");
@@ -97,7 +100,7 @@ export default function Dashboard() {
     };
 
     const handleSignOut = async (patientId: string, e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent card click
+        e.stopPropagation();
         if (!user) return;
         try {
             await assignmentApi.unassign(patientId, user.id);
@@ -115,12 +118,41 @@ export default function Dashboard() {
     const handleMandatoryAssign = async (patientId: string) => {
         if (!user) return;
         try {
-            await assignmentApi.assign(patientId, user.id);
-            toast.success("Signed in successfully");
-            fetchData(); // Will refresh and close dialog if successful
+            const result = await assignmentApi.assign(patientId, user.id);
+            if (result.pending) {
+                toast.info("Patient is already occupied. Your request was submitted — waiting for approval.");
+            } else {
+                toast.success("Signed in successfully");
+                fetchData();
+            }
         } catch (err: any) {
             toast.error(err.message || "Failed to sign in");
         }
+    };
+
+    const handleApprove = async (id: string) => {
+        try {
+            await assignmentApi.approve(id);
+            toast.success("Assignment approved");
+            fetchData();
+        } catch {
+            toast.error("Failed to approve");
+        }
+    };
+
+    const handleReject = async (id: string) => {
+        try {
+            await assignmentApi.reject(id);
+            toast.success("Assignment rejected");
+            fetchData();
+        } catch {
+            toast.error("Failed to reject");
+        }
+    };
+
+    const handleEndShift = async () => {
+        await endShift();
+        toast.success("Shift ended");
     };
 
     return (
@@ -132,38 +164,72 @@ export default function Dashboard() {
                         Welcome back, <span className="font-semibold">{user?.name}</span> ({user?.role})
                     </p>
                 </div>
-                {activeShift && (
-                    <Badge variant="outline" className="px-4 py-2 text-sm bg-green-50 text-green-700 border-green-200">
-                        <Clock className="w-4 h-4 mr-2" />
-                        Shift Active: {new Date(activeShift.startTime).toLocaleTimeString()}
-                    </Badge>
-                )}
+                <div className="flex items-center gap-3">
+                    {activeShift && (
+                        <Badge variant="outline" className="px-4 py-2 text-sm bg-green-50 text-green-700 border-green-200">
+                            <Clock className="w-4 h-4 mr-2" />
+                            Shift Active: {new Date(activeShift.startTime).toLocaleTimeString()}
+                        </Badge>
+                    )}
+                    {/* End Shift button for SENIOR and RESIDENT in the header */}
+                    {activeShift && (user?.role === 'SENIOR' || user?.role === 'RESIDENT') && (
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleEndShift}
+                            className="gap-2"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            End Shift
+                        </Button>
+                    )}
+                </div>
             </div>
 
-            {/* Mandatory Assignment Dialog */}
-            <Dialog open={showAssignmentDialog} onOpenChange={(open) => { if (!open && showAssignmentDialog) return; setShowAssignmentDialog(open); }}>
-                <DialogContent className="sm:max-w-[600px] prevent-close">
+            {/* Mandatory Assignment Dialog — blocks nurse until patient selected */}
+            <Dialog
+                open={showAssignmentDialog}
+                onOpenChange={(open) => {
+                    // Block nurse from closing dialog — they MUST select a patient
+                    if (!open && user?.role === 'NURSE') return;
+                    setShowAssignmentDialog(open);
+                }}
+            >
+                <DialogContent className="sm:max-w-[600px] [&>button]:hidden">
                     <CardHeader>
                         <CardTitle className="text-xl text-red-600 flex items-center gap-2">
                             <AlertTriangle className="h-6 w-6" />
-                            Action Required: Sign In to Patient
+                            Action Required: Sign In to a Patient
                         </CardTitle>
                         <p className="text-sm text-muted-foreground">
-                            You are currently on shift but not assigned to any patient.
-                            Please select a patient to sign in.
+                            You must sign in to a patient before accessing any records.
+                            Select a patient below to continue.
                         </p>
                     </CardHeader>
                     <div className="max-h-[60vh] overflow-y-auto p-4 space-y-2">
                         {patients.map(patient => {
-                            const assigned = assignments.some(a => a.patientId === patient.id);
+                            const patientAssignments = assignments.filter(a => a.patientId === patient.id);
+                            const isOccupied = patientAssignments.length > 0;
                             return (
                                 <div key={patient.id} className="flex justify-between items-center p-3 border rounded hover:bg-slate-50">
                                     <div>
                                         <div className="font-bold">{patient.name}</div>
                                         <div className="text-xs text-muted-foreground">MRN: {patient.mrn}</div>
                                     </div>
-                                    {assigned ? (
-                                        <Badge variant="outline" className="bg-slate-100 text-slate-500">Occupied</Badge>
+                                    {isOccupied ? (
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                                                Occupied
+                                            </Badge>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="text-xs border-orange-300 text-orange-700 hover:bg-orange-50"
+                                                onClick={() => handleMandatoryAssign(patient.id)}
+                                            >
+                                                Request Sign-In
+                                            </Button>
+                                        </div>
                                     ) : (
                                         <Button size="sm" onClick={() => handleMandatoryAssign(patient.id)}>
                                             Sign In
@@ -176,6 +242,51 @@ export default function Dashboard() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Pending Nurse Assignment Requests — visible to SENIOR and RESIDENT only */}
+            {(user?.role === 'SENIOR' || user?.role === 'RESIDENT') && pendingAssignments.length > 0 && (
+                <Card className="border-orange-200 bg-orange-50">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-base text-orange-800 flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4" />
+                            Pending Nurse Assignment Requests ({pendingAssignments.length})
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-2">
+                            {pendingAssignments.map(pending => (
+                                <div key={pending.id} className="flex justify-between items-center bg-white border border-orange-100 rounded p-3">
+                                    <div className="text-sm">
+                                        <span className="font-semibold">{pending.user.name}</span>
+                                        <span className="text-muted-foreground"> wants to be assigned to </span>
+                                        <span className="font-semibold">{pending.patient.name}</span>
+                                        <span className="text-xs text-muted-foreground ml-2">(MRN: {pending.patient.mrn})</span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            size="sm"
+                                            className="h-7 text-xs bg-green-600 hover:bg-green-700"
+                                            onClick={() => handleApprove(pending.id)}
+                                        >
+                                            <CheckCheck className="w-3 h-3 mr-1" />
+                                            Approve
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            className="h-7 text-xs"
+                                            onClick={() => handleReject(pending.id)}
+                                        >
+                                            <X className="w-3 h-3 mr-1" />
+                                            Reject
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Key Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -208,8 +319,6 @@ export default function Dashboard() {
                         <div className="text-2xl font-bold text-blue-600">{stats.activeOrders.length}</div>
                         <p className="text-xs text-muted-foreground">In Progress</p>
                     </CardContent>
-
-
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -284,22 +393,39 @@ export default function Dashboard() {
                                                             Sign Out
                                                         </Button>
                                                     );
-                                                } else {
-                                                    // Allow sign in if no nurse assigned OR if I am senior (override/add second)
-                                                    const canSignIn = patientAssignments.length === 0 || user?.role === 'SENIOR';
-                                                    if (canSignIn) {
-                                                        return (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                className="h-7 text-xs border-blue-200 text-blue-700 hover:bg-blue-50"
-                                                                onClick={(e) => handleSignIn(patient.id, e)}
-                                                            >
-                                                                Sign In
-                                                            </Button>
-                                                        );
-                                                    }
                                                 }
+
+                                                if (user?.role === 'NURSE') {
+                                                    // Always show sign-in option for nurses; occupied = "Request"
+                                                    const isOccupied = patientAssignments.length > 0;
+                                                    return (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className={`h-7 text-xs ${isOccupied
+                                                                ? 'border-orange-200 text-orange-700 hover:bg-orange-50'
+                                                                : 'border-blue-200 text-blue-700 hover:bg-blue-50'}`}
+                                                            onClick={(e) => handleSignIn(patient.id, e)}
+                                                        >
+                                                            {isOccupied ? 'Request Sign-In' : 'Sign In'}
+                                                        </Button>
+                                                    );
+                                                }
+
+                                                // Senior/Resident can directly sign in
+                                                if (user?.role === 'SENIOR' || user?.role === 'RESIDENT') {
+                                                    return (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="h-7 text-xs border-blue-200 text-blue-700 hover:bg-blue-50"
+                                                            onClick={(e) => handleSignIn(patient.id, e)}
+                                                        >
+                                                            Sign In
+                                                        </Button>
+                                                    );
+                                                }
+
                                                 return null;
                                             })()}
 

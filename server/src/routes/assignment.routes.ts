@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 router.get('/active', async (req, res) => {
     try {
         const assignments = await prisma.patientAssignment.findMany({
-            where: { isActive: true },
+            where: { isActive: true, isPending: false },
             include: {
                 user: { select: { id: true, name: true, role: true } },
                 patient: { select: { id: true, name: true, mrn: true } }
@@ -22,17 +22,56 @@ router.get('/active', async (req, res) => {
     }
 });
 
+// GET pending assignment requests (for Senior/Resident to approve)
+router.get('/pending', async (req, res) => {
+    try {
+        const pending = await prisma.patientAssignment.findMany({
+            where: { isPending: true, isActive: false },
+            include: {
+                user: { select: { id: true, name: true, role: true } },
+                patient: { select: { id: true, name: true, mrn: true } }
+            },
+            orderBy: { createdAt: 'asc' }
+        });
+        res.json(pending);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch pending assignments' });
+    }
+});
+
+// PATCH approve a pending assignment
+router.patch('/:id/approve', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const assignment = await prisma.patientAssignment.update({
+            where: { id },
+            data: { isPending: false, isActive: true }
+        });
+        res.json({ success: true, data: assignment });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to approve assignment' });
+    }
+});
+
+// PATCH reject a pending assignment
+router.patch('/:id/reject', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await prisma.patientAssignment.delete({ where: { id } });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to reject assignment' });
+    }
+});
+
 // Create assignment (Sign In)
 router.post('/', async (req, res) => {
     try {
         const { patientId, userId } = req.body;
 
-        // 1. Check if Nurse is already assigned to ANY patient
+        // 1. Check if Nurse is already assigned to ANY patient (active, non-pending)
         const existingNurseAssignment = await prisma.patientAssignment.findFirst({
-            where: {
-                userId: userId,
-                isActive: true
-            }
+            where: { userId, isActive: true, isPending: false }
         });
 
         if (existingNurseAssignment) {
@@ -42,53 +81,48 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // 2. Check if Patient already has an assigned nurse
+        // 2. Also clear any old pending requests from this nurse
+        await prisma.patientAssignment.deleteMany({
+            where: { userId, isPending: true }
+        });
+
+        // 3. Check if Patient already has an assigned nurse (active, non-pending)
         const existingPatientAssignments = await prisma.patientAssignment.findMany({
-            where: {
-                patientId: patientId,
-                isActive: true
-            }
+            where: { patientId, isActive: true, isPending: false }
         });
 
         if (existingPatientAssignments.length > 0) {
-            // Rule: "if two nurse on one patient this should be done only from the senior"
-
-            // Check if request is coming from a Senior (Admin Panel Override)
-            let isAuthorized = false;
+            // Check if the signing-in user is Senior or Resident (can self-assign directly)
+            const userSigningIn = await prisma.user.findUnique({ where: { id: userId } });
             const { assignerId } = req.body;
 
-            if (assignerId) {
+            let isAuthorized = userSigningIn?.role === 'SENIOR' || userSigningIn?.role === 'RESIDENT';
+
+            if (!isAuthorized && assignerId) {
                 const assigner = await prisma.user.findUnique({ where: { id: assignerId } });
-                if (assigner?.role === 'SENIOR') {
-                    isAuthorized = true;
-                }
-            }
-
-            // Fallback: Check if the user assigning THEMSELVES is a Senior (unlikely for 2nd nurse but possible)
-            if (!isAuthorized) {
-                const userSigningIn = await prisma.user.findUnique({ where: { id: userId } });
-                if (userSigningIn?.role === 'SENIOR') {
-                    isAuthorized = true;
-                }
+                isAuthorized = assigner?.role === 'SENIOR' || assigner?.role === 'RESIDENT';
             }
 
             if (!isAuthorized) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Patient already has a nurse. Only a designated Senior can assign a second nurse.'
+                // Create a PENDING assignment request — nurse waits for approval
+                const pending = await prisma.patientAssignment.create({
+                    data: { patientId, userId, isActive: false, isPending: true }
+                });
+                return res.status(202).json({
+                    success: true,
+                    pending: true,
+                    data: pending,
+                    message: 'Assignment request submitted. Waiting for senior/resident approval.'
                 });
             }
         }
 
+        // Direct assignment
         const assignment = await prisma.patientAssignment.create({
-            data: {
-                patientId,
-                userId,
-                isActive: true
-            }
+            data: { patientId, userId, isActive: true, isPending: false }
         });
 
-        res.json({ success: true, data: assignment });
+        res.json({ success: true, pending: false, data: assignment });
 
     } catch (error) {
         console.error("Error creating assignment:", error);
@@ -102,15 +136,8 @@ router.post('/end', async (req, res) => {
         const { patientId, userId } = req.body;
 
         const result = await prisma.patientAssignment.updateMany({
-            where: {
-                patientId: patientId,
-                userId: userId,
-                isActive: true
-            },
-            data: {
-                isActive: false,
-                endedAt: new Date()
-            }
+            where: { patientId, userId, isActive: true },
+            data: { isActive: false, endedAt: new Date() }
         });
 
         if (result.count === 0) {
