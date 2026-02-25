@@ -26,6 +26,6 @@ app.get('/', (req, res) => {
     res.json({ message: 'ICU Management System API Running' });
 });
 
-app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+app.listen(port as number, '0.0.0.0', () => {
+    console.log(`Server is running on http://0.0.0.0:${port}`);
 });
