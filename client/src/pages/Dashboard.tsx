@@ -552,30 +552,32 @@ export default function Dashboard() {
                                             }
                                         </div>
                                     </div>
+                                    {(user?.role === 'SENIOR' || user?.role === 'RESIDENT') && (
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            className="w-full mt-4"
+                                            onClick={async () => {
+                                                if (confirm("Are you sure you want to sign out ALL staff and clear all patient assignments?")) {
+                                                    try {
+                                                        await shiftApi.endAllShifts();
+                                                        toast.success("Signed out all staff");
+                                                        fetchData();
+                                                    } catch (err) {
+                                                        toast.error("Failed to sign out all staff");
+                                                    }
+                                                }
+                                            }}
+                                        >
+                                            <LogOut className="w-4 h-4 mr-2" />
+                                            Sign Out All
+                                        </Button>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
 
-                        {user?.role === 'SENIOR' && (
-                            <Button
-                                variant="destructive"
-                                className="w-full"
-                                onClick={async () => {
-                                    if (confirm("Are you sure you want to sign out ALL staff and clear all patient assignments?")) {
-                                        try {
-                                            await shiftApi.endAllShifts();
-                                            toast.success("Signed out all staff");
-                                            fetchData();
-                                        } catch (err) {
-                                            toast.error("Failed to sign out all staff");
-                                        }
-                                    }
-                                }}
-                            >
-                                <LogOut className="w-4 h-4 mr-2" />
-                                Sign Out All
-                            </Button>
-                        )}
+
 
                         <Card>
                             <CardHeader>
