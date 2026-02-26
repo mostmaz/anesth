@@ -500,7 +500,7 @@ export class LabImportService {
                             // FAST TRACK: Wait for network idle or just a fixed short buffer?
                             // Network idle is safer for rendering.
                             await newPage.waitForNetworkIdle({ timeout: 5000 }).catch(() => { });
-                            await newPage.evaluate(() => { const s = document.createElement('style'); s.innerHTML = '*,body,html{overflow:visible!important;height:auto!important;max-height:none!important;}'; document.head.appendChild(s); });
+                            await newPage.evaluate(() => { const s = document.createElement('style'); s.textContent = '*,body,html{overflow:visible!important;height:auto!important;max-height:none!important;}'; document.head.appendChild(s); });
                             await new Promise(r => setTimeout(r, 1000)); // allow reflow
 
                             const screenshotPath = `uploads/sync-${match.accNo}-${Date.now()}-${Math.floor(Math.random() * 1000)}.png`;
