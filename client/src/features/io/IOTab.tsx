@@ -181,7 +181,7 @@ export default function IOTab({ patientId }: IOTabProps) {
                 </Dialog>
             </div>
             {/* Summary Cards */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Card className="bg-blue-50 border-blue-200">
                     <CardContent className="p-4 flex flex-col items-center">
                         <span className="text-sm font-medium text-blue-600 mb-1">Total Input</span>
@@ -219,8 +219,8 @@ export default function IOTab({ patientId }: IOTabProps) {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                        <div className="space-y-2">
+                    <form onSubmit={handleAdd} className="flex flex-col md:flex-row md:items-end gap-4">
+                        <div className="space-y-2 w-full">
                             <Label>Type</Label>
                             <Select value={type} onValueChange={(v: 'INPUT' | 'OUTPUT') => setType(v)}>
                                 <SelectTrigger>
@@ -232,7 +232,7 @@ export default function IOTab({ patientId }: IOTabProps) {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2 col-span-1 md:col-span-1">
+                        <div className="space-y-2 w-full">
                             <Label>Category</Label>
                             <Select value={category} onValueChange={setCategory}>
                                 <SelectTrigger>
@@ -257,7 +257,7 @@ export default function IOTab({ patientId }: IOTabProps) {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2 w-full">
                             <Label>Amount (mL)</Label>
                             <Input
                                 type="number"
@@ -267,7 +267,7 @@ export default function IOTab({ patientId }: IOTabProps) {
                                 min="0"
                             />
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2 w-full">
                             <Label>Notes</Label>
                             <Input
                                 value={notes}
@@ -275,7 +275,7 @@ export default function IOTab({ patientId }: IOTabProps) {
                                 placeholder="Optional"
                             />
                         </div>
-                        <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+                        <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white w-full md:w-auto">
                             <Plus className="w-4 h-4 mr-2" />
                             Add
                         </Button>

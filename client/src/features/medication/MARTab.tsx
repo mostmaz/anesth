@@ -123,7 +123,7 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
                         const lastAdmin = med.administrations && med.administrations[0];
                         return (
                             <div key={med.id} className={`p-4 border rounded-lg transition-colors ${med.isActive ? 'hover:bg-slate-50' : 'bg-slate-50 opacity-75'}`}>
-                                <div className="flex justify-between items-start">
+                                <div className="flex flex-col md:flex-row md:justify-between items-start gap-4">
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
                                             <h4 className="font-bold text-lg text-slate-900">{med.name}</h4>
@@ -159,7 +159,7 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
                                         )}
                                     </div>
 
-                                    <div className="flex flex-col items-end gap-3">
+                                    <div className="flex flex-col items-start md:items-end gap-3 w-full md:w-auto mt-2 md:mt-0 pt-4 md:pt-0 border-t md:border-0">
                                         <div className="flex gap-2">
                                             {med.isActive && (
                                                 <Button

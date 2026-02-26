@@ -21,6 +21,14 @@ export const shiftApi = {
         return response.json();
     },
 
+    endAllShifts: async (): Promise<{ success: boolean; message: string }> => {
+        const response = await fetch(`${API_URL}/shifts/end-all`, {
+            method: 'POST',
+        });
+        if (!response.ok) throw new Error('Failed to end all shifts');
+        return response.json();
+    },
+
     getActiveShift: async (userId: string): Promise<Shift | null> => {
         const response = await fetch(`${API_URL}/shifts/active/${userId}`);
         if (!response.ok) return null; // 404 or other error means no active shift usually

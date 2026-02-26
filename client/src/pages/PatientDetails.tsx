@@ -66,7 +66,7 @@ export default function PatientDetails() {
                     const activeAdmission = patient.admissions?.find((a: any) => !a.dischargedAt);
                     return (
                         <Tabs defaultValue="vitals" className="w-full">
-                            <TabsList className="grid w-full grid-cols-7 lg:w-[900px] mb-8">
+                            <TabsList className="mb-8 w-full p-1 bg-muted rounded-lg">
                                 <TabsTrigger value="overview">Overview</TabsTrigger>
                                 <TabsTrigger value="handover">Handover</TabsTrigger>
                                 <TabsTrigger value="vitals">Vitals</TabsTrigger>

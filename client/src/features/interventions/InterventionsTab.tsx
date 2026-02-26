@@ -96,7 +96,7 @@ export default function InterventionsTab({ patientId, diagnosis }: Interventions
                     ) : (
                         <div className="space-y-4">
                             {activeProcedures.map(order => (
-                                <div key={order.id} className="border p-4 rounded-lg bg-white shadow-sm flex justify-between items-start">
+                                <div key={order.id} className="border p-4 rounded-lg bg-white shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">
                                             <h4 className="font-bold text-lg">{order.title}</h4>
@@ -107,7 +107,7 @@ export default function InterventionsTab({ patientId, diagnosis }: Interventions
                                         <p className="text-sm text-slate-600">Created: {new Date(order.createdAt).toLocaleDateString()}</p>
                                         {order.notes && <p className="text-sm mt-2 p-2 bg-slate-50 rounded">Note: {order.notes}</p>}
                                     </div>
-                                    <Button size="sm" onClick={() => handleComplete(order.id)} className="bg-green-600 hover:bg-green-700">
+                                    <Button size="sm" onClick={() => handleComplete(order.id)} className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">
                                         Mark Done
                                     </Button>
                                 </div>
