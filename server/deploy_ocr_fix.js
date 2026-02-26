@@ -6,7 +6,7 @@ const { NodeSSH } = require('node-ssh');
 
     // 1. Write the .env file with the Gemini API key
     console.log('--- Writing .env on Remote ---');
-    await ssh.execCommand('echo "GEMINI_API_KEY=AIzaSyBlfr5jvnksROJ3thAvDB2BbZJ2PGLM0Wg" > .env', { cwd: '/root/anesth' });
+    await ssh.execCommand('echo "Please configure GEMINI_API_KEY in .env on the server" ', { cwd: '/root/anesth' });
 
     // 2. Fetch latest docker-compose.yml
     console.log('--- Git pull ---');
