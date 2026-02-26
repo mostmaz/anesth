@@ -568,7 +568,7 @@ export class LabImportService {
             // OCR analysis is independent and cpu/network bound (if using external API).
             // We can run these in parallel.
 
-            const analysisPromises = newReports.map(async (report) => {
+            for (const report of newReports) {
                 try {
                     const analysisResults = await ocrService.analyzeImage(report.screenshotPath);
 
@@ -631,18 +631,12 @@ export class LabImportService {
                                 console.log(`Skipping duplicate: ${report.accNo} - ${finalTitle}`);
                             }
                         }
-                        return createdItems;
+                        results.push(...createdItems);
                     }
-                    return [];
                 } catch (e) {
                     console.error(`Failed to process/save ${report.accNo}`, e);
-                    return [];
                 }
-            });
-
-            const processed = await Promise.all(analysisPromises);
-            // Flatten the array of arrays
-            results.push(...processed.flat());
+            }
 
             return results;
         } finally {
