@@ -355,6 +355,8 @@ export class LabImportService {
                 console.log("No new tab detected, checking current page...");
                 await new Promise(r => setTimeout(r, 5000));
                 await page.setViewport({ width: 1280, height: 1024 });
+                await page.evaluate(() => { const s = document.createElement('style'); s.innerHTML = '*,body,html{overflow:visible!important;height:auto!important;max-height:none!important;}'; document.head.appendChild(s); });
+                await new Promise(r => setTimeout(r, 1000));
                 screenshotPath = `uploads/import-${Date.now()}.png`;
                 const absolutePath = require('path').resolve(screenshotPath);
                 await page.screenshot({ path: absolutePath, fullPage: true });
@@ -362,6 +364,7 @@ export class LabImportService {
             } else {
                 await newPage.setViewport({ width: 1280, height: 1024 });
                 await newPage.waitForNetworkIdle({ timeout: 10000 }).catch(() => { });
+                await newPage.evaluate(() => { const s = document.createElement('style'); s.innerHTML = '*,body,html{overflow:visible!important;height:auto!important;max-height:none!important;}'; document.head.appendChild(s); });
                 await new Promise(r => setTimeout(r, 2000)); // Give it a moment to render
                 screenshotPath = `uploads/import-${Date.now()}.png`;
                 const absolutePath = require('path').resolve(screenshotPath);
@@ -494,6 +497,8 @@ export class LabImportService {
                             // FAST TRACK: Wait for network idle or just a fixed short buffer?
                             // Network idle is safer for rendering.
                             await newPage.waitForNetworkIdle({ timeout: 5000 }).catch(() => { });
+                            await newPage.evaluate(() => { const s = document.createElement('style'); s.innerHTML = '*,body,html{overflow:visible!important;height:auto!important;max-height:none!important;}'; document.head.appendChild(s); });
+                            await new Promise(r => setTimeout(r, 1000)); // allow reflow
 
                             const screenshotPath = `uploads/sync-${match.accNo}-${Date.now()}-${Math.floor(Math.random() * 1000)}.png`;
                             const absolutePath = require('path').resolve(screenshotPath);
