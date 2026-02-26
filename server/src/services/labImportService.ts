@@ -531,9 +531,18 @@ export class LabImportService {
         const username = '10427';
         const password = process.env.LAB_PASSWORD || '7358782';
 
+        // Imports moved to top of file for proper module syntax
+        // import { PrismaClient } from '@prisma/client';
+        // import puppeteer, { Page } from 'puppeteer';
+        // import fs from 'fs';
+        // import { notificationEmitter } from '../routes/notifications.routes';
+
         const { PrismaClient } = require('@prisma/client');
         const prisma = new PrismaClient();
         const results = [];
+
+        // Dynamically import notificationEmitter to avoid circular dependencies if this file is imported by notification.routes
+        const { notificationEmitter } = await import('../routes/notifications.routes');
 
         try {
             // Find existing accession numbers for this patient to prevent redundant processing
@@ -603,6 +612,21 @@ export class LabImportService {
                                     }
                                 });
                                 createdItems.push(newInv);
+
+                                // Fetch patient name for notification
+                                const patient = await prisma.patient.findUnique({
+                                    where: { id: patientId },
+                                    select: { name: true }
+                                });
+                                const patientName = patient?.name || 'Unknown Patient';
+
+                                // Emit real-time notification to all connected clients
+                                notificationEmitter.emit('new_investigation', {
+                                    patientId: patientId,
+                                    patientName: patientName,
+                                    title: newInv.title || 'Lab Result',
+                                    timestamp: new Date()
+                                });
                             } else {
                                 console.log(`Skipping duplicate: ${report.accNo} - ${finalTitle}`);
                             }

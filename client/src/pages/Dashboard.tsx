@@ -9,12 +9,14 @@ import { apiClient } from '../api/client';
 import { useAuthStore } from '../stores/authStore';
 import { useShiftStore } from '../stores/shiftStore';
 import { Patient } from '../types';
-import { Activity, Users, ClipboardList, AlertTriangle, Clock, CheckCircle2, LogOut, CheckCheck, X } from 'lucide-react';
+import { Activity, Users, ClipboardList, AlertTriangle, Clock, CheckCircle2, LogOut, CheckCheck, X, FlaskConical } from 'lucide-react';
 
 import { ordersApi } from '../api/ordersApi';
 import { assignmentApi, Assignment } from '../api/assignmentApi';
 import { shiftApi } from '../api/shiftApi';
 import { toast } from 'sonner';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 import AddPatientForm from '../features/patient/AddPatientForm';
 import { Dialog, DialogContent } from '../components/ui/dialog';
@@ -31,6 +33,9 @@ export default function Dashboard() {
     // New State for Staff of the Day
     const [staffOnDuty, setStaffOnDuty] = useState<{ seniors: any[], nurses: any[] }>({ seniors: [], nurses: [] });
     const [showAssignmentDialog, setShowAssignmentDialog] = useState(false);
+
+    // Live Feed for new lab results via SSE
+    const [recentLabsFeed, setRecentLabsFeed] = useState<any[]>([]);
 
     const [stats, setStats] = useState({
         critical: 0,
@@ -81,6 +86,24 @@ export default function Dashboard() {
 
     useEffect(() => {
         fetchData();
+
+        // Listen for live SSE notifications specifically for the Dashboard widget
+        const eventSource = new EventSource(`${API_URL}/notifications/stream`);
+
+        eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.patientName && data.title) {
+                    setRecentLabsFeed(prev => [data, ...prev].slice(0, 10)); // Keep last 10
+                }
+            } catch (err) {
+                // Parse error
+            }
+        };
+
+        return () => {
+            eventSource.close();
+        };
     }, []);
 
     const handleSignIn = async (patientId: string, e: React.MouseEvent) => {
@@ -337,226 +360,253 @@ export default function Dashboard() {
 
             {/* Main Content Area */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Patient List */}
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                        <div className="flex justify-between items-center">
-                            <CardTitle>Active Patients</CardTitle>
-                            <Button size="sm" onClick={() => setIsAddPatientOpen(true)}>
-                                + Admit Patient
-                            </Button>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {patients.length === 0 ? (
-                                <div className="text-center p-8 text-muted-foreground">No patients currently admitted.</div>
-                            ) : (
-                                patients.map(patient => (
-                                    <div
-                                        key={patient.id}
-                                        onClick={() => handlePatientClick(patient.id)}
-                                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
-                                    >
-                                        <div className="flex items-center space-x-4">
-                                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
-                                                {patient.name.substring(0, 2).toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <div className="font-medium text-slate-900">{patient.name}</div>
-                                                <div className="text-sm text-slate-500 font-mono">MRN: {patient.mrn}</div>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            {/* Assigned Nurses Display */}
-                                            <div className="flex -space-x-2 overflow-hidden">
-                                                {assignments
-                                                    .filter(a => a.patientId === patient.id)
-                                                    .map(a => (
-                                                        <div key={a.id} title={`Nurse: ${a.user.name}`} className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-green-100 flex items-center justify-center text-[10px] font-bold text-green-700">
-                                                            {a.user.name.substring(0, 1)}
-                                                        </div>
-                                                    ))
-                                                }
-                                            </div>
-
-                                            {/* Sign In/Out Button */}
-                                            {(() => {
-                                                const patientAssignments = assignments.filter(a => a.patientId === patient.id);
-                                                const myAssignment = patientAssignments.find(a => a.userId === user?.id);
-
-                                                if (myAssignment) {
-                                                    return (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="destructive"
-                                                            className="h-7 text-xs"
-                                                            onClick={(e) => handleSignOut(patient.id, e)}
-                                                        >
-                                                            Sign Out
-                                                        </Button>
-                                                    );
-                                                }
-
-                                                if (user?.role === 'NURSE') {
-                                                    // Always show sign-in option for nurses; occupied = "Request"
-                                                    const isOccupied = patientAssignments.length > 0;
-                                                    return (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className={`h-7 text-xs ${isOccupied
-                                                                ? 'border-orange-200 text-orange-700 hover:bg-orange-50'
-                                                                : 'border-blue-200 text-blue-700 hover:bg-blue-50'}`}
-                                                            onClick={(e) => handleSignIn(patient.id, e)}
-                                                        >
-                                                            {isOccupied ? 'Request Sign-In' : 'Sign In'}
-                                                        </Button>
-                                                    );
-                                                }
-
-                                                // Senior/Resident can directly sign in
-                                                if (user?.role === 'SENIOR' || user?.role === 'RESIDENT') {
-                                                    return (
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className="h-7 text-xs border-blue-200 text-blue-700 hover:bg-blue-50"
-                                                            onClick={(e) => handleSignIn(patient.id, e)}
-                                                        >
-                                                            Sign In
-                                                        </Button>
-                                                    );
-                                                }
-
-                                                return null;
-                                            })()}
-
-                                            <Badge variant="outline">{new Date().getFullYear() - new Date(patient.dob).getFullYear()}y / {patient.gender}</Badge>
-                                            <Badge className={Math.random() > 0.8 ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}>
-                                                {Math.random() > 0.8 ? "Critical" : "Stable"}
-                                            </Badge>
-                                        </div>
+                {/* Left Column (Labs + Patients) */}
+                <div className="lg:col-span-2 space-y-8">
+                    {/* Live Lab Updates Feed */}
+                    {recentLabsFeed.length > 0 && (
+                        <Card className="border-blue-200 shadow-sm bg-gradient-to-r from-blue-50/50 to-white">
+                            <CardHeader className="pb-3 border-b border-blue-100 bg-white/50">
+                                <CardTitle className="text-base font-semibold flex items-center text-blue-800">
+                                    <div className="relative mr-3 flex items-center justify-center">
+                                        <FlaskConical className="w-5 h-5 text-blue-600" />
+                                        <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full animate-ping"></span>
+                                        <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full"></span>
                                     </div>
-                                ))
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
+                                    Live Lab Updates
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <div className="divide-y divide-blue-50/50 max-h-[200px] overflow-y-auto">
+                                    {recentLabsFeed.map((lab, index) => (
+                                        <div key={index} className="p-4 flex items-center justify-between hover:bg-blue-50/50 transition-colors cursor-pointer group" onClick={() => lab.patientId && handlePatientClick(lab.patientId)}>
+                                            <div className="flex items-center space-x-4">
+                                                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                                                    <FlaskConical className="w-5 h-5 text-blue-600" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-medium text-slate-900">
+                                                        <span className="font-bold">{lab.patientName}</span> — {lab.title}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 flex items-center mt-0.5">
+                                                        <Clock className="w-3 h-3 mr-1" />
+                                                        {new Date(lab.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <Button variant="ghost" size="sm" className="hidden group-hover:flex text-blue-600 hover:text-blue-700 hover:bg-blue-100 h-8">
+                                                View Chart
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
-                {/* Right Sidebar: Quick Actions & Shift Info */}
-                <div className="space-y-6">
+                    {/* Patient List */}
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-lg">Staff On Duty</CardTitle>
+                            <div className="flex justify-between items-center">
+                                <CardTitle>Active Patients</CardTitle>
+                                <Button size="sm" onClick={() => setIsAddPatientOpen(true)}>
+                                    + Admit Patient
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                <div>
-                                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Seniors (On Call)</h4>
-                                    <div className="space-y-2">
-                                        {staffOnDuty.seniors.length === 0 ? <p className="text-xs italic text-slate-400">No seniors found</p> :
-                                            staffOnDuty.seniors.map((s) => (
-                                                <div key={s.id} className="flex justify-between items-center text-sm">
-                                                    <span className={s.id === user?.id ? "font-bold" : ""}>{s.name} {s.id === user?.id && "(You)"}</span>
-                                                    <Badge variant="outline" className="text-[10px]">On Call</Badge>
+                                {patients.length === 0 ? (
+                                    <div className="text-center p-8 text-muted-foreground">No patients currently admitted.</div>
+                                ) : (
+                                    patients.map(patient => (
+                                        <div
+                                            key={patient.id}
+                                            onClick={() => handlePatientClick(patient.id)}
+                                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
+                                        >
+                                            <div className="flex items-center space-x-4">
+                                                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
+                                                    {patient.name.substring(0, 2).toUpperCase()}
                                                 </div>
-                                            ))
-                                        }
-                                    </div>
-                                </div>
+                                                <div>
+                                                    <div className="font-medium text-slate-900">{patient.name}</div>
+                                                    <div className="text-sm text-slate-500 font-mono">MRN: {patient.mrn}</div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                {/* Assigned Nurses Display */}
+                                                <div className="flex -space-x-2 overflow-hidden">
+                                                    {assignments
+                                                        .filter(a => a.patientId === patient.id)
+                                                        .map(a => (
+                                                            <div key={a.id} title={`Nurse: ${a.user.name}`} className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-green-100 flex items-center justify-center text-[10px] font-bold text-green-700">
+                                                                {a.user.name.substring(0, 1)}
+                                                            </div>
+                                                        ))
+                                                    }
+                                                </div>
 
-                                <div>
-                                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Nurses (Active Shift)</h4>
-                                    <div className="space-y-2">
-                                        {staffOnDuty.nurses.length === 0 ? <p className="text-xs italic text-slate-400">No nurses on shift</p> :
-                                            staffOnDuty.nurses.map((n) => (
-                                                <div key={n.id} className="flex flex-col text-sm border-b pb-1 last:border-0 last:pb-0">
-                                                    <div className="flex justify-between items-center">
-                                                        <span className={n.id === user?.id ? "font-bold" : ""}>{n.name}</span>
-                                                        <span className="text-[10px] text-slate-400">{n.shiftType}</span>
-                                                    </div>
-                                                    <div className="text-xs text-slate-500">
-                                                        {n.assignment ? `Assigned: ${n.assignment}` : <span className="text-red-400">Unassigned</span>}
-                                                    </div>
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                </div>
+                                                {/* Sign In/Out Button */}
+                                                {(() => {
+                                                    const patientAssignments = assignments.filter(a => a.patientId === patient.id);
+                                                    const myAssignment = patientAssignments.find(a => a.userId === user?.id);
+
+                                                    if (myAssignment) {
+                                                        return (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="destructive"
+                                                                className="h-7 text-xs"
+                                                                onClick={(e) => handleSignOut(patient.id, e)}
+                                                            >
+                                                                Sign Out
+                                                            </Button>
+                                                        );
+                                                    }
+
+                                                    if (user?.role === 'NURSE') {
+                                                        const isOccupied = patientAssignments.length > 0;
+                                                        return (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className={`h-7 text-xs ${isOccupied
+                                                                    ? 'border-orange-200 text-orange-700 hover:bg-orange-50'
+                                                                    : 'border-blue-200 text-blue-700 hover:bg-blue-50'}`}
+                                                                onClick={(e) => handleSignIn(patient.id, e)}
+                                                            >
+                                                                {isOccupied ? 'Request Sign-In' : 'Sign In'}
+                                                            </Button>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
+
+                                                <Badge variant="outline">{new Date().getFullYear() - new Date(patient.dob).getFullYear()}y / {patient.gender}</Badge>
+                                                <Badge className={Math.random() > 0.8 ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}>
+                                                    {Math.random() > 0.8 ? "Critical" : "Stable"}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Recent Orders</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {(stats as any).recentOrders?.map((order: any) => (
-                                    <div key={order.id} className="flex items-start space-x-3 text-sm border-b pb-2 last:border-0 last:pb-0">
-                                        <div className={`mt-0.5 p-1 rounded-full ${order.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
-                                            {order.status === 'COMPLETED' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                                        </div>
-                                        <div>
-                                            <div className="font-medium text-slate-900 flex items-center gap-2">
-                                                {order.title}
-                                                {order.status === 'COMPLETED' && <span className="text-[10px] bg-green-100 text-green-800 px-1.5 rounded-full">Done</span>}
-                                            </div>
-                                            <div className="text-xs text-slate-500">
-                                                {order.patient.name}
-                                            </div>
-                                            <div className="text-[10px] text-slate-400 mt-0.5">
-                                                {new Date(order.createdAt).toLocaleString()}
-                                            </div>
+                    {/* Right Sidebar: Quick Actions & Shift Info */}
+                    <div className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg">Staff On Duty</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    <div>
+                                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Seniors (On Call)</h4>
+                                        <div className="space-y-2">
+                                            {staffOnDuty.seniors.length === 0 ? <p className="text-xs italic text-slate-400">No seniors found</p> :
+                                                staffOnDuty.seniors.map((s) => (
+                                                    <div key={s.id} className="flex justify-between items-center text-sm">
+                                                        <span className={s.id === user?.id ? "font-bold" : ""}>{s.name} {s.id === user?.id && "(You)"}</span>
+                                                        <Badge variant="outline" className="text-[10px]">On Call</Badge>
+                                                    </div>
+                                                ))
+                                            }
                                         </div>
                                     </div>
-                                ))}
-                                {(!stats as any).recentOrders?.length && <div className="text-slate-500 italic">No recent orders</div>}
-                            </div>
+
+                                    <div>
+                                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Nurses (Active Shift)</h4>
+                                        <div className="space-y-2">
+                                            {staffOnDuty.nurses.length === 0 ? <p className="text-xs italic text-slate-400">No nurses on shift</p> :
+                                                staffOnDuty.nurses.map((n) => (
+                                                    <div key={n.id} className="flex flex-col text-sm border-b pb-1 last:border-0 last:pb-0">
+                                                        <div className="flex justify-between items-center">
+                                                            <span className={n.id === user?.id ? "font-bold" : ""}>{n.name}</span>
+                                                            <span className="text-[10px] text-slate-400">{n.shiftType}</span>
+                                                        </div>
+                                                        <div className="text-xs text-slate-500">
+                                                            {n.assignment ? `Assigned: ${n.assignment}` : <span className="text-red-400">Unassigned</span>}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg">Recent Orders</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    {(stats as any).recentOrders?.map((order: any) => (
+                                        <div key={order.id} className="flex items-start space-x-3 text-sm border-b pb-2 last:border-0 last:pb-0">
+                                            <div className={`mt-0.5 p-1 rounded-full ${order.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
+                                                {order.status === 'COMPLETED' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                                            </div>
+                                            <div>
+                                                <div className="font-medium text-slate-900 flex items-center gap-2">
+                                                    {order.title}
+                                                    {order.status === 'COMPLETED' && <span className="text-[10px] bg-green-100 text-green-800 px-1.5 rounded-full">Done</span>}
+                                                </div>
+                                                <div className="text-xs text-slate-500">
+                                                    {order.patient.name}
+                                                </div>
+                                                <div className="text-[10px] text-slate-400 mt-0.5">
+                                                    {new Date(order.createdAt).toLocaleString()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {(!stats as any).recentOrders?.length && <div className="text-slate-500 italic">No recent orders</div>}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Clinical Orders Section */}
+                    <Card className="col-span-full mt-6">
+                        <CardHeader>
+                            <CardTitle>Clinical Orders</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Tabs defaultValue="active" className="w-full">
+                                <TabsList>
+                                    <TabsTrigger value="active">Active</TabsTrigger>
+                                    <TabsTrigger value="completed">Completed</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="active" className="mt-4">
+                                    <PendingExecutionList onSuccess={fetchData} />
+                                </TabsContent>
+
+                                <TabsContent value="completed" className="mt-4">
+                                    <CompletedOrdersList />
+                                </TabsContent>
+                            </Tabs>
                         </CardContent>
                     </Card>
                 </div>
 
-                {/* Clinical Orders Section */}
-                <Card className="col-span-full mt-6">
-                    <CardHeader>
-                        <CardTitle>Clinical Orders</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Tabs defaultValue="active" className="w-full">
-                            <TabsList>
-                                <TabsTrigger value="active">Active</TabsTrigger>
-                                <TabsTrigger value="completed">Completed</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="active" className="mt-4">
-                                <PendingExecutionList onSuccess={fetchData} />
-                            </TabsContent>
-
-                            <TabsContent value="completed" className="mt-4">
-                                <CompletedOrdersList />
-                            </TabsContent>
-                        </Tabs>
-                    </CardContent>
-                </Card>
+                <Dialog open={isAddPatientOpen} onOpenChange={setIsAddPatientOpen}>
+                    <DialogContent>
+                        <AddPatientForm
+                            onSuccess={() => {
+                                setIsAddPatientOpen(false);
+                                fetchData();
+                            }}
+                            onCancel={() => setIsAddPatientOpen(false)}
+                        />
+                    </DialogContent>
+                </Dialog>
             </div>
-
-            <Dialog open={isAddPatientOpen} onOpenChange={setIsAddPatientOpen}>
-                <DialogContent>
-                    <AddPatientForm
-                        onSuccess={() => {
-                            setIsAddPatientOpen(false);
-                            fetchData();
-                        }}
-                        onCancel={() => setIsAddPatientOpen(false)}
-                    />
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }
-
 function PendingExecutionList({ onSuccess }: { onSuccess: () => void }) {
     const { user } = useAuthStore();
     const [orders, setOrders] = useState<any[]>([]);
@@ -593,10 +643,10 @@ function PendingExecutionList({ onSuccess }: { onSuccess: () => void }) {
     };
 
     if (loading) return <div>Loading orders...</div>;
-    if (orders.length === 0) return <div className="text-muted-foreground p-4">No pending orders.</div>;
+    if (orders.length === 0) return <div className="text-muted-foreground p-4 text-center">No pending orders.</div>;
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-3">
             {orders.map(order => (
                 <div key={order.id} className="border rounded p-3 flex flex-col justify-between bg-white shadow-sm border-slate-200">
                     <div>
@@ -625,6 +675,9 @@ function PendingExecutionList({ onSuccess }: { onSuccess: () => void }) {
                     </Button>
                 </div>
             ))}
+            {orders.length > 5 && (
+                <p className="text-xs text-center text-muted-foreground">+{orders.length - 5} more orders. View in Orders tab.</p>
+            )}
         </div>
     );
 }
@@ -648,21 +701,17 @@ function CompletedOrdersList() {
     }, []);
 
     if (loading) return <div>Loading history...</div>;
-    if (orders.length === 0) return <div className="text-muted-foreground p-4">No completed orders found.</div>;
+    if (orders.length === 0) return <div className="text-muted-foreground p-4 text-center">No recently completed orders.</div>;
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-75">
-            {orders.map(order => (
-                <div key={order.id} className="border rounded p-3 bg-slate-50 border-slate-100">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="font-bold text-slate-700 line-through">{order.title}</div>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Completed</Badge>
-                    </div>
-                    <div className="text-sm text-slate-500">
-                        {order.patient.name}
-                    </div>
-                    <div className="text-xs text-slate-400 mt-1">
-                        Ordered by {order.author.name} • {new Date(order.updatedAt).toLocaleTimeString()}
+        <div className="space-y-2 opacity-75">
+            {orders.slice(0, 5).map(order => (
+                <div key={order.id} className="border rounded p-2 bg-slate-50 border-slate-100 flex justify-between items-center">
+                    <div className="flex-1 min-w-0 pr-2">
+                        <div className="font-medium text-slate-700 line-through text-xs truncate">{order.title}</div>
+                        <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                            {order.patient.name} • ✅ {order.author.name}
+                        </div>
                     </div>
                 </div>
             ))}
