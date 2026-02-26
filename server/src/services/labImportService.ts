@@ -124,26 +124,29 @@ export class LabImportService {
         } catch (e) { console.log("Enter key strategy failed", e); }
 
         // Strategy 2: Click button if still there
-        const clicked = await page.evaluate(() => {
-            const btn = document.querySelector('button.btn-primary') as HTMLButtonElement;
-            if (btn && document.body.contains(btn) && btn.offsetParent !== null) {
-                // Check if button is still visible/present
-                console.log("Button found. Disabled?", btn.disabled, "Attributes:", btn.getAttributeNames().join(','));
-                if (btn.hasAttribute('disabled') || btn.disabled) {
-                    console.log("Login button disabled, enabling force...");
-                    btn.removeAttribute('disabled');
-                    btn.disabled = false;
+        try {
+            const clicked = await page.evaluate(() => {
+                const btn = document.querySelector('button.btn-primary') as HTMLButtonElement;
+                if (btn && document.body.contains(btn) && btn.offsetParent !== null) {
+                    // Check if button is still visible/present
+                    if (btn.hasAttribute('disabled') || btn.disabled) {
+                        console.log("Login button disabled, enabling force...");
+                        btn.removeAttribute('disabled');
+                        btn.disabled = false;
+                    }
+                    btn.click();
+                    return true;
                 }
-                btn.click();
-                return true;
-            }
-            return false;
-        });
+                return false;
+            });
 
-        if (clicked) {
-            console.log("Login button clicked via JS.");
-        } else {
-            console.log("Login button not found or already navigated.");
+            if (clicked) {
+                console.log("Clicked login button via evaluate.");
+            } else {
+                console.log("Login button not found or already navigated.");
+            }
+        } catch (e: any) {
+            console.log("Execution context destroyed or navigated, skipping Strategy 2:", e.message);
         }
 
         // Strategy 3: Form submission
