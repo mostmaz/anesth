@@ -66,8 +66,8 @@ export default function OrdersTab({ patientId }: OrdersTabProps) {
 
     const OrderCard = ({ order }: { order: ClinicalOrder }) => (
         <Card className="mb-3 hover:shadow-md transition-shadow">
-            <CardContent className="p-4 flex justify-between items-start">
-                <div>
+            <CardContent className="p-4 flex flex-col md:flex-row md:justify-between items-start gap-4">
+                <div className="w-full">
                     <div className="flex items-center gap-2 mb-1">
                         <Badge variant="outline" className={getStatusColor(order.status)}>
                             {order.status}
@@ -94,7 +94,7 @@ export default function OrdersTab({ patientId }: OrdersTabProps) {
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-row md:flex-col gap-2 w-full md:w-auto mt-2 md:mt-0 pt-3 md:pt-0 border-t md:border-0 border-slate-100 flex-wrap">
                     {order.status === 'PENDING' && user?.role === 'SENIOR' && (
                         <Button
                             size="sm"
@@ -140,7 +140,7 @@ export default function OrdersTab({ patientId }: OrdersTabProps) {
             </div>
 
             <Tabs defaultValue="active" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 lg:w-[300px]">
+                <TabsList className="grid w-full grid-cols-2 sm:w-[300px]">
                     <TabsTrigger value="active" className="relative">
                         Active
                         <Badge variant="secondary" className="ml-2 bg-emerald-100 text-emerald-800 h-5 px-1.5">{activeOrders.length}</Badge>

@@ -43,11 +43,11 @@ export default function NotesTab({ patientId }: NotesTabProps) {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
                     <h3 className="text-lg font-medium">Clinical Documentation</h3>
                     <Select value={filterType} onValueChange={setFilterType}>
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-full sm:w-[180px]">
                             <SelectValue placeholder="Filter by Type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -59,7 +59,9 @@ export default function NotesTab({ patientId }: NotesTabProps) {
                         </SelectContent>
                     </Select>
                 </div>
-                <CreateNoteDialog patientId={patientId} onNoteCreated={fetchNotes} />
+                <div className="w-full sm:w-auto">
+                    <CreateNoteDialog patientId={patientId} onNoteCreated={fetchNotes} />
+                </div>
             </div>
 
             <div className="space-y-4">
@@ -73,14 +75,14 @@ export default function NotesTab({ patientId }: NotesTabProps) {
                     notes.map(note => (
                         <Card key={note.id} className="hover:shadow-md transition-shadow">
                             <CardHeader className="pb-2">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex items-center gap-2">
+                                <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
                                         <Badge variant="secondary" className={getTypeColor(note.type)}>
                                             {note.type}
                                         </Badge>
                                         <CardTitle className="text-lg">{note.title}</CardTitle>
                                     </div>
-                                    <div className="text-sm text-muted-foreground">
+                                    <div className="text-sm text-muted-foreground whitespace-nowrap">
                                         {new Date(note.createdAt).toLocaleString()}
                                     </div>
                                 </div>

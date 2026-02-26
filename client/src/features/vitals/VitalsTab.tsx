@@ -261,40 +261,42 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                         <CardTitle>Recent History</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Date & Time</TableHead>
-                                    <TableHead>HR</TableHead>
-                                    <TableHead>BP</TableHead>
-                                    <TableHead>SpO2</TableHead>
-                                    <TableHead>Temp</TableHead>
-                                    <TableHead>RBS</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {vitals.map((entry) => (
-                                    <TableRow key={entry.id}>
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span className="font-medium">{new Date(entry.timestamp).toLocaleDateString()}</span>
-                                                <span className="text-xs text-slate-500">{new Date(entry.timestamp).toLocaleTimeString()}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>{entry.heartRate}</TableCell>
-                                        <TableCell>{entry.bpSys}/{entry.bpDia}</TableCell>
-                                        <TableCell>{entry.spo2}%</TableCell>
-                                        <TableCell>{entry.temp}°C</TableCell>
-                                        <TableCell>{entry.rbs}</TableCell>
-                                    </TableRow>
-                                ))}
-                                {vitals.length === 0 && (
+                        <div className="overflow-x-auto">
+                            <Table className="min-w-[600px]">
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center text-muted-foreground">No records found</TableCell>
+                                        <TableHead>Date & Time</TableHead>
+                                        <TableHead>HR</TableHead>
+                                        <TableHead>BP</TableHead>
+                                        <TableHead>SpO2</TableHead>
+                                        <TableHead>Temp</TableHead>
+                                        <TableHead>RBS</TableHead>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {vitals.map((entry) => (
+                                        <TableRow key={entry.id}>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">{new Date(entry.timestamp).toLocaleDateString()}</span>
+                                                    <span className="text-xs text-slate-500">{new Date(entry.timestamp).toLocaleTimeString()}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>{entry.heartRate}</TableCell>
+                                            <TableCell>{entry.bpSys}/{entry.bpDia}</TableCell>
+                                            <TableCell>{entry.spo2}%</TableCell>
+                                            <TableCell>{entry.temp}°C</TableCell>
+                                            <TableCell>{entry.rbs}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {vitals.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center text-muted-foreground">No records found</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </CardContent>
                 </Card>
             </div>

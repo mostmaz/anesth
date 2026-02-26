@@ -170,16 +170,16 @@ export default function SpecialistNoteForm({ patient, onSuccess, initialData }: 
                     {/* Background */}
                     <div>
                         <Label className="font-bold mb-2 block bg-slate-100 p-1">Background</Label>
-                        <div className="flex flex-wrap gap-4">
+                        <div className="flex flex-wrap gap-x-6 gap-y-3">
                             <RHFCheckbox name="histHT" label="HT" />
                             <RHFCheckbox name="histDM" label="DM" />
                             <RHFCheckbox name="histAsthma" label="Asthma" />
                             <RHFCheckbox name="histCOPD" label="COPD" />
                             <RHFCheckbox name="histIHD" label="IHD" />
                             <RHFCheckbox name="histStroke" label="Stroke" />
-                            <div className="flex items-center gap-2">
-                                <Label>Others:</Label>
-                                <Input className="h-8 w-64" {...register('histOther')} />
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <Label className="whitespace-nowrap">Others:</Label>
+                                <Input className="h-8 w-full sm:w-64" {...register('histOther')} />
                             </div>
                         </div>
                     </div>
@@ -192,12 +192,16 @@ export default function SpecialistNoteForm({ patient, onSuccess, initialData }: 
 
                         {/* Neuro */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div className="flex items-center gap-2 border p-2 rounded">
-                                <Label className="font-bold w-24">Neurological:</Label>
-                                <span className="text-sm">GCS:</span>
-                                <Input className="h-8 w-20" {...register('neuroGCS')} />
-                                <span className="text-sm ml-4">RASS:</span>
-                                <Input className="h-8 w-20" {...register('neuroRASS')} />
+                            <div className="flex flex-wrap items-center gap-4 border p-3 rounded bg-slate-50">
+                                <Label className="font-bold w-full sm:w-auto mb-1 sm:mb-0">Neurological Status:</Label>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium">GCS:</span>
+                                    <Input className="h-8 w-16" {...register('neuroGCS')} />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium">RASS:</span>
+                                    <Input className="h-8 w-16" {...register('neuroRASS')} />
+                                </div>
                             </div>
                         </div>
 
