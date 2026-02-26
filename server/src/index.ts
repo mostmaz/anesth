@@ -26,7 +26,9 @@ app.use((req, res, next) => {
 // Serve static files from the 'uploads' directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+import notificationsRouter from './routes/notifications.routes';
 app.use('/api', routes);
+app.use('/api/notifications', notificationsRouter);
 
 app.get('/', (req, res) => {
     res.json({ message: 'ICU Management System API Running' });

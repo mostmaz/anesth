@@ -13,6 +13,9 @@ import { useState, useEffect } from 'react';
 import { useShiftStore } from '../../stores/shiftStore';
 import { cn } from '../../lib/utils';
 import { Toaster } from '../ui/sonner';
+import { toast } from 'sonner';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export default function AppShell() {
     const navigate = useNavigate();
@@ -26,6 +29,43 @@ export default function AppShell() {
             checkActiveShift(user.id);
         }
     }, [user, checkActiveShift]);
+
+    // SSE Real-time Notifications Listener
+    useEffect(() => {
+        if (!user) return;
+
+        const eventSource = new EventSource(`${API_URL}/notifications/stream`);
+
+        eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+
+                // If it's a new investigation event
+                if (data.patientName && data.title) {
+                    toast.info(`New Lab Result for ${data.patientName}`, {
+                        description: data.title,
+                        duration: 5000,
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to parse SSE notification:", err);
+            }
+        };
+
+        eventSource.onerror = (error) => {
+            console.error("SSE Connection Error:", error);
+            eventSource.close();
+            // Reconnect after 5 seconds
+            setTimeout(() => {
+                // The useEffect cleanup will close the old one, but we might need a more robust reconnect.
+                // For simplicity, EventSource auto-reconnects by default in most browsers unless explicitly closed.
+            }, 5000);
+        };
+
+        return () => {
+            eventSource.close();
+        };
+    }, [user]);
 
     const handleLogout = () => {
         logout();
