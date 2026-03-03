@@ -2,7 +2,7 @@
 import puppeteer, { Page } from 'puppeteer';
 
 export class LabImportService {
-    private static BASE_URL = 'https://www.labforme.com/Login/';
+    private static BASE_URL = 'https://amrlab.net/referral/auth/login';
     // Cache storage
     private static patientCache: any[] | null = null;
     private static cacheTimestamp: number = 0;
@@ -54,33 +54,14 @@ export class LabImportService {
         console.log('Navigating to ' + LabImportService.BASE_URL);
         await page.goto(LabImportService.BASE_URL, { waitUntil: 'networkidle2', timeout: 60000 });
 
-        // Click "Laboratories" category (img with 3.svg)
-        console.log('Selecting Laboratories category...');
-        try {
-            await page.waitForSelector('img[src*="3.svg"]', { visible: true, timeout: 10000 });
-            await page.click('img[src*="3.svg"]');
-            console.log("Clicked Laboratories button.");
-        } catch (e) {
-            console.log("Laboratories button not found or already open?", e);
-            // Fallback: check if modal is already open with correct label
-        }
-
         console.log('Waiting for login inputs...');
-        await page.waitForSelector('input[name="userName"]', { visible: true, timeout: 30000 });
+        await page.waitForSelector('input[name="email"]', { visible: true, timeout: 30000 });
 
-        // Optional: Check if we are in the right modal
-        const labelText = await page.evaluate(() => {
-            const label = document.querySelector('.modal-body label');
-            return label ? (label as HTMLElement).innerText : '';
-        });
-        console.log(`Modal Label: ${labelText}`);
-
-        // Set credentials via JS directly to bypass simulated typing issues
         console.log('Setting credentials via JS...');
 
         await page.evaluate((u, p) => {
-            const user = document.querySelector('input[name="userName"]') as HTMLInputElement;
-            const pass = document.querySelector('input[name="passWord"]') as HTMLInputElement;
+            const user = document.querySelector('input[name="email"]') as HTMLInputElement;
+            const pass = document.querySelector('input[name="password"]') as HTMLInputElement;
 
             if (user) {
                 user.value = u;
@@ -94,81 +75,26 @@ export class LabImportService {
                 pass.dispatchEvent(new Event('change', { bubbles: true }));
                 pass.dispatchEvent(new Event('blur', { bubbles: true }));
             }
-
-            // Check validity
-            const form = document.querySelector('form');
-            if (form) {
-                console.log("Form Validity:", form.checkValidity());
-                console.log("Form Classes:", form.className);
-            }
-            if (user) console.log("User Input Classes:", user.className);
         }, username, password);
 
-        // Verify values
-        const values = await page.evaluate(() => {
-            const user = document.querySelector('input[name="userName"]') as HTMLInputElement;
-            return { user: user ? user.value : 'missing' };
-        });
-        console.log(`Input value check: ${values.user}`);
-
         // Click Login
-        console.log('Clicking Login...');
+        console.log('Submitting login form...');
 
-        // Strategy 1: Press Enter in password field (often most reliable)
         try {
-            await page.focus('input[name="passWord"]');
-            await page.keyboard.press('Enter');
-            console.log("Pressed Enter key.");
-            // Wait briefly to see if navigation starts
-            await new Promise(r => setTimeout(r, 1000));
-        } catch (e) { console.log("Enter key strategy failed", e); }
-
-        // Strategy 2: Click button if still there
-        try {
-            const clicked = await page.evaluate(() => {
-                const btn = document.querySelector('button.btn-primary') as HTMLButtonElement;
-                if (btn && document.body.contains(btn) && btn.offsetParent !== null) {
-                    // Check if button is still visible/present
-                    if (btn.hasAttribute('disabled') || btn.disabled) {
-                        console.log("Login button disabled, enabling force...");
-                        btn.removeAttribute('disabled');
-                        btn.disabled = false;
-                    }
-                    btn.click();
-                    return true;
-                }
-                return false;
-            });
-
-            if (clicked) {
-                console.log("Clicked login button via evaluate.");
-            } else {
-                console.log("Login button not found or already navigated.");
-            }
-        } catch (e: any) {
-            console.log("Execution context destroyed or navigated, skipping Strategy 2:", e.message);
-        }
-
-        // Strategy 3: Form submission
-        const formSubmitted = await page.evaluate(() => {
-            const form = document.querySelector('form');
-            if (form) {
-                console.log("Found form, submitting directly...", form.action);
-                form.requestSubmit(); // Better than submit() for validation
-                return true;
-            }
-            return false;
-        });
-
-        if (formSubmitted) console.log("Form submitted via JS.");
-
-        // Navigation wait
-        try {
-            await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 45000 });
+            await Promise.all([
+                page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 45000 }),
+                page.click('button[type="submit"]')
+            ]);
             console.log("Navigation completed.");
         } catch (e) {
-            console.log("Navigation timeout or already on page. Checking for error...");
+            console.log("Navigation error or already on page.", e);
         }
+
+        // Specifically go to invoices page since dashboard doesn't hold the tables
+        console.log('Navigating to Invoices (Lab Results)...');
+        await page.goto('https://amrlab.net/referral/invoices', { waitUntil: 'networkidle2', timeout: 45000 });
+        // Wait for DataTables to possibly render
+        await new Promise(r => setTimeout(r, 4000));
     }
 
     async getPatients(username: string, password: string, forceRefresh: boolean = false): Promise<any[]> {
@@ -190,72 +116,85 @@ export class LabImportService {
 
             // 4. Scrape Data
             console.log('Scraping patient list...');
-            await page.waitForSelector('table.k-grid-table', { timeout: 30000 });
+            await page.waitForSelector('table.dataTable', { timeout: 30000 }).catch(() => console.log('Wait for dataTable timeout'));
 
             const patients = await page.evaluate(() => {
-                const rows = Array.from(document.querySelectorAll('table.k-grid-table tbody tr'));
+                const rows = Array.from(document.querySelectorAll('table.dataTable tbody tr[role="row"]'));
                 const records: any[] = [];
 
-                rows.forEach((tr, idx) => {
-                    const cells = Array.from(tr.querySelectorAll('td'));
-                    if (cells.length < 9) return; // We need at least 9 cols based on inspection
+                rows.forEach((row, idx) => {
+                    const cells = Array.from(row.querySelectorAll('td'));
+                    if (cells.length < 5) return; // We need enough columns
 
-                    // Column mapping based on inspection:
-                    // 0: Acc. No.
-                    // 1: Visit Date
-                    // 2: Patient No. (MRN)
-                    // 3: Patient Name
-                    // 6: Report Type (Title)
+                    const dateStr = cells[1] ? cells[1].innerText.trim() : '';
 
-                    const accNo = (cells[0] as HTMLElement)?.innerText?.trim();
-                    const dateStr = (cells[1] as HTMLElement)?.innerText?.trim();
-                    const mrn = (cells[2] as HTMLElement)?.innerText?.trim();
-                    const name = (cells[3] as HTMLElement)?.innerText?.trim();
+                    const barcodeDiv = cells[2] ? cells[2].querySelector('.invoice_samples') : null;
+                    const invoiceId = barcodeDiv ? barcodeDiv.getAttribute('invoice_id') : '';
+                    const accNo = cells[2] ? (cells[2] as HTMLElement).innerText.trim().split('\n')[0] : '';
+
+                    const nameCardHeader = cells[3] ? cells[3].querySelector('.card-title') : null;
+                    const name = nameCardHeader ? (nameCardHeader as HTMLElement).innerText.trim() : '';
+
+                    // Extract titles
+                    const testsTable = cells[3] ? cells[3].querySelector('table') : null;
+                    const titles: string[] = [];
+                    if (testsTable) {
+                        const trs = Array.from(testsTable.querySelectorAll('tr'));
+                        for (let tr of trs) {
+                            const td = tr.querySelector('td.text-success, td.text-danger, td.text-warning');
+                            if (td) {
+                                titles.push((td as HTMLElement).innerText.trim());
+                            }
+                        }
+                    }
+
+                    // Extract MRN/ID NO
+                    let mrn = invoiceId || Math.random().toString(36).substr(2, 9);
+                    if (testsTable) {
+                        const infoRows = Array.from(testsTable.querySelectorAll('tr'));
+                        for (let ir of infoRows) {
+                            const th = ir.querySelector('th');
+                            if (th && (th as HTMLElement).innerText.includes('ID NO')) {
+                                const siblingTd = th.nextElementSibling;
+                                if (siblingTd) {
+                                    const potentialMrn = (siblingTd as HTMLElement).innerText.trim();
+                                    if (potentialMrn) mrn = potentialMrn;
+                                }
+                            }
+                        }
+                    }
 
                     if (!name) return;
 
-                    // The Report Type cell might contain multiple tests separated by newlines
-                    // e.g. "CBC\nPT"
-                    const reportTypeCell = cells[6] as HTMLElement;
-
-                    if (reportTypeCell) {
-                        // We extract all text nodes or handle innerText lines
-                        const textContent = reportTypeCell.innerText || '';
-
-                        // Split by newline to get individual reports. 
-                        const lines = textContent.split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0);
-
-                        if (lines.length > 0) {
-                            lines.forEach(lineTitle => {
-                                // Sometimes titles might still have ' / Chemistry' attached, we can optionally clean it
-                                const title = lineTitle.split('/')[0].trim();
-
-                                records.push({
-                                    id: `${mrn}-${title}`, // Use a composite id
-                                    name: name,
-                                    mrn: mrn,
-                                    date: dateStr,
-                                    gender: 'Unknown',
-                                    dob: '',
-                                    accNo: accNo,
-                                    title: title,
-                                    rowIndex: idx // Capture index for precise selection later
-                                });
-                            });
-                        } else {
-                            // Fallback if cell was somehow empty but row was valid
+                    if (titles.length > 0) {
+                        titles.forEach(title => {
                             records.push({
-                                id: mrn || Math.random().toString(36).substr(2, 9),
+                                id: `${mrn}-${title}-${idx}`,
                                 name: name,
-                                mrn: mrn,
+                                mrn: mrn, // Now mostly fallback or ID NO
                                 date: dateStr,
                                 gender: 'Unknown',
                                 dob: '',
                                 accNo: accNo,
-                                title: 'Unknown Test',
-                                rowIndex: idx
+                                title: title,
+                                rowIndex: idx,
+                                invoiceId: invoiceId
                             });
-                        }
+                        });
+                    } else {
+                        // Fallback if cell was somehow empty but row was valid
+                        records.push({
+                            id: `${mrn}-Unknown-${idx}`,
+                            name: name,
+                            mrn: mrn,
+                            date: dateStr,
+                            gender: 'Unknown',
+                            dob: '',
+                            accNo: accNo,
+                            title: 'Lab Report',
+                            rowIndex: idx,
+                            invoiceId: invoiceId
+                        });
                     }
                 });
                 return records;
@@ -284,8 +223,8 @@ export class LabImportService {
 
     async importReport(username: string, password: string, patientData: any): Promise<any> {
         console.log('Starting Lab Report Import...', patientData);
-        // If we have accNo, use it. Otherwise fallback to name/date.
         const targetAccNo = patientData.accNo;
+        const targetInvoiceId = patientData.invoiceId;
 
         const browser = await this.launchBrowser();
         const page = await browser.newPage();
@@ -293,95 +232,96 @@ export class LabImportService {
         try {
             await this.login(page, username, password);
 
-            // 4. Find the specific row for this patient
-            await page.waitForSelector('table.k-grid-table', { timeout: 30000 });
+            await page.waitForSelector('table.dataTable', { timeout: 30000 });
 
-            // 4. Find the specific row for this patient
-            await page.waitForSelector('table.k-grid-table', { timeout: 30000 });
+            // Since we know the print action URL is `/referral/invoices/print_medical_report/:invoiceId`
+            // And we extracted invoiceId, we can directly trigger a print if we have it.
+            // But if we don't have it (fallback from older system), we find the row first.
 
-            const rowIndex = await page.evaluate((targetMrn, targetName, targetDate, targetAccNo, targetRowIndex) => {
-                const rows = Array.from(document.querySelectorAll('table.k-grid-table tbody tr'));
+            let printUrl = '';
 
-                // 1. Direct Row Index Match (Most Precise)
-                if (targetRowIndex !== undefined && targetRowIndex !== null && rows[targetRowIndex]) {
-                    // Verify it matches at least the MRN or AccNo to be safe (in case list changed)
-                    const cells = Array.from(rows[targetRowIndex].querySelectorAll('td'));
-                    const accNo = (cells[0] as HTMLElement)?.innerText?.trim();
-                    const mrn = (cells[2] as HTMLElement)?.innerText?.trim();
-
-                    if ((targetAccNo && accNo === targetAccNo) || (targetMrn && mrn === targetMrn)) {
-                        console.log(`Using precise rowIndex: ${targetRowIndex}`);
-                        return targetRowIndex;
-                    }
-                    console.warn(`Row index ${targetRowIndex} exists but content mismatch. Falling back to search.`);
-                }
-
-                console.log(`Searching for: AccNo=${targetAccNo}, MRN=${targetMrn}, Name=${targetName}, Date=${targetDate}`);
-
-                return rows.findIndex((tr, idx) => {
-                    const cells = Array.from(tr.querySelectorAll('td'));
-                    if (cells.length < 4) return false;
-
-                    const accNo = (cells[0] as HTMLElement)?.innerText?.trim();
-                    const date = (cells[1] as HTMLElement)?.innerText?.trim();
-                    const mrn = (cells[2] as HTMLElement)?.innerText?.trim();
-                    const name = (cells[3] as HTMLElement)?.innerText?.trim();
-
-                    // Priority match by AccNo
-                    if (targetAccNo && accNo === targetAccNo) {
-                        return true; // Use first match if index failed/missing
-                    }
-
-                    // Fallback
-                    const match = mrn === targetMrn || (name === targetName && date === targetDate);
-                    return match;
-                });
-            }, patientData.mrn, patientData.name, patientData.date, targetAccNo, patientData.rowIndex);
-
-            if (rowIndex === -1) {
-                throw new Error("Patient record not found in current list");
-            }
-
-            // Click View
-            await page.evaluate((index) => {
-                const rows = document.querySelectorAll('table.k-grid-table tbody tr');
-                const row = rows[index];
-                const btn = row.querySelector('a.k-button') || row.querySelector('a') || row.querySelector('button');
-                if (btn) (btn as HTMLElement).click();
-            }, rowIndex);
-
-            const newTarget = await browser.waitForTarget(target => target.opener() === page.target(), { timeout: 15000 });
-            const newPage = await newTarget.page();
-
-            let screenshotPath = '';
-            if (!newPage) {
-                console.log("No new tab detected, checking current page...");
-                await new Promise(r => setTimeout(r, 5000));
-                await page.setViewport({ width: 1280, height: 1024 });
-                await page.evaluate(() => { const s = document.createElement('style'); s.innerHTML = '*,body,html{overflow:visible!important;height:auto!important;max-height:none!important;}'; document.head.appendChild(s); });
-                await new Promise(r => setTimeout(r, 1000));
-                screenshotPath = `uploads/import-${Date.now()}.png`;
-                const absolutePath = require('path').resolve(screenshotPath);
-                await page.screenshot({ path: absolutePath, fullPage: true });
-                return { screenshotPath: absolutePath, accNo: targetAccNo };
+            if (targetInvoiceId) {
+                printUrl = `https://amrlab.net/referral/invoices/print_medical_report/${targetInvoiceId}`;
             } else {
-                await newPage.setViewport({ width: 1280, height: 1024 });
-                await newPage.waitForNetworkIdle({ timeout: 10000 }).catch(() => { });
-                await newPage.evaluate(() => { const s = document.createElement('style'); s.innerHTML = '*,body,html{overflow:visible!important;height:auto!important;max-height:none!important;}'; document.head.appendChild(s); });
-                await new Promise(r => setTimeout(r, 2000)); // Give it a moment to render
-                screenshotPath = `uploads/import-${Date.now()}.png`;
-                const absolutePath = require('path').resolve(screenshotPath);
+                // Find row and extract action
+                const extractedUrl = await page.evaluate((targetName, targetDate, accNo) => {
+                    const rows = Array.from(document.querySelectorAll('table.dataTable tbody tr[role="row"]'));
 
-                // Fallback catch for screenshot errors
-                try {
-                    await newPage.screenshot({ path: absolutePath, fullPage: true });
-                } catch (screenshotError) {
-                    console.error("Screenshot failed on newPage, trying without fullPage:", screenshotError);
-                    await newPage.screenshot({ path: absolutePath }); // try standard if fullPage fails
+                    const matchIndex = rows.findIndex((tr) => {
+                        const cells = Array.from(tr.querySelectorAll('td'));
+                        if (cells.length < 5) return false;
+
+                        const rowAccNo = cells[2] ? (cells[2] as HTMLElement).innerText.trim().split('\n')[0] : '';
+                        const date = cells[1] ? (cells[1] as HTMLElement).innerText.trim() : '';
+
+                        const nameCardHeader = cells[3] ? cells[3].querySelector('.card-title') : null;
+                        const name = nameCardHeader ? (nameCardHeader as HTMLElement).innerText.trim() : '';
+
+                        if (accNo && rowAccNo === accNo) return true;
+                        return (name === targetName && date === targetDate);
+                    });
+
+                    if (matchIndex !== -1) {
+                        const matchRow = rows[matchIndex];
+                        const cells = Array.from(matchRow.querySelectorAll('td'));
+                        const printForm = cells[5] ? cells[5].querySelector('form') : null;
+                        return printForm ? printForm.getAttribute('action') : '';
+                    }
+                    return '';
+                }, patientData.name, patientData.date, targetAccNo);
+
+                printUrl = extractedUrl || '';
+            }
+
+            if (!printUrl) {
+                throw new Error("Patient record or print link not found in current list");
+            }
+
+            console.log(`Navigating to Print URL: ${printUrl}`);
+
+            // The print url is a POST request according to the form snippet.
+            // <form action="..." method="POST" ...>
+            // We can evaluate a form submission on the current page to that URL to open it.
+
+            await page.evaluate((url) => {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = url;
+
+                // Needs a CSRF token. The form on the page has a hidden _token field.
+                const existingToken = document.querySelector('input[name="_token"]') as HTMLInputElement;
+                if (existingToken) {
+                    const tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = '_token';
+                    tokenInput.value = existingToken.value;
+                    form.appendChild(tokenInput);
                 }
 
-                return { screenshotPath: absolutePath, accNo: targetAccNo };
+                document.body.appendChild(form);
+                form.submit();
+            }, printUrl);
+
+            await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(e => console.log('Navigation wait error', e));
+
+            await page.setViewport({ width: 1280, height: 1024 });
+            await new Promise(r => setTimeout(r, 3000)); // Allow render
+
+            // Try to expand any hidden overflow for full page
+            await page.evaluate(() => { const s = document.createElement('style'); s.innerHTML = '*,body,html{overflow:visible!important;height:auto!important;max-height:none!important;}'; document.head.appendChild(s); });
+            await new Promise(r => setTimeout(r, 1000));
+
+            const screenshotPath = `uploads/import-${Date.now()}.png`;
+            const absolutePath = require('path').resolve(screenshotPath);
+
+            try {
+                await page.screenshot({ path: absolutePath, fullPage: true });
+            } catch (screenshotError) {
+                console.error("Screenshot failed, trying without fullPage:", screenshotError);
+                await page.screenshot({ path: absolutePath });
             }
+
+            return { screenshotPath: absolutePath, accNo: targetAccNo };
 
         } catch (error) {
             console.error('Error importing report:', error);
@@ -402,114 +342,147 @@ export class LabImportService {
             await this.login(page, username, password);
 
             // Get List including rowIndex
-            await page.waitForSelector('table.k-grid-table', { timeout: 30000 });
+            await page.waitForSelector('table.dataTable', { timeout: 30000 });
             const rows = await page.evaluate(() => {
                 const records: any[] = [];
-                Array.from(document.querySelectorAll('table.k-grid-table tbody tr')).forEach((tr, idx) => {
-                    const cells = Array.from(tr.querySelectorAll('td'));
-                    if (cells.length < 7) return; // We need at least 7 cols based on inspection
+                Array.from(document.querySelectorAll('table.dataTable tbody tr[role="row"]')).forEach((row, idx) => {
+                    const cells = Array.from(row.querySelectorAll('td'));
+                    if (cells.length < 5) return;
 
-                    const accNo = (cells[0] as HTMLElement)?.innerText?.trim();
-                    const dateStr = (cells[1] as HTMLElement)?.innerText?.trim();
-                    const mrn = (cells[2] as HTMLElement)?.innerText?.trim();
-                    const name = (cells[3] as HTMLElement)?.innerText?.trim();
+                    const dateStr = cells[1] ? (cells[1] as HTMLElement).innerText.trim() : '';
+                    const barcodeDiv = cells[2] ? cells[2].querySelector('.invoice_samples') : null;
+                    const invoiceId = barcodeDiv ? barcodeDiv.getAttribute('invoice_id') : '';
+                    const accNo = cells[2] ? (cells[2] as HTMLElement).innerText.trim().split('\n')[0] : '';
 
-                    const reportTypeCell = cells[6] as HTMLElement;
-                    if (reportTypeCell) {
-                        const textContent = reportTypeCell.innerText || '';
-                        const lines = textContent.split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0);
+                    const nameCardHeader = cells[3] ? cells[3].querySelector('.card-title') : null;
+                    const name = nameCardHeader ? (nameCardHeader as HTMLElement).innerText.trim() : '';
 
-                        if (lines.length > 0) {
-                            lines.forEach((lineTitle, sIdx) => {
-                                const title = lineTitle.split('/')[0].trim();
-                                records.push({
-                                    accNo: accNo,
-                                    date: dateStr,
-                                    mrn: mrn,
-                                    name: name,
-                                    title: title,
-                                    rowIndex: idx, // Capture the exact row index
-                                    subIndex: sIdx // Capture which button to click
-                                });
-                            });
-                        } else {
+                    const testsTable = cells[3] ? cells[3].querySelector('table') : null;
+                    const titles: string[] = [];
+                    if (testsTable) {
+                        const trs = Array.from(testsTable.querySelectorAll('tr'));
+                        for (let tr of trs) {
+                            const td = tr.querySelector('td.text-success, td.text-danger, td.text-warning');
+                            if (td) titles.push((td as HTMLElement).innerText.trim());
+                        }
+                    }
+
+                    let rowMrn = invoiceId;
+                    if (testsTable) {
+                        const infoRows = Array.from(testsTable.querySelectorAll('tr'));
+                        for (let ir of infoRows) {
+                            const th = ir.querySelector('th');
+                            if (th && (th as HTMLElement).innerText.includes('ID NO')) {
+                                const siblingTd = th.nextElementSibling;
+                                if (siblingTd) {
+                                    const potentialMrn = (siblingTd as HTMLElement).innerText.trim();
+                                    if (potentialMrn) rowMrn = potentialMrn;
+                                }
+                            }
+                        }
+                    }
+
+                    if (titles.length > 0) {
+                        titles.forEach((title, sIdx) => {
                             records.push({
                                 accNo: accNo,
                                 date: dateStr,
-                                mrn: mrn,
+                                mrn: rowMrn,
                                 name: name,
-                                title: 'Unknown Test',
-                                rowIndex: idx, // Capture the exact row index
-                                subIndex: 0
+                                title: title,
+                                invoiceId: invoiceId,
+                                rowIndex: idx,
+                                subIndex: sIdx
                             });
-                        }
+                        });
+                    } else {
+                        records.push({
+                            accNo: accNo,
+                            date: dateStr,
+                            mrn: rowMrn,
+                            name: name,
+                            title: 'Lab Report',
+                            invoiceId: invoiceId,
+                            rowIndex: idx,
+                            subIndex: 0
+                        });
                     }
                 });
                 return records;
             });
 
-            let matches = rows.filter(r => r && r.mrn === mrn);
+            // Fallback match by Name if MRN doesn't match directly since MRN is removed
+            // Wait, we passed MRN to this function but user says MRN is removed, use Name.
+            // The route passes MRN, but we might actually pass the Name as MRN.
+            // We should match by name or by MRN depending on what was passed.
+            // In the sync endpoint we passed `mrn` derived from patientMrn. The UI might send patientName.
+            // Let's match by MRN if it exists, otherwise fall back to name match.
+            // Actually, `mrn` param might literally be the patient string if we changed the caller... 
+            // We'll broaden the match condition.
+            let matches = rows.filter(r => r && (r.mrn === mrn || r.name === mrn || r.name.includes(mrn)));
 
             // Deduplicate early using the existingAccNos set to save API usage
             matches = matches.filter(r => !existingAccNos.has(r.accNo));
-            console.log(`Found ${matches.length} new/unprocessed matches for MRN ${mrn}`);
+            console.log(`Found ${matches.length} new/unprocessed matches for MRN/Name ${mrn}`);
 
-            // Limit to the most recent 5 to save time and API quota during auto-sync
             if (matches.length > 5) {
                 matches = matches.slice(0, 5);
                 console.log(`Limiting to latest 5 matches for auto-sync.`);
             }
 
-            // Process matches in parallel chunks to avoid browser context overload/timeout
-            // But puppeteer page interaction must be sequential if using same page.
-            // To parallelize, we need multiple pages or contexts.
-            // For now, let's optimize the existing loop by removing unnecessary waits and handling new targets better.
-
             for (const match of matches) {
-                if (!match) continue;
-                console.log(`Processing row ${match.rowIndex}: ${match.accNo} - ${match.title}`);
-
-                // Check if we want to skip based on DB? 
-                // We'll skip this optimization for now to ensure we get everything as requested.
+                if (!match || !match.invoiceId) continue;
+                console.log(`Processing report for ${match.accNo} - ${match.title}`);
 
                 try {
-                    // Trigger click
-                    const [newTarget] = await Promise.all([
-                        browser.waitForTarget(target => target.opener() === page.target(), { timeout: 10000 }).catch(e => null),
-                        page.evaluate((idx, subIdx) => {
-                            const rows = document.querySelectorAll('table.k-grid-table tbody tr');
-                            const row = rows[idx];
-                            if (!row) return;
+                    // Navigate directly to print page
+                    const printUrl = `https://amrlab.net/referral/invoices/print_medical_report/${match.invoiceId}`;
 
-                            const fileOps = row.querySelectorAll('file-operation');
-                            if (fileOps && fileOps.length > subIdx) {
-                                // There are multiple view buttons, pick the correct one corresponding to the line item
-                                const btn = fileOps[subIdx].querySelector('a');
-                                if (btn) (btn as HTMLElement).click();
-                            } else {
-                                // Fallback
-                                const btn = row.querySelector('a.k-button') || row.querySelector('a');
-                                if (btn) (btn as HTMLElement).click();
-                            }
-                        }, match.rowIndex, match.subIndex || 0)
-                    ]);
+                    const newPage = await browser.newPage();
+
+                    // The print page requires POST and CSRF. We can't simply goto() a POST.
+                    // Instead, we inject JS into the current dataTable page to trigger form submission
+                    // into a new target/tab.
+                    await page.evaluate((url) => {
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = url;
+                        form.target = '_blank'; // open in new tab
+
+                        const existingToken = document.querySelector('input[name="_token"]') as HTMLInputElement;
+                        if (existingToken) {
+                            const tokenInput = document.createElement('input');
+                            tokenInput.type = 'hidden';
+                            tokenInput.name = '_token';
+                            tokenInput.value = existingToken.value;
+                            form.appendChild(tokenInput);
+                        }
+
+                        document.body.appendChild(form);
+                        form.submit();
+                    }, printUrl);
+
+                    const newTarget = await browser.waitForTarget(target => target.opener() === page.target(), { timeout: 15000 }).catch(() => null);
 
                     if (newTarget) {
-                        const newPage = await newTarget.page();
-                        if (newPage) {
-                            // FAST TRACK: Wait for network idle or just a fixed short buffer?
-                            // Network idle is safer for rendering.
-                            await newPage.waitForNetworkIdle({ timeout: 5000 }).catch(() => { });
-                            await newPage.evaluate(() => { const s = document.createElement('style'); s.textContent = '*,body,html{overflow:visible!important;height:auto!important;max-height:none!important;}'; document.head.appendChild(s); });
-                            await new Promise(r => setTimeout(r, 1000)); // allow reflow
+                        const printPage = await newTarget.page();
+                        if (printPage) {
+                            await printPage.waitForNetworkIdle({ timeout: 5000 }).catch(() => { });
+                            await printPage.evaluate(() => { const s = document.createElement('style'); s.textContent = '*,body,html{overflow:visible!important;height:auto!important;max-height:none!important;}'; document.head.appendChild(s); });
+
+                            await printPage.setViewport({ width: 1280, height: 1024 });
+                            await new Promise(r => setTimeout(r, 1500));
 
                             const screenshotPath = `uploads/sync-${match.accNo}-${Date.now()}-${Math.floor(Math.random() * 1000)}.png`;
                             const absolutePath = require('path').resolve(screenshotPath);
 
-                            // Optimization: Quality 80 jpeg might be faster than png? 
-                            // But OCR usually prefers lossless. Stick to PNG but maybe limit size if needed.
-                            await newPage.screenshot({ path: absolutePath, fullPage: true });
-                            await newPage.close();
+                            try {
+                                await printPage.screenshot({ path: absolutePath, fullPage: true });
+                            } catch (ssErr) {
+                                await printPage.screenshot({ path: absolutePath });
+                            }
+
+                            await printPage.close();
 
                             newReports.push({
                                 screenshotPath: absolutePath,
@@ -517,6 +490,7 @@ export class LabImportService {
                             });
                         }
                     }
+
                 } catch (err) {
                     console.error(`Failed to grab report for ${match.accNo}`, err);
                 }
@@ -531,8 +505,8 @@ export class LabImportService {
     }
 
     async syncAndSavePatientLabs(mrn: string, patientId: string, authorId: string): Promise<any[]> {
-        const username = '10427';
-        const password = process.env.LAB_PASSWORD || '7358782';
+        const username = 'icu@amrlab.net';
+        const password = process.env.LAB_PASSWORD || '1989';
 
         // Imports moved to top of file for proper module syntax
         // import { PrismaClient } from '@prisma/client';

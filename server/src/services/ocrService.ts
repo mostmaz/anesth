@@ -72,12 +72,15 @@ export const ocrService = {
             }
 
             console.log("ocrService: sending to Gemini...");
+            const extension = filePath.split('.').pop()?.toLowerCase();
+            const mimeType = extension === 'pdf' ? 'application/pdf' : (extension === 'png' ? 'image/png' : 'image/jpeg');
+
             const result = await model.generateContent([
                 prompt,
                 {
                     inlineData: {
                         data: imageBase64,
-                        mimeType: 'image/jpeg'
+                        mimeType: mimeType
                     }
                 }
             ]);
