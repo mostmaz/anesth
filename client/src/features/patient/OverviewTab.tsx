@@ -54,7 +54,7 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
 
                 if (v && v.length > 0) setLastVitals(v[0]);
                 setIoHistory(io || []);
-                setLatestOrders((o || []).slice(0, 5));
+                setLatestOrders((o || []).filter((order: any) => order.type !== 'PROCEDURE').slice(0, 5));
                 setLatestLabs((i || []).filter((inv: any) => inv.type === 'LAB').slice(0, 3));
                 setMedications(m || []);
             } catch (error) {

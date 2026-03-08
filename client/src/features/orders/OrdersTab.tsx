@@ -61,8 +61,8 @@ export default function OrdersTab({ patientId }: OrdersTabProps) {
         }
     };
 
-    const activeOrders = orders.filter(o => o.status === 'APPROVED' || o.status === 'PENDING');
-    const historyOrders = orders.filter(o => ['COMPLETED', 'DISCONTINUED'].includes(o.status));
+    const activeOrders = orders.filter(o => (o.status === 'APPROVED' || o.status === 'PENDING') && o.type !== 'PROCEDURE');
+    const historyOrders = orders.filter(o => ['COMPLETED', 'DISCONTINUED'].includes(o.status) && o.type !== 'PROCEDURE');
 
     const OrderCard = ({ order }: { order: ClinicalOrder }) => (
         <Card className="mb-3 hover:shadow-md transition-shadow">
