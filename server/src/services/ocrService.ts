@@ -147,8 +147,10 @@ export const ocrService = {
                         console.log("ocrService: JSON parsed successfully. Items:", parsed.length);
                         return parsed;
                     } catch (e) {
-                        console.error("Failed to parse OCR JSON:", jsonString);
-                        throw new Error('Failed to parse AI response');
+                        console.error("ocrService: Failed to parse OCR JSON. Raw response was:");
+                        console.error(responseText);
+                        console.error("Parse Error:", e);
+                        throw new Error(`Failed to parse AI response from ${modelName}`);
                     }
                 } catch (error: any) {
                     lastError = error;
