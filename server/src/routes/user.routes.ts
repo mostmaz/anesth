@@ -14,7 +14,8 @@ router.get('/', async (req, res) => {
                 name: true,
                 username: true,
                 role: true,
-                createdAt: true
+                createdAt: true,
+                dismissedLabs: true
             },
             orderBy: { name: 'asc' }
         });
@@ -22,6 +23,39 @@ router.get('/', async (req, res) => {
     } catch (error) {
         console.error("Error fetching users:", error);
         res.status(500).json({ error: 'Failed to fetch users' });
+    }
+});
+
+// GET current user details
+router.get('/:id/preferences', async (req, res) => {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: req.params.id },
+            select: { dismissedLabs: true }
+        });
+        res.json({ dismissedLabs: user?.dismissedLabs || [] });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch preferences' });
+    }
+});
+
+// DISMISS a lab notification
+router.post('/:id/dismiss-lab', async (req, res) => {
+    try {
+        const { labId } = req.body;
+        if (!labId) return res.status(400).json({ error: 'labId required' });
+
+        await prisma.user.update({
+            where: { id: req.params.id },
+            data: {
+                dismissedLabs: {
+                    push: labId
+                }
+            }
+        });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to dismiss lab' });
     }
 });
 

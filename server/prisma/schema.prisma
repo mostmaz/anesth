@@ -38,6 +38,7 @@ model User {
   specialistNotes SpecialistNote[]
   administeredMeds MedicationAdministration[]
   assignments  PatientAssignment[]
+  dismissedLabs String[] @default([])
 }
 
 model PatientAssignment {
