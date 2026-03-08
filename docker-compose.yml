@@ -35,7 +35,7 @@ services:
       context: ./client
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=${VITE_API_URL:-http://localhost:3001/api}
+        - VITE_API_URL=${VITE_API_URL:-http://161.35.216.33:3001/api}
     container_name: icu_client_prod
     restart: always
     ports:
