@@ -4,13 +4,13 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/ca
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { Microscope, UserPlus, FileText, Image as ImageIcon } from 'lucide-react';
+import { UserPlus, FileText, Image as ImageIcon } from 'lucide-react';
 
 interface ConsultationTabProps {
     patientId: string;
 }
 
-export default function ConsultationTab({ patientId }: ConsultationTabProps) {
+export default function ConsultationTab({ }: ConsultationTabProps) {
     const [consultations, setConsultations] = useState<any[]>([]);
     const [newConsult, setNewConsult] = useState({
         doctorName: '',
