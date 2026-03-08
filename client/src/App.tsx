@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AppShell from './components/layout/AppShell';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
@@ -16,6 +16,8 @@ import AdminPanel from './pages/AdminPanel';
 import { useAuthStore } from './stores/authStore';
 import { type ReactNode } from 'react';
 
+import { Toaster } from 'sonner';
+
 interface ProtectedRouteProps {
   children: ReactNode;
 }
@@ -28,7 +30,8 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
 function App() {
   return (
     <div className="min-h-screen bg-slate-50">
-      <BrowserRouter>
+      <Toaster position="top-right" richColors />
+      <HashRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
 
@@ -86,7 +89,7 @@ function App() {
             </ProtectedRoute>
           } />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </div>
   );
 }

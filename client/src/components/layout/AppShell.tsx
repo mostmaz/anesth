@@ -30,6 +30,13 @@ export default function AppShell() {
         }
     }, [user, checkActiveShift]);
 
+    // Request Native Browser Notification Permission
+    useEffect(() => {
+        if ("Notification" in window) {
+            Notification.requestPermission();
+        }
+    }, []);
+
     // SSE Real-time Notifications Listener
     useEffect(() => {
         if (!user) return;
@@ -41,11 +48,29 @@ export default function AppShell() {
                 const data = JSON.parse(event.data);
 
                 // If it's a new investigation event
-                if (data.patientName && data.title) {
+                if (data.type === 'new_investigation' || (!data.type && data.patientName && data.title)) {
                     toast.info(`New Lab Result for ${data.patientName}`, {
                         description: data.title,
                         duration: 5000,
                     });
+                } else if (data.type === 'intervention_reminder') {
+                    // Trigger in-app Toast
+                    toast.warning(`REMINDER: ${data.title}`, {
+                        description: `Patient: ${data.patientName}`,
+                        duration: 10000, // Show longer
+                        action: {
+                            label: 'View',
+                            onClick: () => navigate(`/patients/${data.patientId}`)
+                        }
+                    });
+
+                    // Trigger Native Browser Push Notification
+                    if ("Notification" in window && Notification.permission === "granted") {
+                        new Notification("ICU Intervention Reminder", {
+                            body: data.message,
+                            icon: "/favicon.ico" // Optional icon if present
+                        });
+                    }
                 }
             } catch (err) {
                 console.error("Failed to parse SSE notification:", err);
