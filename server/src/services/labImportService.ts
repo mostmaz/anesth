@@ -9,39 +9,14 @@ export class LabImportService {
     private static CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
     private async launchBrowser() {
-        const fs = require('fs');
-        let executablePath = '';
-        const possiblePaths = [
-            // Linux (Docker)
-            '/usr/bin/google-chrome',
-            '/usr/bin/google-chrome-stable',
-            '/usr/bin/chromium',
-            '/usr/bin/chromium-browser',
-            // Windows
-            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-            'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
-        ];
-
-        for (const path of possiblePaths) {
-            if (fs.existsSync(path)) {
-                executablePath = path;
-                break;
-            }
-        }
-
-        if (!executablePath) {
-            console.warn("LabImportService: System Chrome not found, relying on bundled Chromium.");
-        } else {
-            console.log("LabImportService: Using system Chrome at", executablePath);
-        }
-
+        console.log("Puppeteer default executable path:", puppeteer.executablePath());
         return puppeteer.launch({
             headless: true,
-            executablePath: executablePath || undefined,
+            executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',   // Critical for Docker — avoids /dev/shm crash
+                '--disable-dev-shm-usage',
                 '--disable-gpu',
                 '--no-zygote',
                 '--single-process',
@@ -331,8 +306,8 @@ export class LabImportService {
         }
     }
 
-    async syncPatientLabResults(username: string, password: string, mrn: string, existingAccNos: Set<string>): Promise<any[]> {
-        console.log(`Syncing results for MRN: ${mrn}`);
+    async syncPatientLabResults(username: string, password: string, mrn: string, existingAccNos: Set<string>, patientName?: string): Promise<any[]> {
+        console.log(`Syncing results for MRN: ${mrn}, Name: ${patientName || 'N/A'}`);
 
         const browser = await this.launchBrowser();
         const page = await browser.newPage();
@@ -343,6 +318,19 @@ export class LabImportService {
 
             // Get List including rowIndex
             await page.waitForSelector('table.dataTable', { timeout: 30000 });
+
+            // If we have a patientName, type it into the DataTables search box first to filter serverside
+            if (patientName) {
+                console.log(`Filtering DataTable for name: ${patientName}`);
+                try {
+                    await page.waitForSelector('input[type="search"]', { timeout: 5000 });
+                    await page.type('input[type="search"]', patientName, { delay: 50 });
+                    await new Promise(r => setTimeout(r, 2000)); // wait for ajax reload
+                } catch (e) {
+                    console.log("Could not find search input or filter failed, falling back to full table scan");
+                }
+            }
+
             const rows = await page.evaluate(() => {
                 const records: any[] = [];
                 Array.from(document.querySelectorAll('table.dataTable tbody tr[role="row"]')).forEach((row, idx) => {
@@ -411,19 +399,38 @@ export class LabImportService {
                 return records;
             });
 
-            // Fallback match by Name if MRN doesn't match directly since MRN is removed
-            // Wait, we passed MRN to this function but user says MRN is removed, use Name.
-            // The route passes MRN, but we might actually pass the Name as MRN.
-            // We should match by name or by MRN depending on what was passed.
-            // In the sync endpoint we passed `mrn` derived from patientMrn. The UI might send patientName.
-            // Let's match by MRN if it exists, otherwise fall back to name match.
-            // Actually, `mrn` param might literally be the patient string if we changed the caller... 
-            // We'll broaden the match condition.
-            let matches = rows.filter(r => r && (r.mrn === mrn || r.name === mrn || r.name.includes(mrn)));
+            console.log(`Scraped ${rows.length} rows from the DataTable. First 5 row names:`);
+            rows.slice(0, 5).forEach((r, i) => console.log(`  Row ${i}: name="${r.name}", mrn="${r.mrn}", accNo="${r.accNo}", invoiceId="${r.invoiceId}"`));
+
+            // Flexible name matching: bidirectional includes + word-level partial match
+            const normalize = (s: string) => s.replace(/\s+/g, ' ').trim();
+            const normalizedPatientName = patientName ? normalize(patientName) : '';
+            const patientNameWords = normalizedPatientName ? normalizedPatientName.split(' ').filter(w => w.length > 1) : [];
+
+            let matches = rows.filter(r => {
+                if (!r || !r.name) return false;
+                const rowName = normalize(r.name);
+
+                // Exact match
+                if (patientName && rowName === normalizedPatientName) return true;
+                // Bidirectional includes
+                if (patientName && (rowName.includes(normalizedPatientName) || normalizedPatientName.includes(rowName))) return true;
+                // Word-level: if at least 2 words from patient name appear in the row name
+                if (patientNameWords.length >= 2) {
+                    const matchingWords = patientNameWords.filter(w => rowName.includes(w));
+                    if (matchingWords.length >= 2) return true;
+                }
+                // MRN fallback
+                if (mrn && (r.mrn === mrn || r.name === mrn || r.name.includes(mrn))) return true;
+                return false;
+            });
+
+            console.log(`Name-matched ${matches.length} rows (before dedup) for "${normalizedPatientName || mrn}"`);
+            matches.forEach((m, i) => console.log(`  Match ${i}: name="${m.name}", accNo="${m.accNo}", title="${m.title}"`));
 
             // Deduplicate early using the existingAccNos set to save API usage
             matches = matches.filter(r => !existingAccNos.has(r.accNo));
-            console.log(`Found ${matches.length} new/unprocessed matches for MRN/Name ${mrn}`);
+            console.log(`Found ${matches.length} new/unprocessed matches for MRN/Name ${patientName || mrn}`);
 
             if (matches.length > 5) {
                 matches = matches.slice(0, 5);
@@ -504,7 +511,7 @@ export class LabImportService {
         return newReports;
     }
 
-    async syncAndSavePatientLabs(mrn: string, patientId: string, authorId: string): Promise<any[]> {
+    async syncAndSavePatientLabs(mrn: string, patientId: string, authorId: string, patientName?: string): Promise<any[]> {
         const username = 'icu@amrlab.net';
         const password = process.env.LAB_PASSWORD || '1989';
 
@@ -535,7 +542,7 @@ export class LabImportService {
             existingInvestigations.forEach((inv: any) => existingAccNos.add(inv.externalId));
             console.log(`Pre-filtering ${existingAccNos.size} existing accession numbers for patient ${patientId}`);
 
-            const newReports = await this.syncPatientLabResults(username, password, mrn, existingAccNos);
+            const newReports = await this.syncPatientLabResults(username, password, mrn, existingAccNos, patientName);
 
             let ocrService = require('./ocrService');
             if (ocrService.default) ocrService = ocrService.default;

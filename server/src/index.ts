@@ -4,12 +4,14 @@ import cors from 'cors';
 
 import routes from './routes';
 import { startLabSyncJob } from './jobs/labSyncScheduler';
+import { startReminderScheduler } from './jobs/reminderScheduler';
 
 const app = express();
 const port = process.env.PORT || 3001;
 
 // Start Cron Jobs
 startLabSyncJob();
+startReminderScheduler();
 
 import path from 'path';
 

@@ -63,7 +63,7 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                 mrn: patientMrn,
                 name: patientName,
                 authorId: user?.id
-            });
+            }, { timeout: 120000 });
 
             console.log("Lab sync response:", result);
 

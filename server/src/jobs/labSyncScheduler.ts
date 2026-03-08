@@ -6,7 +6,12 @@ const prisma = new PrismaClient();
 const labService = new LabImportService();
 
 export function startLabSyncJob() {
-    console.log("Starting Lab Sync Scheduler (Every 60 minutes)");
+    console.log("Lab Sync Scheduler DISABLED (manual sync only to preserve API quota)");
+
+    // DISABLED: Automatic syncing consumes Gemini API free tier quota too quickly.
+    // To re-enable, uncomment the cron.schedule block below.
+    // Users can still manually sync via the "Sync Reports" button in the UI.
+    return;
 
     // Schedule: 0 * * * * (At minute 0 past every hour)
     cron.schedule('0 * * * *', async () => {

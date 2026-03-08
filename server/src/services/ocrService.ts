@@ -14,8 +14,8 @@ export const ocrService = {
 
         try {
             const genAI = new GoogleGenerativeAI(API_KEY);
-            // Using gemini-2.0-flash as it is typically free of 404s on newer SDK versions
-            const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+            // Using gemini-2.0-flash-lite for better free tier quota availability
+            const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
 
             if (!fs.existsSync(filePath)) {
                 console.error("ocrService: File not found at:", filePath);
@@ -75,75 +75,100 @@ export const ocrService = {
             const extension = filePath.split('.').pop()?.toLowerCase();
             const mimeType = extension === 'pdf' ? 'application/pdf' : (extension === 'png' ? 'image/png' : 'image/jpeg');
 
-            const result = await model.generateContent([
-                prompt,
-                {
-                    inlineData: {
-                        data: imageBase64,
-                        mimeType: mimeType
-                    }
-                }
-            ]);
+            // Model fallback chain for handling free tier quota limits
+            const modelNames = ['gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+            let lastError: any = null;
 
-            const responseText = result.response.text();
-            console.log("ocrService: Gemini response received length:", responseText.length);
-            console.log("ocrService: Raw response:", responseText); // Debug logging
-
-            // Clean up markdown if present
-            const jsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-
-            try {
-                let parsed = JSON.parse(jsonString);
-
-                if (mode === 'VITALS') {
-                    // Expecting a single object dict, return as is
-                    return parsed;
-                }
-
-                // LAB mode logic: Ensure it's an array
-                if (!Array.isArray(parsed)) {
-                    console.log("ocrService: Response was not an array, wrapping in array.");
-                    parsed = [parsed];
-                }
-                // Programmatic merge for CBC and Differential, just in case AI fails to follow instructions
-                if (Array.isArray(parsed)) {
-                    let cbcIndex = parsed.findIndex(p => p.title && (p.title.toUpperCase().includes('CBC') || p.title.toUpperCase().includes('COMPLETE BLOOD')));
-                    let diffIndex = parsed.findIndex(p => p.title && p.title.toUpperCase().includes('DIFFERENTIAL'));
-
-                    if (cbcIndex !== -1 && diffIndex !== -1 && cbcIndex !== diffIndex) {
-                        console.log("ocrService: Programmatically merging Differential into CBC");
-                        parsed[cbcIndex].results = { ...parsed[cbcIndex].results, ...parsed[diffIndex].results };
-                        parsed[cbcIndex].title = "CBC";
-                        parsed.splice(diffIndex, 1);
-                    } else if (cbcIndex !== -1) {
-                        parsed[cbcIndex].title = "CBC"; // Normalize title
-                    }
-
-                    // Programmatic merge for Coagulation parameters (PT, PTT, INR)
-                    const coagTitles = ["COAGULATION", "PROTHROMBIN TIME", "PARTIAL THROMBOPLASTIN TIME", "IN VITRO B", "PT", "PTT", "INR"];
-                    let coagGroups = parsed.filter(p => p.title && coagTitles.some(t => p.title.toUpperCase().includes(t)));
-                    if (coagGroups.length > 1) {
-                        console.log("ocrService: Programmatically merging scattered Coagulation tests");
-                        let primary = coagGroups[0];
-                        for (let i = 1; i < coagGroups.length; i++) {
-                            primary.results = { ...primary.results, ...coagGroups[i].results };
-                            // Remove the merged piece from original array
-                            parsed.splice(parsed.indexOf(coagGroups[i]), 1);
+            for (const modelName of modelNames) {
+                try {
+                    console.log(`ocrService: trying model ${modelName}...`);
+                    const currentModel = genAI.getGenerativeModel({ model: modelName });
+                    const result = await currentModel.generateContent([
+                        prompt,
+                        {
+                            inlineData: {
+                                data: imageBase64,
+                                mimeType: mimeType
+                            }
                         }
-                        primary.title = "Coagulation";
-                    } else if (coagGroups.length === 1) {
-                        coagGroups[0].title = "Coagulation"; // Normalize title
-                    }
-                }
+                    ]);
 
-                console.log("ocrService: JSON parsed successfully. Items:", parsed.length);
-                return parsed;
-            } catch (e) {
-                console.error("Failed to parse OCR JSON:", jsonString);
-                throw new Error('Failed to parse AI response');
+                    const responseText = result.response.text();
+                    console.log("ocrService: Gemini response received length:", responseText.length);
+                    console.log("ocrService: Raw response:", responseText); // Debug logging
+
+                    // Clean up markdown if present
+                    const jsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+                    try {
+                        let parsed = JSON.parse(jsonString);
+
+                        if (mode === 'VITALS') {
+                            // Expecting a single object dict, return as is
+                            return parsed;
+                        }
+
+                        // LAB mode logic: Ensure it's an array
+                        if (!Array.isArray(parsed)) {
+                            console.log("ocrService: Response was not an array, wrapping in array.");
+                            parsed = [parsed];
+                        }
+                        // Programmatic merge for CBC and Differential, just in case AI fails to follow instructions
+                        if (Array.isArray(parsed)) {
+                            let cbcIndex = parsed.findIndex(p => p.title && (p.title.toUpperCase().includes('CBC') || p.title.toUpperCase().includes('COMPLETE BLOOD')));
+                            let diffIndex = parsed.findIndex(p => p.title && p.title.toUpperCase().includes('DIFFERENTIAL'));
+
+                            if (cbcIndex !== -1 && diffIndex !== -1 && cbcIndex !== diffIndex) {
+                                console.log("ocrService: Programmatically merging Differential into CBC");
+                                parsed[cbcIndex].results = { ...parsed[cbcIndex].results, ...parsed[diffIndex].results };
+                                parsed[cbcIndex].title = "CBC";
+                                parsed.splice(diffIndex, 1);
+                            } else if (cbcIndex !== -1) {
+                                parsed[cbcIndex].title = "CBC"; // Normalize title
+                            }
+
+                            // Programmatic merge for Coagulation parameters (PT, PTT, INR)
+                            const coagTitles = ["COAGULATION", "PROTHROMBIN TIME", "PARTIAL THROMBOPLASTIN TIME", "IN VITRO B", "PT", "PTT", "INR"];
+                            let coagGroups = parsed.filter(p => p.title && coagTitles.some(t => p.title.toUpperCase().includes(t)));
+                            if (coagGroups.length > 1) {
+                                console.log("ocrService: Programmatically merging scattered Coagulation tests");
+                                let primary = coagGroups[0];
+                                for (let i = 1; i < coagGroups.length; i++) {
+                                    primary.results = { ...primary.results, ...coagGroups[i].results };
+                                    // Remove the merged piece from original array
+                                    parsed.splice(parsed.indexOf(coagGroups[i]), 1);
+                                }
+                                primary.title = "Coagulation";
+                            } else if (coagGroups.length === 1) {
+                                coagGroups[0].title = "Coagulation"; // Normalize title
+                            }
+                        }
+
+                        console.log("ocrService: JSON parsed successfully. Items:", parsed.length);
+                        return parsed;
+                    } catch (e) {
+                        console.error("Failed to parse OCR JSON:", jsonString);
+                        throw new Error('Failed to parse AI response');
+                    }
+                } catch (error: any) {
+                    lastError = error;
+                    console.error(`ocrService: Error with model ${modelName}:`, error.message || error);
+                    // If it's a 429 Too Many Requests (quota exceeded), wait a bit then try the next model
+                    if (error.status === 429 || (error.message && error.message.includes('429'))) {
+                        console.log(`ocrService: Quota exceeded for ${modelName}, waiting 2s before trying next model...`);
+                        await new Promise(r => setTimeout(r, 2000));
+                        continue;
+                    }
+                    // For other errors, we can also try the next model just in case it's a model-specific failure
+                    continue;
+                }
             }
+
+            // If we exhaust all models in the fallback chain, throw the last error
+            console.error("ocrService: All models in the fallback chain failed.", lastError);
+            throw lastError || new Error('All OCR models failed.');
         } catch (error) {
-            console.error("ocrService: Error during analysis:", error);
+            console.error("ocrService: Fatal error during analysis:", error);
             throw error;
         }
     }
