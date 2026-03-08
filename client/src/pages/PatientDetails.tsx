@@ -198,7 +198,6 @@ export default function PatientDetails() {
 
             <main className="max-w-7xl mx-auto px-4 py-6">
                 {(() => {
-                    const activeAdmission = patient.admissions?.find((a: any) => !a.dischargedAt);
                     return (
                         <Tabs defaultValue="overview" className="w-full">
                             <TabsList className="mb-8 w-full p-1 bg-muted rounded-lg overflow-x-auto">

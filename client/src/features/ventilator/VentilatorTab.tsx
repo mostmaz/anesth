@@ -5,13 +5,13 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { Wind, Plus, History } from 'lucide-react';
+import { History, Plus } from 'lucide-react';
 
 interface VentilatorTabProps {
     patientId: string;
 }
 
-export default function VentilatorTab({ patientId }: VentilatorTabProps) {
+export default function VentilatorTab({ }: VentilatorTabProps) {
     const [history, setHistory] = useState<any[]>([]);
     const [newSettings, setNewSettings] = useState({
         mode: '',
