@@ -8,6 +8,7 @@ export interface Medication {
     otherInstructions?: string;
     isActive: boolean;
     startedAt: string;
+    dilution?: number;
     administrations: MedicationAdministration[];
 }
 
@@ -17,6 +18,7 @@ export interface MedicationAdministration {
     medicationId: string;
     status: 'Scheduled' | 'Given' | 'Held' | 'NotGiven';
     dose?: string;
+    dilution?: number;
     timestamp: string;
     userId?: string;
     user?: { name: string }; // Nurse details
@@ -45,6 +47,7 @@ export const marApi = {
         frequency?: string;
         infusionRate?: string;
         otherInstructions?: string;
+        dilution?: number;
         startedAt?: string;
     }): Promise<Medication> => {
         const response = await fetch(`${API_URL}/medications/prescribe`, {
@@ -56,7 +59,7 @@ export const marApi = {
         return response.json();
     },
 
-    administerMedication: async (data: { patientId: string; medicationId: string; status: string; dose?: string; userId?: string }): Promise<MedicationAdministration> => {
+    administerMedication: async (data: { patientId: string; medicationId: string; status: string; dose?: string; dilution?: number; userId?: string }): Promise<MedicationAdministration> => {
         const response = await fetch(`${API_URL}/medications/administer`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -66,7 +69,7 @@ export const marApi = {
         return response.json();
     },
 
-    editMedication: async (id: string, data: { dose: string; route: string; frequency?: string; infusionRate?: string; otherInstructions?: string; }): Promise<Medication> => {
+    editMedication: async (id: string, data: { dose: string; route: string; frequency?: string; infusionRate?: string; otherInstructions?: string; dilution?: number; }): Promise<Medication> => {
         const response = await fetch(`${API_URL}/medications/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },

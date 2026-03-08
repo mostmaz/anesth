@@ -604,17 +604,23 @@ export class LabImportService {
                             // Prioritize AI title
                             const finalTitle = item.title || report.title || 'Lab Report';
 
-                            // Deduplication Check
-                            let uniqueTitle = finalTitle;
-                            if (uniqueTitle === 'Lab Report' || uniqueTitle === 'Unknown Test') {
-                                uniqueTitle = `${report.title} (${report.rowIndex})`;
+                            let parsedConductedAt = new Date();
+                            if (report.date) {
+                                // Expected format from amrlab: DD-MM-YYYY
+                                const parts = report.date.split('-');
+                                if (parts.length === 3) {
+                                    const day = parseInt(parts[0], 10);
+                                    const month = parseInt(parts[1], 10) - 1; // 0-indexed
+                                    const year = parseInt(parts[2], 10);
+                                    parsedConductedAt = new Date(year, month, day);
+                                }
                             }
 
                             const exists = await prisma.investigation.findFirst({
                                 where: {
                                     patientId,
                                     externalId: report.accNo,
-                                    title: uniqueTitle,
+                                    title: finalTitle,
                                 }
                             });
 
@@ -625,11 +631,11 @@ export class LabImportService {
                                         authorId: authorId,
                                         type: (item.type || 'LAB') as 'LAB' | 'IMAGING',
                                         category: item.category || 'External',
-                                        title: uniqueTitle,
+                                        title: finalTitle, // Use finalTitle instead of uniqueTitle to keep list clean
                                         status: 'FINAL',
                                         result: { ...item.results, imageUrl: relativePath },
                                         impression: 'Auto-synced from Lab Results',
-                                        conductedAt: report.date ? new Date(report.date.split('-').reverse().join('-')) : new Date(),
+                                        conductedAt: parsedConductedAt,
                                         externalId: report.accNo
                                     }
                                 });

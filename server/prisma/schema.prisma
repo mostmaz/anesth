@@ -90,6 +90,8 @@ model Patient {
   investigations Investigation[]
   assignments    PatientAssignment[]
   specialistNotes SpecialistNote[]
+  ventilatorSettings VentilatorSetting[]
+  consultations  Consultation[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -201,6 +203,7 @@ model Medication {
   
   patient     Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
   administrations MedicationAdministration[]
+  dilution    Float?   // Dilution volume in mL
 }
 
 model DrugCatalog {
@@ -219,6 +222,7 @@ model MedicationAdministration {
   
   status       String   // Scheduled, Given, Held, NotGiven
   dose         String?
+  dilution     Float?   // Dilution volume in mL at time of administration
   timestamp    DateTime @default(now())
   userId       String?  // Nurse who administered
   
@@ -286,6 +290,7 @@ enum OrderType {
   DIET
   CONSULT
   PROCEDURE
+  BLOOD_PRODUCT
 }
 
 enum Priority {
@@ -437,5 +442,37 @@ model Investigation {
   patient   Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
   order     ClinicalOrder? @relation(fields: [orderId], references: [id])
   author    User          @relation(fields: [authorId], references: [id])
+}
+
+model VentilatorSetting {
+  id        String   @id @default(uuid())
+  patientId String
+  userId    String
+  
+  mode      String
+  rate      Int
+  fio2      Int
+  ie        String   // e.g. "1:2"
+  ps        Int
+  vt        Int
+  
+  timestamp DateTime @default(now())
+  
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model Consultation {
+  id          String   @id @default(uuid())
+  patientId   String
+  authorId    String
+  
+  doctorName  String
+  specialty   String
+  imageUrl    String?
+  notes       String?  @db.Text
+  
+  timestamp   DateTime @default(now())
+  
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
 }
 

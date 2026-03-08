@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:background="#1E2D42"
+    android:layout_marginBottom="6dp">
+
+    <!-- Amber left stripe -->
+    <View
+        android:layout_width="4dp"
+        android:layout_height="match_parent"
+        android:background="#F59E0B"
+        android:layout_marginEnd="12dp" />
+
+    <!-- Icon indicator -->
+    <ImageView
+        android:id="@+id/iconReminder"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:src="@android:drawable/ic_dialog_alert"
+        android:tint="#F59E0B"
+        android:layout_marginEnd="12dp"
+        android:layout_gravity="center_vertical"/>
+
+    <!-- Text content -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/textReminderTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Intervention Reminder"
+            android:textColor="#F59E0B"
+            android:textStyle="bold"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/textReminderPatient"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Patient: Unknown"
+            android:textColor="#94A3B8"
+            android:textSize="11sp"
+            android:layout_marginTop="2dp" />
+
+        <TextView
+            android:id="@+id/textReminderTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Due: --"
+            android:textColor="#64748B"
+            android:textSize="11sp"
+            android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- Mark Done Button -->
+    <Button
+        android:id="@+id/btnMarkDone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="✓ Done"
+        android:textSize="11sp"
+        android:backgroundTint="#10B981"
+        android:textColor="#FFFFFF"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:layout_gravity="center_vertical" />
+
+</LinearLayout>

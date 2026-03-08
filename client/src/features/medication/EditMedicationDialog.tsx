@@ -41,6 +41,7 @@ export function EditMedicationDialog({ medication, onMedicationEdited }: EditMed
 
     const [frequency, setFrequency] = useState(getFreqValue(medication.frequency));
     const [infusionRate, setInfusionRate] = useState(medication.infusionRate || '');
+    const [dilution, setDilution] = useState(medication.dilution?.toString() || '');
     const [instructions, setInstructions] = useState(medication.otherInstructions || '');
 
     useEffect(() => {
@@ -49,6 +50,7 @@ export function EditMedicationDialog({ medication, onMedicationEdited }: EditMed
             setRoute(medication.route || 'IV');
             setFrequency(getFreqValue(medication.frequency));
             setInfusionRate(medication.infusionRate || '');
+            setDilution(medication.dilution?.toString() || '');
             setInstructions(medication.otherInstructions || '');
         }
     }, [open, medication]);
@@ -72,7 +74,8 @@ export function EditMedicationDialog({ medication, onMedicationEdited }: EditMed
                 route,
                 frequency: freqLabel,
                 infusionRate,
-                otherInstructions: instructions
+                otherInstructions: instructions,
+                dilution: dilution ? parseFloat(dilution) : undefined
             });
             toast.success("Medication updated successfully");
             setOpen(false);
@@ -141,9 +144,15 @@ export function EditMedicationDialog({ medication, onMedicationEdited }: EditMed
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="edit-instructions">Other Instructions</Label>
-                        <Input id="edit-instructions" value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Optional details..." />
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-instructions">Other Instructions</Label>
+                            <Input id="edit-instructions" value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Optional details..." />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="edit-dilution">Dilution (mL)</Label>
+                            <Input id="edit-dilution" type="number" value={dilution} onChange={e => setDilution(e.target.value)} placeholder="e.g. 50" />
+                        </div>
                     </div>
 
                     <Button type="submit" className="w-full" disabled={loading}>

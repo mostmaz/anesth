@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">ICU Manager Native</string>
+    <string name="login_title">ICU Manager</string>
+    <string name="login_subtitle">Sign in to access patient records</string>
+    <string name="prompt_username">Username</string>
+    <string name="prompt_password">Password</string>
+    <string name="action_sign_in">Sign In</string>
+    <string name="action_sign_in_short">Sign in as admin</string>
+    <string name="error_invalid_credentials">Login failed. Please check credentials.</string>
+</resources>

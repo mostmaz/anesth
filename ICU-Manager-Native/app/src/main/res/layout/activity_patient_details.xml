@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0F172A">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#1E293B"
+        app:elevation="4dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbarPatient"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="Patient Details"
+            app:titleTextColor="#FFFFFF" 
+            app:navigationIcon="@android:drawable/ic_menu_revert" />
+
+        <!-- Static Header Info -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+            
+            <TextView
+                android:id="@+id/textDetailName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#F8FAFC"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:text="Loading..."/>
+                
+            <TextView
+                android:id="@+id/textDetailInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#94A3B8"
+                android:textSize="14sp"
+                android:layout_marginTop="4dp"
+                android:text="MRN: -- | Bed: -- | --M"/>
+        </LinearLayout>
+
+        <!-- Horizontal Swipe Tabs -->
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#1E293B"
+            app:tabTextColor="#94A3B8"
+            app:tabSelectedTextColor="#3B82F6"
+            app:tabIndicatorColor="#3B82F6"
+            app:tabMode="scrollable"/>
+
+        <!-- Due Reminder Banner -->
+        <LinearLayout
+            android:id="@+id/bannerReminder"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="#FEF3C7"
+            android:padding="12dp"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/textBannerTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="#B45309"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:text="Intervention Check Due!"/>
+
+            <Button
+                android:id="@+id/btnBannerComplete"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Complete Check"
+                android:textSize="12sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#D97706"
+                android:layout_marginEnd="8dp" />
+
+            <ImageButton
+                android:id="@+id/btnBannerDismiss"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:tint="#B45309" />
+        </LinearLayout>
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <ProgressBar
+        android:id="@+id/progressDetails"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:indeterminateTint="#3B82F6"
+        android:visibility="gone"/>
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/viewPager"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
