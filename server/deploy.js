@@ -21,8 +21,9 @@ ssh.connect({
         await exec('git fetch origin', '/root/anesth');
         await exec('git reset --hard origin/main', '/root/anesth');
 
-        console.log('Replacing IP in docker-compose...');
+        console.log('Replacing IP and API Key in docker-compose...');
         await exec('sed -i "s/VITE_API_URL=\\${VITE_API_URL:-http:\\/\\/localhost:3001\\/api}/VITE_API_URL=\\${VITE_API_URL:-http:\\/\\/161.35.216.33:3001\\/api}/g" docker-compose.yml', '/root/anesth');
+        await exec('sed -i "s/GEMINI_API_KEY=\\${GEMINI_API_KEY:-}/GEMINI_API_KEY=AIzaSyDS2Wm2vv2Yur3kDgsSdepuvowgFfCQA7M/g" docker-compose.yml', '/root/anesth');
 
         console.log('Building and running Production Containers...');
         await exec('docker compose up -d --build', '/root/anesth');
