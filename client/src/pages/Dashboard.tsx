@@ -11,9 +11,10 @@ import { useAuthStore } from '../stores/authStore';
 import { useShiftStore } from '../stores/shiftStore';
 import { Patient } from '../types';
 import { ClinicalOrder } from '../api/ordersApi';
-import { Activity, Users, ClipboardList, AlertTriangle, Clock, CheckCircle2, LogOut, CheckCheck, X, FlaskConical, Bell } from 'lucide-react';
+import { Activity, Users, ClipboardList, AlertTriangle, Clock, CheckCircle2, LogOut, CheckCheck, X, FlaskConical, Bell, ArchiveX } from 'lucide-react';
 
 import { ordersApi } from '../api/ordersApi';
+import { userApi } from '../api/userApi';
 import { assignmentApi, Assignment } from '../api/assignmentApi';
 import { shiftApi } from '../api/shiftApi';
 import { toast } from 'sonner';
@@ -64,6 +65,7 @@ export default function Dashboard() {
 
     // Live Feed for new lab results via SSE
     const [recentLabsFeed, setRecentLabsFeed] = useState<any[]>([]);
+    const [dismissedLabs, setDismissedLabs] = useState<Set<string>>(new Set());
 
     // Due intervention reminders (global, across all patients)
     const [dueReminders, setDueReminders] = useState<ClinicalOrder[]>([]);
@@ -80,25 +82,31 @@ export default function Dashboard() {
 
     const fetchData = async () => {
         try {
-            const [pts, activeData, recentData, activeAssignments, staffData, pendingData, historicalLabs] = await Promise.all([
+            const [pts, activeData, recentData, activeAssignments, staffData, pendingData, historicalLabs, userPrefs] = await Promise.all([
                 apiClient.get<Patient[]>('/patients'),
                 ordersApi.getActiveOrders().catch(() => []),
                 ordersApi.getRecentOrders().catch(() => []),
                 assignmentApi.getActive().catch(() => []),
                 shiftApi.getStaffOnDuty().catch(() => ({ seniors: [], nurses: [] })),
                 assignmentApi.getPending().catch(() => []),
-                apiClient.get<any[]>('/investigations').catch(() => [])
+                apiClient.get<any[]>('/investigations').catch(() => []),
+                user ? userApi.getPreferences(user.id).catch(() => ({ dismissedLabs: [] })) : Promise.resolve({ dismissedLabs: [] })
             ]);
 
             setStaffOnDuty(staffData);
             setPendingAssignments(pendingData);
 
+            const dismissedSet = new Set<string>((userPrefs as any).dismissedLabs || []);
+            setDismissedLabs(dismissedSet);
+
             // Prefill with recent global investigations
             if (historicalLabs && historicalLabs.length > 0) {
                 const formattedLabs = historicalLabs
+                    .filter((lab: any) => !dismissedSet.has(lab.id))
                     .sort((a: any, b: any) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime())
                     .slice(0, 10)
                     .map((lab: any) => ({
+                        id: lab.id,
                         type: 'new_investigation',
                         patientName: lab.patient?.name || 'Unknown Patient',
                         patientId: lab.patientId,
@@ -184,7 +192,13 @@ export default function Dashboard() {
         eventSource.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                if (data.type === 'new_investigation' || (!data.type && data.patientName && data.title)) {
+                if (data.type === 'new_investigation' && data.id && !dismissedLabs.has(data.id)) {
+                    setRecentLabsFeed(prev => {
+                        // Avoid duplicates
+                        if (prev.find(p => p.id === data.id)) return prev;
+                        return [data, ...prev].slice(0, 10);
+                    });
+                } else if (!data.type && data.patientName && data.title) {
                     setRecentLabsFeed(prev => [data, ...prev].slice(0, 10));
                 }
             } catch (err) {
@@ -211,6 +225,22 @@ export default function Dashboard() {
 
     const handleDismissReminder = (orderId: string) => {
         setDismissedIds(prev => new Set([...prev, orderId]));
+    };
+
+    const handleDismissLab = async (labId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!user || !labId) return;
+
+        // Optimistic UI update
+        setRecentLabsFeed(prev => prev.filter(lab => lab.id !== labId));
+        setDismissedLabs(prev => new Set([...prev, labId]));
+
+        try {
+            await userApi.dismissLab(user.id, labId);
+        } catch (err) {
+            console.error("Failed to dismiss lab notification", err);
+            // We could revert the optimistic UI update here, but for dismissals it's usually fine
+        }
     };
 
     const handleSignIn = async (patientId: string, e: React.MouseEvent) => {
@@ -590,11 +620,24 @@ export default function Dashboard() {
                                                     <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Mark Done
                                                 </Button>
                                             ) : (
-                                                <Button variant="ghost" size="sm" className="hidden group-hover:flex text-blue-600 hover:text-blue-700 hover:bg-blue-100 h-8"
-                                                    onClick={() => lab.patientId && handlePatientClick(lab.patientId)}
-                                                >
-                                                    View Chart
-                                                </Button>
+                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 h-8"
+                                                        onClick={() => lab.patientId && handlePatientClick(lab.patientId)}
+                                                    >
+                                                        View Chart
+                                                    </Button>
+                                                    {lab.id && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-8 w-8 p-0"
+                                                            onClick={(e) => handleDismissLab(lab.id, e)}
+                                                            title="Dismiss Notification"
+                                                        >
+                                                            <ArchiveX className="w-4 h-4" />
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             )}
                                         </div>
                                     ))}

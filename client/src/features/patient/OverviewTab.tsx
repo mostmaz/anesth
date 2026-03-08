@@ -15,7 +15,8 @@ import {
     Stethoscope,
     Heart,
     Zap,
-    Microscope
+    Microscope,
+    CheckCircle2
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Progress } from "../../components/ui/progress";
@@ -31,6 +32,7 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
     const [ioHistory, setIoHistory] = useState<IOEntry[]>([]);
     const [latestOrders, setLatestOrders] = useState<ClinicalOrder[]>([]);
     const [latestLabs, setLatestLabs] = useState<Investigation[]>([]);
+    const [completedInterventions, setCompletedInterventions] = useState<ClinicalOrder[]>([]);
     const [medications, setMedications] = useState<Medication[]>([]);
     const [loading, setLoading] = useState(true);
     const [now, setNow] = useState(new Date());
@@ -55,6 +57,10 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
                 if (v && v.length > 0) setLastVitals(v[0]);
                 setIoHistory(io || []);
                 setLatestOrders((o || []).filter((order: any) => order.type !== 'PROCEDURE').slice(0, 5));
+                setCompletedInterventions((o || [])
+                    .filter((order: any) => order.type === 'PROCEDURE' && order.status === 'COMPLETED')
+                    .sort((a: any, b: any) => new Date((b.details as any)?.timeDone || b.updatedAt).getTime() - new Date((a.details as any)?.timeDone || a.updatedAt).getTime())
+                    .slice(0, 4));
                 setLatestLabs((i || []).filter((inv: any) => inv.type === 'LAB').slice(0, 3));
                 setMedications(m || []);
             } catch (error) {
@@ -220,10 +226,10 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
                 </Card>
             </div>
 
-            {/* --- MIDDLE ROW: ORDERS & LABS --- */}
+            {/* --- MIDDLE ROW: ORDERS, INTERVENTIONS, LABS --- */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Latest Orders */}
-                <Card className="lg:col-span-2 shadow-sm border-slate-200">
+                <Card className="shadow-sm border-slate-200">
                     <CardHeader className="border-b bg-slate-50/50 py-3">
                         <div className="flex justify-between items-center">
                             <CardTitle className="text-sm font-bold flex items-center gap-2">
@@ -254,6 +260,41 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
                                 </div>
                             ))}
                             {latestOrders.length === 0 && <p className="p-8 text-center text-slate-400 italic text-sm">No active orders</p>}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Completed Interventions */}
+                <Card className="shadow-sm border-slate-200">
+                    <CardHeader className="border-b bg-emerald-50/50 py-3">
+                        <div className="flex justify-between items-center">
+                            <CardTitle className="text-sm font-bold flex items-center gap-2 text-emerald-800">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Completed Interventions
+                            </CardTitle>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="divide-y divide-slate-100">
+                            {completedInterventions.map((order) => (
+                                <div key={order.id} className="p-4 flex flex-col hover:bg-emerald-50/30 transition-colors">
+                                    <div className="flex justify-between items-start">
+                                        <p className="font-semibold text-slate-900 text-sm">{order.title}</p>
+                                        <span className="text-[10px] text-slate-400">
+                                            {new Date((order.details as any)?.timeDone || order.updatedAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
+                                        <Clock className="w-3 h-3" />
+                                        <span>
+                                            {new Date((order.details as any)?.timeDone || order.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+                                    {order.notes && (
+                                        <p className="text-xs text-slate-500 mt-2 bg-slate-50 p-2 rounded">{order.notes}</p>
+                                    )}
+                                </div>
+                            ))}
+                            {completedInterventions.length === 0 && <p className="p-8 text-center text-slate-400 italic text-sm">No recent completed interventions</p>}
                         </div>
                     </CardContent>
                 </Card>
