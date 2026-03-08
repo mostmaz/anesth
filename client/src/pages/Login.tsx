@@ -12,10 +12,12 @@ export default function Login() {
     const [username, setUsername] = React.useState('');
     const [password, setPassword] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
+    const [errorMsg, setErrorMsg] = React.useState('');
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
+        setErrorMsg('');
 
         try {
             const response = await authApi.login(username.trim(), password.trim());
@@ -24,7 +26,9 @@ export default function Login() {
             navigate('/dashboard');
         } catch (error: any) {
             console.error(error);
-            toast.error(error.message || 'Login failed');
+            const msg = error.message || 'Login failed';
+            setErrorMsg(msg);
+            toast.error(msg);
         } finally {
             setIsLoading(false);
         }
@@ -63,6 +67,11 @@ export default function Login() {
                             placeholder="Enter password"
                         />
                     </div>
+                    {errorMsg && (
+                        <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm border border-red-200">
+                            {errorMsg}
+                        </div>
+                    )}
                     <button
                         type="submit"
                         disabled={isLoading}
