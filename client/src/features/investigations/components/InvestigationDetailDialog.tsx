@@ -56,12 +56,20 @@ export function InvestigationDetailDialog({ investigation, onClose, patientId }:
                 <div className="space-y-6 py-4">
                     {/* Image Section */}
                     {result.imageUrl && (
-                        <div className="bg-slate-50 p-4 rounded-lg flex justify-center">
-                            <img
-                                src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${result.imageUrl}`}
-                                alt="Investigation Result"
-                                className="max-h-[300px] w-auto rounded shadow-sm"
-                            />
+                        <div className="bg-slate-50 p-4 rounded-lg flex justify-center w-full">
+                            {result.imageUrl.toLowerCase().endsWith('.pdf') ? (
+                                <iframe
+                                    src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${result.imageUrl}`}
+                                    className="w-full h-[600px] rounded shadow-sm border-0"
+                                    title="PDF Document"
+                                />
+                            ) : (
+                                <img
+                                    src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${result.imageUrl}`}
+                                    alt="Investigation Result"
+                                    className="max-h-[300px] w-auto rounded shadow-sm"
+                                />
+                            )}
                         </div>
                     )}
 
