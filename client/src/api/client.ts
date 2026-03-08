@@ -1,8 +1,22 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
+async function fetchWithTimeout(resource: RequestInfo | URL, options: RequestInit & { timeout?: number } = {}) {
+    const { timeout = 10000 } = options;
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+
+    const response = await fetch(resource, {
+        ...options,
+        signal: controller.signal
+    });
+    clearTimeout(id);
+
+    return response;
+}
+
 export const apiClient = {
     get: async <T>(endpoint: string): Promise<T> => {
-        const response = await fetch(`${API_URL}${endpoint}`);
+        const response = await fetchWithTimeout(`${API_URL}${endpoint}`);
         if (!response.ok) {
             const errorText = await response.text();
             console.error("API Error Body:", errorText);
@@ -10,13 +24,14 @@ export const apiClient = {
         }
         return response.json();
     },
-    post: async <T>(endpoint: string, data: any): Promise<T> => {
-        const response = await fetch(`${API_URL}${endpoint}`, {
+    post: async <T>(endpoint: string, data: any, options?: { timeout?: number }): Promise<T> => {
+        const response = await fetchWithTimeout(`${API_URL}${endpoint}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(data),
+            timeout: options?.timeout,
         });
         if (!response.ok) {
             const errorText = await response.text();
@@ -26,7 +41,7 @@ export const apiClient = {
         return response.json();
     },
     patch: async <T>(endpoint: string, data: any): Promise<T> => {
-        const response = await fetch(`${API_URL}${endpoint}`, {
+        const response = await fetchWithTimeout(`${API_URL}${endpoint}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -39,7 +54,7 @@ export const apiClient = {
         return response.json();
     },
     delete: async <T>(endpoint: string): Promise<T> => {
-        const response = await fetch(`${API_URL}${endpoint}`, {
+        const response = await fetchWithTimeout(`${API_URL}${endpoint}`, {
             method: 'DELETE',
         });
         if (!response.ok) {

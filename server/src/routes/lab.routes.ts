@@ -28,7 +28,6 @@ router.post('/sync-all', async (req, res) => {
     try {
         console.log("Manual Sync All triggered");
 
-        // Find admitted patients
         const admittedPatients = await prisma.patient.findMany({
             where: {
                 admissions: {
@@ -36,6 +35,11 @@ router.post('/sync-all', async (req, res) => {
                         dischargedAt: null
                     }
                 }
+            },
+            select: {
+                id: true,
+                mrn: true,
+                name: true
             }
         });
 
@@ -64,9 +68,9 @@ router.post('/sync-all', async (req, res) => {
             for (const patient of admittedPatients) {
                 if (!patient.mrn) continue;
                 try {
-                    await labService.syncAndSavePatientLabs(patient.mrn, patient.id, SYSTEM_USER_ID);
+                    await labService.syncAndSavePatientLabs(patient.mrn, patient.id, SYSTEM_USER_ID, patient.name);
                 } catch (e) {
-                    console.error(`Manual sync failed for ${patient.mrn}`, e);
+                    console.error(`Manual sync failed for ${patient.name} (${patient.mrn})`, e);
                 }
                 // Small delay
                 await new Promise(r => setTimeout(r, 2000));
@@ -109,7 +113,7 @@ router.post('/sync', async (req, res) => {
         const { patientId, mrn, name, authorId } = req.body;
         if (!patientId || !mrn) return res.status(400).json({ success: false, message: 'Patient ID and MRN required' });
 
-        const results = await labService.syncAndSavePatientLabs(mrn, patientId, authorId || 'mock-nurse-id');
+        const results = await labService.syncAndSavePatientLabs(mrn, patientId, authorId || 'mock-nurse-id', name);
 
         res.json({ success: true, count: results.length, data: results });
 

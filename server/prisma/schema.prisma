@@ -308,6 +308,9 @@ model ClinicalOrder {
   details   Json?       // Flexible data: { dose: "40mg", route: "IV" }
   notes     String?
   
+  reminderAt   DateTime? // Optional time to trigger a dashboard/browser notification
+  reminderSent Boolean   @default(false)
+  
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
