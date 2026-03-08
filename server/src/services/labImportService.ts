@@ -10,9 +10,9 @@ export class LabImportService {
 
     private async launchBrowser() {
         console.log("Puppeteer default executable path:", puppeteer.executablePath());
-        return puppeteer.launch({
+
+        const launchOptions: any = {
             headless: true,
-            executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -22,7 +22,16 @@ export class LabImportService {
                 '--single-process',
                 '--window-size=1280,800'
             ]
-        });
+        };
+
+        // On Windows, if PUPPETEER_EXECUTABLE_PATH is not set, try the default Chrome path
+        if (process.platform === 'win32' && !process.env.PUPPETEER_EXECUTABLE_PATH) {
+            launchOptions.executablePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+        } else if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+            launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+        }
+
+        return puppeteer.launch(launchOptions);
     }
 
     private async login(page: Page, username: string, password: string) {
