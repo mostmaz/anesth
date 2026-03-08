@@ -318,11 +318,19 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                                                     </DialogTrigger>
                                                     <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
                                                         <div className="p-4 bg-black/5 flex justify-center items-center min-h-[200px]">
-                                                            <img
-                                                                src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`}
-                                                                alt="Result"
-                                                                className="max-w-full h-auto rounded shadow-sm"
-                                                            />
+                                                            {lab.result.imageUrl.toLowerCase().endsWith('.pdf') ? (
+                                                                <iframe
+                                                                    src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`}
+                                                                    className="w-full h-[80vh] rounded shadow-sm border-0"
+                                                                    title="PDF Document"
+                                                                />
+                                                            ) : (
+                                                                <img
+                                                                    src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`}
+                                                                    alt="Result"
+                                                                    className="max-w-full h-auto rounded shadow-sm"
+                                                                />
+                                                            )}
                                                         </div>
                                                     </DialogContent>
                                                 </Dialog>
@@ -402,11 +410,19 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                                                 </DialogTrigger>
                                                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
                                                     <div className="p-4 bg-black/5 flex justify-center items-center min-h-[200px]">
-                                                        <img
-                                                            src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${img.result.imageUrl}`}
-                                                            alt="Investigation result"
-                                                            className="max-w-full h-auto rounded shadow-sm"
-                                                        />
+                                                        {img.result.imageUrl.toLowerCase().endsWith('.pdf') ? (
+                                                            <iframe
+                                                                src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${img.result.imageUrl}`}
+                                                                className="w-full h-[80vh] rounded shadow-sm border-0"
+                                                                title="PDF Document"
+                                                            />
+                                                        ) : (
+                                                            <img
+                                                                src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${img.result.imageUrl}`}
+                                                                alt="Investigation result"
+                                                                className="max-w-full h-auto rounded shadow-sm"
+                                                            />
+                                                        )}
                                                     </div>
                                                 </DialogContent>
                                             </Dialog>
