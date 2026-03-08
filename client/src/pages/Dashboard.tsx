@@ -152,8 +152,8 @@ export default function Dashboard() {
 
             setStats({
                 critical: Math.floor(Math.random() * 2),
-                activeOrders: activeData || [],
-                recentOrders: recentData || [],
+                activeOrders: (activeData || []).filter((o: any) => o.type !== 'PROCEDURE'),
+                recentOrders: (recentData || []).filter((o: any) => o.type !== 'PROCEDURE'),
                 newAdmissions: 1
             });
         } catch (error) {
@@ -868,7 +868,7 @@ function PendingExecutionList({ onSuccess }: { onSuccess: () => void }) {
     const loadOrders = async () => {
         try {
             const data = await ordersApi.getActiveOrders();
-            setOrders(data);
+            setOrders(data.filter((o: any) => o.type !== 'PROCEDURE'));
         } catch (err) {
             console.error("Failed to load active orders", err);
         } finally {
@@ -938,7 +938,7 @@ function CompletedOrdersList() {
         const loadOrders = async () => {
             try {
                 const data = await ordersApi.getCompletedOrders();
-                setOrders(data);
+                setOrders(data.filter((o: any) => o.type !== 'PROCEDURE'));
             } catch (err) {
                 console.error("Failed to load completed orders", err);
             } finally {
