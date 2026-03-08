@@ -136,9 +136,10 @@ export default function Dashboard() {
 
             setPatients(pts.filter((p: any) => {
                 const hasAdmissions = p.admissions && p.admissions.length > 0;
-                if (!hasAdmissions) return true;
-                const hasActiveAdmission = p.admissions.some((a: any) => !a.dischargedAt);
-                return hasActiveAdmission;
+                if (!hasAdmissions) return true; // Show if no admission records to be safe
+                // Only hide if ALL admissions have dischargedAt set
+                const allDischarged = p.admissions.every((a: any) => a.dischargedAt !== null && a.dischargedAt !== undefined);
+                return !allDischarged;
             }));
 
             setAssignments(activeAssignments);
