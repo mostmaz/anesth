@@ -319,11 +319,13 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                                                     <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
                                                         <div className="p-4 bg-black/5 flex justify-center items-center min-h-[200px]">
                                                             {lab.result.imageUrl.toLowerCase().endsWith('.pdf') ? (
-                                                                <iframe
-                                                                    src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`}
-                                                                    className="w-full h-[80vh] rounded shadow-sm border-0"
-                                                                    title="PDF Document"
-                                                                />
+                                                                <div className="text-center py-20 px-10">
+                                                                    <p className="mb-4 text-muted-foreground text-lg">This report is a PDF document.</p>
+                                                                    <Button size="lg" onClick={() => window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`, '_blank')}>
+                                                                        <FileText className="w-5 h-5 mr-3" />
+                                                                        Click here to open PDF in a new tab
+                                                                    </Button>
+                                                                </div>
                                                             ) : (
                                                                 <img
                                                                     src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`}
@@ -411,11 +413,13 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                                                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
                                                     <div className="p-4 bg-black/5 flex justify-center items-center min-h-[200px]">
                                                         {img.result.imageUrl.toLowerCase().endsWith('.pdf') ? (
-                                                            <iframe
-                                                                src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${img.result.imageUrl}`}
-                                                                className="w-full h-[80vh] rounded shadow-sm border-0"
-                                                                title="PDF Document"
-                                                            />
+                                                            <div className="text-center py-20 px-10">
+                                                                <p className="mb-4 text-muted-foreground text-lg">This report is a PDF document.</p>
+                                                                <Button size="lg" onClick={() => window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${img.result.imageUrl}`, '_blank')}>
+                                                                    <FileText className="w-5 h-5 mr-3" />
+                                                                    Click here to open PDF in a new tab
+                                                                </Button>
+                                                            </div>
                                                         ) : (
                                                             <img
                                                                 src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${img.result.imageUrl}`}
