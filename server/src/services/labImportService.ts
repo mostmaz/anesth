@@ -270,56 +270,58 @@ export class LabImportService {
             // <form action="..." method="POST" ...>
             // We can evaluate a form submission on the current page to that URL to open it.
 
-            // Intercept PDF response
-            let pdfBuffer: Buffer | null = null;
-            page.on('response', async (response) => {
-                const url = response.url();
-                const contentType = response.headers()['content-type'];
-                if (url.includes('print_medical_report') && contentType === 'application/pdf') {
-                    console.log(`Puppeteer: Intercepted PDF response from ${url}`);
-                    pdfBuffer = await response.buffer();
+            // Try to fetch PDF bytes directly using the page's session/cookies
+            console.log("Puppeteer: Attempting to fetch PDF via browser fetch...");
+
+            const pdfData = await page.evaluate(async (url) => {
+                const tokenInput = document.querySelector('input[name="_token"]') as HTMLInputElement;
+                const token = tokenInput ? tokenInput.value : '';
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `_token=${encodeURIComponent(token)}`
+                    });
+
+                    if (!response.ok) {
+                        return { error: `HTTP ${response.status}: ${response.statusText}` };
+                    }
+
+                    const contentType = response.headers.get('content-type') || '';
+                    if (!contentType.includes('application/pdf')) {
+                        const text = await response.text();
+                        return { error: `Expected PDF but got ${contentType}`, preview: text.substring(0, 500) };
+                    }
+
+                    const buffer = await response.arrayBuffer();
+                    return { success: true, data: Array.from(new Uint8Array(buffer)) };
+                } catch (e: any) {
+                    return { error: e.message };
                 }
-            });
-
-            await page.evaluate((url) => {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = url;
-
-                // Needs a CSRF token. The form on the page has a hidden _token field.
-                const existingToken = document.querySelector('input[name="_token"]') as HTMLInputElement;
-                if (existingToken) {
-                    const tokenInput = document.createElement('input');
-                    tokenInput.type = 'hidden';
-                    tokenInput.name = '_token';
-                    tokenInput.value = existingToken.value;
-                    form.appendChild(tokenInput);
-                }
-
-                document.body.appendChild(form);
-                form.submit();
             }, printUrl);
 
-            // Wait for either the PDF buffer to be captured or a timeout
-            console.log("Waiting for PDF intercept...");
-            const startTime = Date.now();
-            while (!pdfBuffer && (Date.now() - startTime < 30000)) {
-                await new Promise(r => setTimeout(r, 500));
-            }
-
-            if (pdfBuffer) {
+            if (pdfData && (pdfData as any).success) {
+                const pdfBuffer = Buffer.from((pdfData as any).data);
                 const pdfPath = `uploads/import-${Date.now()}.pdf`;
                 const absolutePdfPath = require('path').resolve(pdfPath);
                 require('fs').writeFileSync(absolutePdfPath, pdfBuffer);
-                console.log(`PDF saved successfully to ${absolutePdfPath}`);
+                console.log(`PDF saved successfully via fetch to ${absolutePdfPath}, size: ${pdfBuffer.length}`);
                 return { screenshotPath: absolutePdfPath, accNo: targetAccNo };
+            } else {
+                console.error("PDF fetch failed:", (pdfData as any)?.error);
+                if ((pdfData as any)?.preview) {
+                    console.log("Response preview:", (pdfData as any).preview);
+                }
             }
 
-            console.log("PDF intercept failed or timed out, falling back to screenshot...");
+            console.log("Falling back to navigation and screenshot...");
             await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(e => console.log('Navigation wait error', e));
 
             await page.setViewport({ width: 1280, height: 1024 });
-            await new Promise(r => setTimeout(r, 5000)); // Medium wait for fallback
+            await new Promise(r => setTimeout(r, 8000)); // Allow more render for fallback
 
             const screenshotPath = `uploads/import-${Date.now()}.png`;
             const absolutePath = require('path').resolve(screenshotPath);
