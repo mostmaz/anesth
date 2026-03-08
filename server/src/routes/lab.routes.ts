@@ -27,59 +27,12 @@ router.get('/patients', async (req, res) => {
 router.post('/sync-all', async (req, res) => {
     try {
         console.log("Manual Sync All triggered");
+        const SYSTEM_USER_ID = req.body.userId || 'manual-sync-admin';
 
-        const admittedPatients = await prisma.patient.findMany({
-            where: {
-                admissions: {
-                    some: {
-                        dischargedAt: null
-                    }
-                }
-            },
-            select: {
-                id: true,
-                mrn: true,
-                name: true
-            }
-        });
+        // Run in background using the new auto-sync logic
+        labService.syncAllActivePatients(SYSTEM_USER_ID).catch(console.error);
 
-        console.log(`[Manual Sync] Found ${admittedPatients.length} admitted patients.`);
-        const results = [];
-
-        // Trigger async process but return immediately or wait?
-        // User probably wants to know it started. Waiting for all might time out.
-        // Let's run it in background but acknowledge start.
-
-        // However, for "Sync All Button", user might want to see progress.
-        // Let's do a few prominently and return, or run all and return summary if list is small.
-        // Given typically < 20 ICU patients, we can try to await it, but timeout is risk.
-        // Better: Return "Started" and let sockets/polling handle updates? 
-        // For now, let's await it but set a timeout race?
-        // No, let's just trigger it and return "Sync started in background".
-
-        // Actually, user said "i need this also to be done with sync all button also".
-        // He likely wants the same behavior as the cron job but on demand.
-
-        // Refactored logic from scheduler could be imported but for now duplicating is safer/faster
-        // to avoid breaking the scheduler file structure.
-
-        (async () => {
-            const SYSTEM_USER_ID = req.body.userId || 'manual-sync-admin';
-            for (const patient of admittedPatients) {
-                if (!patient.mrn) continue;
-                try {
-                    await labService.syncAndSavePatientLabs(patient.mrn, patient.id, SYSTEM_USER_ID, patient.name);
-                } catch (e) {
-                    console.error(`Manual sync failed for ${patient.name} (${patient.mrn})`, e);
-                }
-                // Small delay
-                await new Promise(r => setTimeout(r, 2000));
-            }
-            console.log("Manual Sync All Completed");
-        })();
-
-        res.json({ success: true, message: `Sync started for ${admittedPatients.length} patients.` });
-
+        res.json({ success: true, message: `Sync started in background.` });
     } catch (error) {
         console.error("Error triggering sync:", error);
         res.status(500).json({ success: false, message: 'Failed to trigger sync' });
