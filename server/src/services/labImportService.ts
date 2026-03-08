@@ -292,7 +292,7 @@ export class LabImportService {
             await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(e => console.log('Navigation wait error', e));
 
             await page.setViewport({ width: 1280, height: 1024 });
-            await new Promise(r => setTimeout(r, 3000)); // Allow render
+            await new Promise(r => setTimeout(r, 15000)); // Allow render
 
             // Try to expand any hidden overflow for full page
             await page.evaluate(() => { const s = document.createElement('style'); s.innerHTML = '*,body,html{overflow:visible!important;height:auto!important;max-height:none!important;}'; document.head.appendChild(s); });
