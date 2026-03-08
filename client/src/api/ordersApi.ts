@@ -16,6 +16,7 @@ export interface ClinicalOrder {
     title: string;
     details?: any;
     notes?: string;
+    reminderAt?: string;
     createdAt: string;
     updatedAt: string;
     author: {
@@ -56,11 +57,16 @@ export const ordersApi = {
         priority: Priority;
         details?: any;
         notes?: string;
+        reminderAt?: string;
     }) => {
         return apiClient.post<ClinicalOrder>('/orders', data);
     },
 
     updateStatus: async (id: string, status: OrderStatus, userId: string) => {
         return apiClient.patch<ClinicalOrder>(`/orders/${id}/status`, { status, userId });
+    },
+
+    getDueReminders: async () => {
+        return apiClient.get<ClinicalOrder[]>('/orders/due-reminders');
     }
 };

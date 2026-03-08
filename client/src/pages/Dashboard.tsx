@@ -1,15 +1,17 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { apiClient } from '../api/client';
 import { useAuthStore } from '../stores/authStore';
 import { useShiftStore } from '../stores/shiftStore';
 import { Patient } from '../types';
-import { Activity, Users, ClipboardList, AlertTriangle, Clock, CheckCircle2, LogOut, CheckCheck, X, FlaskConical } from 'lucide-react';
+import { ClinicalOrder } from '../api/ordersApi';
+import { Activity, Users, ClipboardList, AlertTriangle, Clock, CheckCircle2, LogOut, CheckCheck, X, FlaskConical, Bell } from 'lucide-react';
 
 import { ordersApi } from '../api/ordersApi';
 import { assignmentApi, Assignment } from '../api/assignmentApi';
@@ -19,7 +21,33 @@ import { toast } from 'sonner';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 import AddPatientForm from '../features/patient/AddPatientForm';
-import { Dialog, DialogContent } from '../components/ui/dialog';
+
+// Confirmation dialog for completing a check from the dashboard
+function ConfirmCheckDialog({
+    open, onOpenChange, onConfirm, title
+}: { open: boolean; onOpenChange: (v: boolean) => void; onConfirm: () => void; title: string }) {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-[380px]">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        Complete Check
+                    </DialogTitle>
+                </DialogHeader>
+                <p className="text-sm text-slate-600 py-2">
+                    Mark <span className="font-semibold">{title}</span> as checked and dismiss this reminder?
+                </p>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button className="bg-green-600 hover:bg-green-700" onClick={() => { onOpenChange(false); onConfirm(); }}>
+                        Yes, Complete Check
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 export default function Dashboard() {
     const navigate = useNavigate();
@@ -30,12 +58,18 @@ export default function Dashboard() {
     const [assignments, setAssignments] = useState<any[]>([]);
     const [pendingAssignments, setPendingAssignments] = useState<Assignment[]>([]);
 
-    // New State for Staff of the Day
+    // Staff of the Day
     const [staffOnDuty, setStaffOnDuty] = useState<{ seniors: any[], nurses: any[] }>({ seniors: [], nurses: [] });
     const [showAssignmentDialog, setShowAssignmentDialog] = useState(false);
 
     // Live Feed for new lab results via SSE
     const [recentLabsFeed, setRecentLabsFeed] = useState<any[]>([]);
+
+    // Due intervention reminders (global, across all patients)
+    const [dueReminders, setDueReminders] = useState<ClinicalOrder[]>([]);
+    const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+    const [confirmOrder, setConfirmOrder] = useState<ClinicalOrder | null>(null);
+    const reminderPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const [stats, setStats] = useState({
         critical: 0,
@@ -46,17 +80,59 @@ export default function Dashboard() {
 
     const fetchData = async () => {
         try {
-            const [pts, activeData, recentData, activeAssignments, staffData, pendingData] = await Promise.all([
+            const [pts, activeData, recentData, activeAssignments, staffData, pendingData, historicalLabs] = await Promise.all([
                 apiClient.get<Patient[]>('/patients'),
                 ordersApi.getActiveOrders().catch(() => []),
                 ordersApi.getRecentOrders().catch(() => []),
                 assignmentApi.getActive().catch(() => []),
                 shiftApi.getStaffOnDuty().catch(() => ({ seniors: [], nurses: [] })),
-                assignmentApi.getPending().catch(() => [])
+                assignmentApi.getPending().catch(() => []),
+                apiClient.get<any[]>('/investigations').catch(() => [])
             ]);
 
             setStaffOnDuty(staffData);
             setPendingAssignments(pendingData);
+
+            // Prefill with recent global investigations
+            if (historicalLabs && historicalLabs.length > 0) {
+                const formattedLabs = historicalLabs
+                    .sort((a: any, b: any) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime())
+                    .slice(0, 10)
+                    .map((lab: any) => ({
+                        type: 'new_investigation',
+                        patientName: lab.patient?.name || 'Unknown Patient',
+                        patientId: lab.patientId,
+                        title: `New ${lab.type || 'Lab'} Result: ${lab.testName || 'Investigation'}`,
+                        timestamp: lab.createdAt || lab.date
+                    }));
+                setRecentLabsFeed(formattedLabs);
+            }
+
+            // Check for due intervention reminders
+            const now = new Date();
+            const dueReminders = (activeData || [])
+                .filter((o: any) =>
+                    o.type === 'PROCEDURE' &&
+                    o.reminderAt &&
+                    new Date(o.reminderAt) <= now &&
+                    o.status !== 'COMPLETED'
+                )
+                .map((o: any) => ({
+                    type: 'intervention_reminder',
+                    patientName: o.patient?.name || 'Unknown Patient',
+                    patientId: o.patientId,
+                    orderId: o.id,
+                    title: (o.details as any)?.notificationText || o.title,
+                    timestamp: o.reminderAt
+                }));
+
+            if (dueReminders.length > 0) {
+                setRecentLabsFeed(prev => {
+                    const existingIds = prev.filter((x: any) => x.orderId).map((x: any) => x.orderId);
+                    const newReminders = dueReminders.filter((r: any) => !existingIds.includes(r.orderId));
+                    return [...newReminders, ...prev].slice(0, 15);
+                });
+            }
 
             setPatients(pts.filter((p: any) => {
                 const hasAdmissions = p.admissions && p.admissions.length > 0;
@@ -84,8 +160,22 @@ export default function Dashboard() {
         }
     };
 
+    // Poll /due-reminders every 60s for the top-of-page banner
+    const fetchDueReminders = async () => {
+        try {
+            const reminders = await ordersApi.getDueReminders();
+            setDueReminders(reminders);
+        } catch {
+            // silent
+        }
+    };
+
     useEffect(() => {
         fetchData();
+        fetchDueReminders();
+
+        // Poll reminders every 60 seconds
+        reminderPollRef.current = setInterval(fetchDueReminders, 60_000);
 
         // Listen for live SSE notifications specifically for the Dashboard widget
         const eventSource = new EventSource(`${API_URL}/notifications/stream`);
@@ -93,8 +183,8 @@ export default function Dashboard() {
         eventSource.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                if (data.patientName && data.title) {
-                    setRecentLabsFeed(prev => [data, ...prev].slice(0, 10)); // Keep last 10
+                if (data.type === 'new_investigation' || (!data.type && data.patientName && data.title)) {
+                    setRecentLabsFeed(prev => [data, ...prev].slice(0, 10));
                 }
             } catch (err) {
                 // Parse error
@@ -103,8 +193,24 @@ export default function Dashboard() {
 
         return () => {
             eventSource.close();
+            if (reminderPollRef.current) clearInterval(reminderPollRef.current);
         };
     }, []);
+
+    const handleDashboardCompleteCheck = async (orderId: string) => {
+        if (!user) return;
+        try {
+            await ordersApi.updateStatus(orderId, 'COMPLETED', user.id);
+            toast.success('Intervention check completed');
+            setDueReminders(prev => prev.filter(o => o.id !== orderId));
+        } catch {
+            toast.error('Failed to complete check');
+        }
+    };
+
+    const handleDismissReminder = (orderId: string) => {
+        setDismissedIds(prev => new Set([...prev, orderId]));
+    };
 
     const handleSignIn = async (patientId: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -181,8 +287,60 @@ export default function Dashboard() {
         toast.success("Shift ended");
     };
 
+    const visibleReminders = dueReminders.filter(o => !dismissedIds.has(o.id));
+
     return (
         <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+            {/* ── Global Due Reminders Banner ── */}
+            {visibleReminders.length > 0 && (
+                <div className="rounded-xl border-2 border-amber-400 bg-amber-50 shadow-lg overflow-hidden">
+                    <div className="flex items-center gap-2 bg-amber-500 px-5 py-3">
+                        <Bell className="w-5 h-5 text-white animate-pulse" />
+                        <span className="font-bold text-white text-sm uppercase tracking-wide">
+                            {visibleReminders.length} Intervention Check{visibleReminders.length > 1 ? 's' : ''} Due
+                        </span>
+                    </div>
+                    <div className="divide-y divide-amber-200">
+                        {visibleReminders.map(order => (
+                            <div key={order.id} className="flex items-center justify-between px-5 py-3 gap-4 hover:bg-amber-100/40 transition-colors">
+                                <div
+                                    className="flex-1 min-w-0 cursor-pointer"
+                                    onClick={() => navigate(`/patients/${(order as any).patient?.id || order.patientId}`)}
+                                >
+                                    <p className="font-semibold text-amber-900 text-sm">
+                                        <span className="font-bold">{(order as any).patient?.name || 'Unknown Patient'}</span>
+                                        {' — '}
+                                        {(order.details as any)?.notificationText || order.title}
+                                    </p>
+                                    <p className="text-xs text-amber-700 flex items-center gap-1 mt-0.5">
+                                        <Clock className="w-3 h-3" />
+                                        Due: {new Date((order as any).reminderAt).toLocaleString()}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <Button
+                                        size="sm"
+                                        className="bg-green-600 hover:bg-green-700 text-white h-8 text-xs"
+                                        onClick={() => setConfirmOrder(order)}
+                                    >
+                                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                                        Complete Check
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-8 w-8 p-0 text-amber-700 hover:bg-amber-200"
+                                        title="Dismiss for this session"
+                                        onClick={() => handleDismissReminder(order.id)}
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900">ICU Command Center</h1>
@@ -362,46 +520,87 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column (Labs + Patients) */}
                 <div className="lg:col-span-2 space-y-8">
-                    {/* Live Lab Updates Feed */}
-                    {recentLabsFeed.length > 0 && (
-                        <Card className="border-blue-200 shadow-sm bg-gradient-to-r from-blue-50/50 to-white">
-                            <CardHeader className="pb-3 border-b border-blue-100 bg-white/50">
-                                <CardTitle className="text-base font-semibold flex items-center text-blue-800">
-                                    <div className="relative mr-3 flex items-center justify-center">
-                                        <FlaskConical className="w-5 h-5 text-blue-600" />
-                                        <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full animate-ping"></span>
-                                        <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full"></span>
-                                    </div>
-                                    Live Lab Updates
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                <div className="divide-y divide-blue-50/50 max-h-[200px] overflow-y-auto">
-                                    {recentLabsFeed.map((lab, index) => (
-                                        <div key={index} className="p-4 flex items-center justify-between hover:bg-blue-50/50 transition-colors cursor-pointer group" onClick={() => lab.patientId && handlePatientClick(lab.patientId)}>
-                                            <div className="flex items-center space-x-4">
-                                                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                                                    <FlaskConical className="w-5 h-5 text-blue-600" />
+                    {/* System Notifications Feed */}
+                    <Card className={`shadow-sm ${recentLabsFeed.length > 0 ? 'border-blue-200 bg-gradient-to-r from-blue-50/50 to-white' : 'border-slate-200 bg-white'}`}>
+                        <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+                            <CardTitle className="text-base font-semibold flex items-center text-slate-800">
+                                <div className="relative mr-3 flex items-center justify-center">
+                                    <Bell className={`w-5 h-5 ${recentLabsFeed.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                                    {recentLabsFeed.length > 0 && (
+                                        <>
+                                            <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full animate-ping"></span>
+                                            <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full"></span>
+                                        </>
+                                    )}
+                                </div>
+                                System Notifications & Updates
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            {recentLabsFeed.length === 0 ? (
+                                <div className="p-6 text-center text-slate-500 text-sm">
+                                    No recent notifications or updates.
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-blue-50/50 max-h-[260px] overflow-y-auto">
+                                    {recentLabsFeed.map((lab: any, index) => (
+                                        <div key={index} className={`p-4 flex items-center justify-between hover:bg-blue-50/50 transition-colors group ${lab.type === 'intervention_reminder' ? 'bg-amber-50/60' : ''}`}>
+                                            <div
+                                                className="flex items-center space-x-4 flex-1 cursor-pointer"
+                                                onClick={() => lab.patientId && handlePatientClick(lab.patientId)}
+                                            >
+                                                <div className={`h-10 w-10 rounded-full flex items-center justify-center transition-colors ${lab.type === 'intervention_reminder'
+                                                    ? 'bg-amber-100 group-hover:bg-amber-200'
+                                                    : 'bg-blue-100 group-hover:bg-blue-200'
+                                                    }`}>
+                                                    {lab.type === 'intervention_reminder'
+                                                        ? <Clock className="w-5 h-5 text-amber-600" />
+                                                        : <FlaskConical className="w-5 h-5 text-blue-600" />
+                                                    }
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-medium text-slate-900">
                                                         <span className="font-bold">{lab.patientName}</span> — {lab.title}
                                                     </p>
+                                                    {lab.type === 'intervention_reminder' && (
+                                                        <p className="text-xs text-amber-700 font-medium mt-0.5">⏰ Intervention Reminder</p>
+                                                    )}
                                                     <p className="text-xs text-slate-500 flex items-center mt-0.5">
                                                         <Clock className="w-3 h-3 mr-1" />
-                                                        {new Date(lab.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        {new Date(lab.timestamp).toLocaleString()}
                                                     </p>
                                                 </div>
                                             </div>
-                                            <Button variant="ghost" size="sm" className="hidden group-hover:flex text-blue-600 hover:text-blue-700 hover:bg-blue-100 h-8">
-                                                View Chart
-                                            </Button>
+                                            {lab.type === 'intervention_reminder' ? (
+                                                <Button
+                                                    size="sm"
+                                                    className="ml-2 bg-green-600 hover:bg-green-700 text-white h-8 text-xs"
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        try {
+                                                            await ordersApi.updateStatus(lab.orderId, 'COMPLETED', user!.id);
+                                                            toast.success('Intervention marked done');
+                                                            setRecentLabsFeed(prev => prev.filter((_: any, i: number) => i !== index));
+                                                        } catch {
+                                                            toast.error('Failed to mark done');
+                                                        }
+                                                    }}
+                                                >
+                                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Mark Done
+                                                </Button>
+                                            ) : (
+                                                <Button variant="ghost" size="sm" className="hidden group-hover:flex text-blue-600 hover:text-blue-700 hover:bg-blue-100 h-8"
+                                                    onClick={() => lab.patientId && handlePatientClick(lab.patientId)}
+                                                >
+                                                    View Chart
+                                                </Button>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
-                            </CardContent>
-                        </Card>
-                    )}
+                            )}
+                        </CardContent>
+                    </Card>
 
                     {/* Patient List */}
                     <Card>
@@ -576,56 +775,53 @@ export default function Dashboard() {
                                 </div>
                             </CardContent>
                         </Card>
-
-
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">Recent Orders</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    {(stats as any).recentOrders?.map((order: any) => (
-                                        <div key={order.id} className="flex items-start space-x-3 text-sm border-b pb-2 last:border-0 last:pb-0">
-                                            <div className={`mt-0.5 p-1 rounded-full ${order.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
-                                                {order.status === 'COMPLETED' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                                            </div>
-                                            <div>
-                                                <div className="font-medium text-slate-900 flex items-center gap-2">
-                                                    {order.title}
-                                                    {order.status === 'COMPLETED' && <span className="text-[10px] bg-green-100 text-green-800 px-1.5 rounded-full">Done</span>}
-                                                </div>
-                                                <div className="text-xs text-slate-500">
-                                                    {order.patient.name}
-                                                </div>
-                                                <div className="text-[10px] text-slate-400 mt-0.5">
-                                                    {new Date(order.createdAt).toLocaleString()}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {(!stats as any).recentOrders?.length && <div className="text-slate-500 italic">No recent orders</div>}
-                                </div>
-                            </CardContent>
-                        </Card>
                     </div>
 
-                    {/* Clinical Orders Section */}
-                    <Card className="col-span-full mt-6">
-                        <CardHeader>
-                            <CardTitle>Clinical Orders</CardTitle>
+
+                    {/* Clinical Orders — Tabbed Layout */}
+                    <Card className="col-span-full mt-6 border-slate-200">
+                        <CardHeader className="bg-slate-50 border-b pb-3">
+                            <CardTitle className="text-lg flex items-center text-slate-800">
+                                <ClipboardList className="w-5 h-5 mr-2 text-blue-600" />
+                                Clinical Orders
+                            </CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <Tabs defaultValue="active" className="w-full">
-                                <TabsList>
-                                    <TabsTrigger value="active">Active</TabsTrigger>
-                                    <TabsTrigger value="completed">Completed</TabsTrigger>
+                        <CardContent className="p-4 bg-slate-50/50">
+                            <Tabs defaultValue="active">
+                                <TabsList className="mb-4">
+                                    <TabsTrigger value="active">Active Orders</TabsTrigger>
+                                    <TabsTrigger value="recent">Recent Orders</TabsTrigger>
+                                    <TabsTrigger value="completed">Recently Completed</TabsTrigger>
                                 </TabsList>
-                                <TabsContent value="active" className="mt-4">
+
+                                <TabsContent value="active">
                                     <PendingExecutionList onSuccess={fetchData} />
                                 </TabsContent>
 
-                                <TabsContent value="completed" className="mt-4">
+                                <TabsContent value="recent">
+                                    <div className="space-y-3">
+                                        {(stats as any).recentOrders?.length === 0 && (
+                                            <p className="text-slate-500 italic text-sm">No recent orders.</p>
+                                        )}
+                                        {(stats as any).recentOrders?.map((order: any) => (
+                                            <div key={order.id} className="flex items-start space-x-3 text-sm border-b pb-2 last:border-0 last:pb-0">
+                                                <div className={`mt-0.5 p-1 rounded-full ${order.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
+                                                    {order.status === 'COMPLETED' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                                                </div>
+                                                <div>
+                                                    <div className="font-medium text-slate-900 flex items-center gap-2">
+                                                        {order.title}
+                                                        {order.status === 'COMPLETED' && <span className="text-[10px] bg-green-100 text-green-800 px-1.5 rounded-full">Done</span>}
+                                                    </div>
+                                                    <div className="text-xs text-slate-500">{order.patient.name}</div>
+                                                    <div className="text-[10px] text-slate-400 mt-0.5">{new Date(order.createdAt).toLocaleString()}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </TabsContent>
+
+                                <TabsContent value="completed">
                                     <CompletedOrdersList />
                                 </TabsContent>
                             </Tabs>
@@ -645,6 +841,16 @@ export default function Dashboard() {
                     </DialogContent>
                 </Dialog>
             </div>
+
+            {/* Confirm check dialog — global, for dashboard banner buttons */}
+            {confirmOrder && (
+                <ConfirmCheckDialog
+                    open={!!confirmOrder}
+                    onOpenChange={(v) => { if (!v) setConfirmOrder(null); }}
+                    title={(confirmOrder.details as any)?.notificationText || confirmOrder.title}
+                    onConfirm={() => handleDashboardCompleteCheck(confirmOrder.id)}
+                />
+            )}
         </div>
     );
 }

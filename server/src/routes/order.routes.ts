@@ -4,6 +4,29 @@ import prisma from '../prisma';
 
 const router = Router();
 
+// GET due intervention reminders (reminderAt <= now, PROCEDURE type, not COMPLETED)
+router.get('/due-reminders', async (req, res) => {
+    try {
+        const now = new Date();
+        const orders = await prisma.clinicalOrder.findMany({
+            where: {
+                type: 'PROCEDURE',
+                reminderAt: { lte: now },
+                status: { not: 'COMPLETED' }
+            },
+            orderBy: { reminderAt: 'asc' },
+            include: {
+                patient: { select: { id: true, name: true, mrn: true } },
+                author: { select: { name: true, role: true } }
+            }
+        });
+        res.json(orders);
+    } catch (error) {
+        console.error('Error fetching due reminders:', error);
+        res.status(500).json({ error: 'Failed to fetch due reminders' });
+    }
+});
+
 // GET all pending orders (for Dashboard)
 router.get('/pending', async (req, res) => {
     try {
@@ -109,7 +132,7 @@ router.get('/:patientId', async (req, res) => {
 // Create Order (RBAC Logic)
 router.post('/', async (req, res) => {
     try {
-        const { patientId, authorId, type, title, details, notes, priority } = req.body;
+        const { patientId, authorId, type, title, details, notes, priority, reminderAt } = req.body;
 
         const user = await prisma.user.findUnique({ where: { id: authorId } });
         if (!user) return res.status(404).json({ error: 'User not found' });
@@ -128,8 +151,11 @@ router.post('/', async (req, res) => {
                 title,
                 details: details || {},
                 notes,
-                approverId
+                approverId,
+                // @ts-ignore
+                reminderAt: reminderAt ? new Date(reminderAt) : null
             },
+            // @ts-ignore
             include: {
                 author: { select: { name: true, role: true } },
                 approver: { select: { name: true } }
