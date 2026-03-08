@@ -9,6 +9,7 @@ export class LabImportService {
     private static CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
     private async launchBrowser() {
+        console.log("Puppeteer: Launching browser...");
         console.log("Puppeteer default executable path:", puppeteer.executablePath());
 
         const launchOptions: any = {
@@ -18,8 +19,6 @@ export class LabImportService {
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
-                '--no-zygote',
-                '--single-process',
                 '--window-size=1280,800'
             ]
         };
@@ -31,12 +30,16 @@ export class LabImportService {
             launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
         }
 
-        return puppeteer.launch(launchOptions);
+        console.log("Puppeteer: Using executablePath:", launchOptions.executablePath || 'bundled');
+        const browser = await puppeteer.launch(launchOptions);
+        console.log("Puppeteer: Browser launched successfully.");
+        return browser;
     }
 
     private async login(page: Page, username: string, password: string) {
-        console.log('Navigating to ' + LabImportService.BASE_URL);
+        console.log('Puppeteer: Navigating to login page: ' + LabImportService.BASE_URL);
         await page.goto(LabImportService.BASE_URL, { waitUntil: 'networkidle2', timeout: 60000 });
+        console.log('Puppeteer: Login page loaded.');
 
         console.log('Waiting for login inputs...');
         await page.waitForSelector('input[name="email"]', { visible: true, timeout: 30000 });
