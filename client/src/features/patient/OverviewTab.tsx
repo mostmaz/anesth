@@ -292,6 +292,11 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
                                     {order.notes && (
                                         <p className="text-xs text-slate-500 mt-2 bg-slate-50 p-2 rounded">{order.notes}</p>
                                     )}
+                                    {(order.details as any)?.notificationText && (
+                                        <p className="text-xs text-amber-600 mt-1 bg-amber-50 p-2 rounded">
+                                            Reminder: {(order.details as any).notificationText}
+                                        </p>
+                                    )}
                                 </div>
                             ))}
                             {completedInterventions.length === 0 && <p className="p-8 text-center text-slate-400 italic text-sm">No recent completed interventions</p>}
