@@ -490,7 +490,8 @@ export class LabImportService {
                             await printPage.evaluate(() => { const s = document.createElement('style'); s.textContent = '*,body,html{overflow:visible!important;height:auto!important;max-height:none!important;}'; document.head.appendChild(s); });
 
                             await printPage.setViewport({ width: 1280, height: 1024 });
-                            await new Promise(r => setTimeout(r, 1500));
+                            // Increase wait time for PDF rendering on production
+                            await new Promise(r => setTimeout(r, 15000));
 
                             const screenshotPath = `uploads/sync-${match.accNo}-${Date.now()}-${Math.floor(Math.random() * 1000)}.png`;
                             const absolutePath = require('path').resolve(screenshotPath);
