@@ -671,4 +671,118 @@ export class LabImportService {
             await prisma.$disconnect();
         }
     }
+
+    async syncAllActivePatients(authorId: string = 'system-sync'): Promise<any[]> {
+        const username = 'icu@amrlab.net';
+        const password = process.env.LAB_PASSWORD || '1989';
+        const { PrismaClient } = require('@prisma/client');
+        const prisma = new PrismaClient();
+        const results = [];
+
+        console.log("Starting Auto-Sync for all active patients...");
+        try {
+            // 1. Get admitted patients
+            const admittedPatients = await prisma.patient.findMany({
+                where: { admissions: { some: { dischargedAt: null } } },
+                select: { id: true, mrn: true, name: true }
+            });
+
+            if (admittedPatients.length === 0) {
+                console.log("Auto-Sync: No admitted patients found.");
+                return [];
+            }
+
+            // 2. Fetch recent external lab reports
+            const recentLabs = await this.getPatients(username, password, true);
+            console.log(`Auto-Sync: Fetched ${recentLabs.length} recent lab reports from external portal.`);
+
+            // 3. Find matches
+            const normalize = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase();
+
+            for (const lab of recentLabs) {
+                const labName = normalize(lab.name || '');
+                const labMrn = normalize(lab.mrn || '');
+
+                // Find matching patient in ICU
+                const matchedPatient = admittedPatients.find((p: any) => {
+                    const pName = normalize(p.name || '');
+                    const pMrn = normalize(p.mrn || '');
+                    if (pMrn && pMrn === labMrn) return true;
+                    if (pName && pName === labName) return true;
+                    // Substring match
+                    if (pName && labName.includes(pName)) return true;
+                    if (labName && pName.includes(labName)) return true;
+                    return false;
+                });
+
+                if (matchedPatient) {
+                    // Check if already imported
+                    const exists = await prisma.investigation.findFirst({
+                        where: {
+                            patientId: matchedPatient.id,
+                            externalId: lab.accNo
+                        }
+                    });
+
+                    if (!exists) {
+                        console.log(`Auto-Sync: Found new report for ${matchedPatient.name}: ${lab.title}`);
+                        try {
+                            const { screenshotPath } = await this.importReport(username, password, lab);
+
+                            let ocrService = require('./ocrService');
+                            if (ocrService.default) ocrService = ocrService.default;
+                            if (ocrService.ocrService) ocrService = ocrService.ocrService;
+
+                            const analysisResults = await ocrService.analyzeImage(screenshotPath);
+                            const { notificationEmitter } = await import('../routes/notifications.routes');
+
+                            let parsedConductedAt = new Date();
+                            if (lab.date) {
+                                const parts = lab.date.split('-');
+                                if (parts.length === 3) {
+                                    parsedConductedAt = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                                }
+                            }
+
+                            if (analysisResults && analysisResults.length > 0) {
+                                for (const item of analysisResults) {
+                                    const finalTitle = item.title || lab.title || 'Lab Report';
+                                    const relativePath = '/uploads/' + require('path').basename(screenshotPath);
+
+                                    const newInv = await prisma.investigation.create({
+                                        data: {
+                                            patientId: matchedPatient.id,
+                                            authorId: authorId,
+                                            type: (item.type || 'LAB') as 'LAB' | 'IMAGING',
+                                            category: item.category || 'External',
+                                            title: finalTitle,
+                                            status: 'FINAL',
+                                            result: { ...item.results, imageUrl: relativePath },
+                                            impression: 'Auto-synced from Lab Results',
+                                            conductedAt: parsedConductedAt,
+                                            externalId: lab.accNo
+                                        }
+                                    });
+                                    results.push(newInv);
+
+                                    notificationEmitter.emit('new_investigation', {
+                                        patientId: matchedPatient.id,
+                                        patientName: matchedPatient.name,
+                                        title: newInv.title,
+                                        timestamp: new Date()
+                                    });
+                                }
+                            }
+                        } catch (e) {
+                            console.error(`Auto-Sync import failed for ${lab.accNo}`, e);
+                        }
+                    }
+                }
+            }
+            console.log(`Auto-Sync completed. Imported ${results.length} new reports.`);
+            return results;
+        } finally {
+            await prisma.$disconnect();
+        }
+    }
 }
