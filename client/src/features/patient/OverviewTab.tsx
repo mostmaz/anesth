@@ -280,11 +280,21 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
                                         </div>
                                     ))}
                                 </div>
-                                <div className="mt-2 flex justify-end">
-                                    <Button variant="link" size="sm" className="h-4 p-0 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
-                                        View PDF <ChevronRight className="w-3 h-3" />
-                                    </Button>
-                                </div>
+                                {lab.result?.imageUrl && (
+                                    <div className="mt-2 flex justify-end">
+                                        <Button
+                                            variant="link"
+                                            size="sm"
+                                            className="h-4 p-0 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`, '_blank');
+                                            }}
+                                        >
+                                            View Report <ChevronRight className="w-3 h-3" />
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         ))}
                         {latestLabs.length === 0 && <p className="p-8 text-center text-slate-400 italic text-sm">No recent labs</p>}
