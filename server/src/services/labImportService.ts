@@ -270,6 +270,17 @@ export class LabImportService {
             // <form action="..." method="POST" ...>
             // We can evaluate a form submission on the current page to that URL to open it.
 
+            // Intercept PDF response
+            let pdfBuffer: Buffer | null = null;
+            page.on('response', async (response) => {
+                const url = response.url();
+                const contentType = response.headers()['content-type'];
+                if (url.includes('print_medical_report') && contentType === 'application/pdf') {
+                    console.log(`Puppeteer: Intercepted PDF response from ${url}`);
+                    pdfBuffer = await response.buffer();
+                }
+            });
+
             await page.evaluate((url) => {
                 const form = document.createElement('form');
                 form.method = 'POST';
@@ -289,14 +300,26 @@ export class LabImportService {
                 form.submit();
             }, printUrl);
 
+            // Wait for either the PDF buffer to be captured or a timeout
+            console.log("Waiting for PDF intercept...");
+            const startTime = Date.now();
+            while (!pdfBuffer && (Date.now() - startTime < 30000)) {
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            if (pdfBuffer) {
+                const pdfPath = `uploads/import-${Date.now()}.pdf`;
+                const absolutePdfPath = require('path').resolve(pdfPath);
+                require('fs').writeFileSync(absolutePdfPath, pdfBuffer);
+                console.log(`PDF saved successfully to ${absolutePdfPath}`);
+                return { screenshotPath: absolutePdfPath, accNo: targetAccNo };
+            }
+
+            console.log("PDF intercept failed or timed out, falling back to screenshot...");
             await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(e => console.log('Navigation wait error', e));
 
             await page.setViewport({ width: 1280, height: 1024 });
-            await new Promise(r => setTimeout(r, 15000)); // Allow render
-
-            // Try to expand any hidden overflow for full page
-            await page.evaluate(() => { const s = document.createElement('style'); s.innerHTML = '*,body,html{overflow:visible!important;height:auto!important;max-height:none!important;}'; document.head.appendChild(s); });
-            await new Promise(r => setTimeout(r, 1000));
+            await new Promise(r => setTimeout(r, 5000)); // Medium wait for fallback
 
             const screenshotPath = `uploads/import-${Date.now()}.png`;
             const absolutePath = require('path').resolve(screenshotPath);
