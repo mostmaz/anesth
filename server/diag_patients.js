@@ -2,11 +2,11 @@ const { LabImportService } = require('./dist/services/labImportService');
 const service = new LabImportService();
 
 async function run() {
-    const username = '10427';
-    const password = process.env.LAB_PASSWORD || '7358782';
+    const username = 'icu@amrlab.net';
+    const password = process.env.LAB_PASSWORD || '1989';
 
     try {
-        console.log("Fetching patients...");
+        console.log(`Fetching patients for ${username}...`);
         const patients = await service.getPatients(username, password, true);
         console.log(`Found ${patients.length} records.`);
 
