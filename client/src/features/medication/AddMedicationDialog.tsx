@@ -47,6 +47,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
     const [route, setRoute] = useState('IV');
     const [frequency, setFrequency] = useState('1'); // Default to 1 (OD)
     const [infusionRate, setInfusionRate] = useState('');
+    const [dilution, setDilution] = useState('');
     const [instructions, setInstructions] = useState('');
     const [startedAt, setStartedAt] = useState<string>(new Date().toISOString().split('T')[0]);
 
@@ -105,6 +106,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                 route,
                 frequency: freqLabel,
                 infusionRate,
+                dilution: dilution ? parseFloat(dilution) : undefined,
                 otherInstructions: instructions,
                 startedAt: new Date(startedAt).toISOString()
             });
@@ -115,6 +117,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
             setName('');
             setDose('');
             setInfusionRate('');
+            setDilution('');
             setInstructions('');
             setFrequency('1');
             setStartedAt(new Date().toISOString().split('T')[0]);
@@ -222,6 +225,19 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                         <div className="space-y-2">
                             <Label htmlFor="instructions">Other Instructions</Label>
                             <Input id="instructions" value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Optional details..." />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="dilution">Dilution (Total Volume in mL)</Label>
+                            <Input
+                                id="dilution"
+                                type="number"
+                                value={dilution}
+                                onChange={e => setDilution(e.target.value)}
+                                placeholder="e.g. 50 (for mg/50cc)"
+                            />
                         </div>
                     </div>
 

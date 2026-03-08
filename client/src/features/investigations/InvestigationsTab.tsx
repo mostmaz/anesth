@@ -18,6 +18,7 @@ import { InvestigationDetailDialog } from './components/InvestigationDetailDialo
 import { LabImportDialog } from './components/LabImportDialog';
 
 import { useAuthStore } from '../../stores/authStore';
+import { toast } from 'sonner';
 
 interface InvestigationsTabProps {
     patientId: string;
@@ -69,7 +70,13 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
 
             if (result.success && result.count > 0) {
                 console.log(`Auto-synced ${result.count} new reports`);
-                fetchInvestigations();
+                toast.success(`Synced ${result.count} new lab reports`);
+                // Add a small delay for DB consistency and then refresh
+                setTimeout(() => {
+                    fetchInvestigations();
+                }, 1000);
+            } else if (result.success) {
+                toast.info("No new lab reports found");
             }
         } catch (error) {
             console.error("Auto-sync failed", error);

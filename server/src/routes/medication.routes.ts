@@ -97,6 +97,7 @@ router.post('/prescribe', async (req, res) => {
                 infusionRate,
                 otherInstructions,
                 patientId,
+                dilution: req.body.dilution ? parseFloat(req.body.dilution) : null,
                 startedAt: startedAt ? new Date(startedAt) : undefined
             }
         });
@@ -122,6 +123,7 @@ router.post('/administer', async (req, res) => {
                 medicationId,
                 status,
                 dose,
+                dilution: req.body.dilution ? parseFloat(req.body.dilution) : null,
                 userId: userId || undefined, // Nurse ID
                 timestamp: new Date()
             }
@@ -146,7 +148,8 @@ router.put('/:id', async (req, res) => {
                 route,
                 frequency,
                 infusionRate,
-                otherInstructions
+                otherInstructions,
+                dilution: req.body.dilution ? parseFloat(req.body.dilution) : null
             }
         });
         res.json(updated);

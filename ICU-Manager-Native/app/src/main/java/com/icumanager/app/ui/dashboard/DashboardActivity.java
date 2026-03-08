@@ -1,0 +1,519 @@
+package com.icumanager.app.ui.dashboard;
+
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.icumanager.app.R;
+import com.icumanager.app.network.ApiClient;
+import com.icumanager.app.ui.auth.LoginActivity;
+import com.icumanager.app.ui.main.DashboardOrderAdapter;
+import com.icumanager.app.ui.main.NotificationReminderAdapter;
+
+import android.app.AlertDialog;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
+public class DashboardActivity extends AppCompatActivity {
+
+    // ── Views ──────────────────────────────────────────────────────────────
+    private RecyclerView recyclerViewPatients;
+    private RecyclerView recyclerViewOrders;
+    private RecyclerView recyclerViewReminders;
+    private LinearLayout layoutReminders;
+    private TextView textNoOrders;
+
+    private PatientAdapter patientAdapter;
+    private DashboardOrderAdapter orderAdapter;
+    private NotificationReminderAdapter reminderAdapter;
+
+    private ProgressBar progressBar;
+    private TextView textError;
+    private LinearLayout layoutActiveShift;
+    private TextView textShiftStatus;
+
+    private Button btnStartShift;
+    private Button btnEndShift;
+    private Button btnShiftHistory;
+
+    // Tab buttons
+    private Button btnTabActive;
+    private Button btnTabRecent;
+    private Button btnTabCompleted;
+
+    // Cached order lists per tab
+    private JSONArray activeOrders = new JSONArray();
+    private JSONArray recentOrders = new JSONArray();
+    private JSONArray completedOrders = new JSONArray();
+
+    private android.os.Handler pollHandler = new android.os.Handler();
+    private Runnable backgroundPoller;
+
+    private static final SimpleDateFormat API_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+
+    // ── Lifecycle ──────────────────────────────────────────────────────────
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_dashboard);
+
+        // Patients
+        recyclerViewPatients = findViewById(R.id.recyclerViewPatients);
+        recyclerViewPatients.setLayoutManager(new LinearLayoutManager(this));
+        patientAdapter = new PatientAdapter();
+        recyclerViewPatients.setAdapter(patientAdapter);
+
+        // Orders
+        recyclerViewOrders = findViewById(R.id.recyclerViewOrders);
+        recyclerViewOrders.setLayoutManager(new LinearLayoutManager(this));
+        orderAdapter = new DashboardOrderAdapter();
+        recyclerViewOrders.setAdapter(orderAdapter);
+        textNoOrders = findViewById(R.id.textNoOrders);
+
+        // Reminders
+        recyclerViewReminders = findViewById(R.id.recyclerViewReminders);
+        layoutReminders = findViewById(R.id.layoutReminders);
+        recyclerViewReminders.setLayoutManager(new LinearLayoutManager(this));
+        reminderAdapter = new NotificationReminderAdapter();
+        reminderAdapter.setOnMarkDoneListener((orderId, position) -> markOrderDone(orderId, position));
+        recyclerViewReminders.setAdapter(reminderAdapter);
+
+        // Other views
+        progressBar = findViewById(R.id.progressBar);
+        textError = findViewById(R.id.textError);
+        layoutActiveShift = findViewById(R.id.layoutActiveShift);
+        textShiftStatus = findViewById(R.id.textShiftStatus);
+
+        btnStartShift = findViewById(R.id.btnStartShift);
+        btnEndShift = findViewById(R.id.btnEndShift);
+        btnShiftHistory = findViewById(R.id.btnShiftHistory);
+
+        btnStartShift.setOnClickListener(v -> startShift());
+        btnEndShift.setOnClickListener(v -> endShift());
+        btnShiftHistory.setOnClickListener(v -> showShiftHistory());
+
+        // Tab buttons
+        btnTabActive = findViewById(R.id.btnTabActive);
+        btnTabRecent = findViewById(R.id.btnTabRecent);
+        btnTabCompleted = findViewById(R.id.btnTabCompleted);
+
+        btnTabActive.setOnClickListener(v -> showTab("active"));
+        btnTabRecent.setOnClickListener(v -> showTab("recent"));
+        btnTabCompleted.setOnClickListener(v -> showTab("completed"));
+
+        backgroundPoller = new Runnable() {
+            @Override
+            public void run() {
+                String token = getToken();
+                if (token != null) {
+                    fetchDueReminders(token);
+                }
+                pollHandler.postDelayed(this, 15000); // 15 seconds polling for quick feedback
+            }
+        };
+
+        fetchDashboardData();
+        pollHandler.post(backgroundPoller);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        pollHandler.removeCallbacks(backgroundPoller);
+    }
+
+    // ── Token ──────────────────────────────────────────────────────────────
+    private String getToken() {
+        SharedPreferences prefs = getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
+        return prefs.getString("auth_token", null);
+    }
+
+    // ── Tabs ───────────────────────────────────────────────────────────────
+    private void showTab(String tab) {
+        // Reset all buttons to inactive style
+        int inactiveColor = Color.parseColor("#334155");
+        int activeColor = Color.parseColor("#3B82F6");
+        int inactiveTxt = Color.parseColor("#94A3B8");
+        int activeTxt = Color.WHITE;
+
+        btnTabActive.setBackgroundTintList(android.content.res.ColorStateList.valueOf(inactiveColor));
+        btnTabRecent.setBackgroundTintList(android.content.res.ColorStateList.valueOf(inactiveColor));
+        btnTabCompleted.setBackgroundTintList(android.content.res.ColorStateList.valueOf(inactiveColor));
+        btnTabActive.setTextColor(inactiveTxt);
+        btnTabRecent.setTextColor(inactiveTxt);
+        btnTabCompleted.setTextColor(inactiveTxt);
+
+        JSONArray list;
+        switch (tab) {
+            case "recent":
+                btnTabRecent.setBackgroundTintList(android.content.res.ColorStateList.valueOf(activeColor));
+                btnTabRecent.setTextColor(activeTxt);
+                list = recentOrders;
+                break;
+            case "completed":
+                btnTabCompleted.setBackgroundTintList(android.content.res.ColorStateList.valueOf(activeColor));
+                btnTabCompleted.setTextColor(activeTxt);
+                list = completedOrders;
+                break;
+            default: // "active"
+                btnTabActive.setBackgroundTintList(android.content.res.ColorStateList.valueOf(activeColor));
+                btnTabActive.setTextColor(activeTxt);
+                list = activeOrders;
+                break;
+        }
+
+        orderAdapter.setOrders(list);
+        if (list.length() == 0) {
+            textNoOrders.setVisibility(View.VISIBLE);
+            recyclerViewOrders.setVisibility(View.GONE);
+        } else {
+            textNoOrders.setVisibility(View.GONE);
+            recyclerViewOrders.setVisibility(View.VISIBLE);
+        }
+    }
+
+    // ── Data Fetch ─────────────────────────────────────────────────────────
+    private void fetchDashboardData() {
+        String token = getToken();
+        if (token == null) {
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
+
+        setLoading(true);
+
+        // Fetch patients
+        ApiClient.get("/patients", token, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(final String responseStr) {
+                runOnUiThread(() -> {
+                    setLoading(false);
+                    try {
+                        JSONArray patients = new JSONArray(responseStr);
+                        patientAdapter.setPatients(patients);
+                        checkActiveShift(token);
+                        fetchActiveOrders(token);
+                        fetchRecentOrders(token);
+                        fetchCompletedOrders(token);
+                    } catch (JSONException e) {
+                        showError("Failed to parse patient list from server.");
+                    }
+                });
+            }
+
+            @Override
+            public void onError(final Exception error) {
+                runOnUiThread(() -> {
+                    setLoading(false);
+                    showError("Network Error: " + error.getMessage());
+                });
+            }
+        });
+    }
+
+    private void fetchActiveOrders(String token) {
+        ApiClient.get("/orders/active", token, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(String responseStr) {
+                runOnUiThread(() -> {
+                    try {
+                        activeOrders = new JSONArray(responseStr);
+                        // Refresh active tab if currently shown
+                        showTab("active");
+                    } catch (Exception e) {
+                    }
+                });
+            }
+
+            @Override
+            public void onError(Exception error) {
+            }
+        });
+    }
+
+    private void fetchDueReminders(String token) {
+        ApiClient.get("/orders/due-reminders", token, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(String responseStr) {
+                runOnUiThread(() -> {
+                    try {
+                        JSONArray reminders = new JSONArray(responseStr);
+                        if (reminders.length() > 0) {
+                            reminderAdapter.setReminders(reminders);
+                            layoutReminders.setVisibility(View.VISIBLE);
+                        } else {
+                            layoutReminders.setVisibility(View.GONE);
+                        }
+                    } catch (Exception e) {
+                        layoutReminders.setVisibility(View.GONE);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(Exception error) {
+                runOnUiThread(() -> layoutReminders.setVisibility(View.GONE));
+            }
+        });
+    }
+
+    private void fetchRecentOrders(String token) {
+        ApiClient.get("/orders/recent", token, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(String responseStr) {
+                runOnUiThread(() -> {
+                    try {
+                        recentOrders = new JSONArray(responseStr);
+                    } catch (JSONException ignored) {
+                        recentOrders = new JSONArray();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(Exception error) {
+                recentOrders = new JSONArray();
+            }
+        });
+    }
+
+    private void fetchCompletedOrders(String token) {
+        ApiClient.get("/orders/completed", token, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(String responseStr) {
+                runOnUiThread(() -> {
+                    try {
+                        completedOrders = new JSONArray(responseStr);
+                    } catch (JSONException ignored) {
+                        completedOrders = new JSONArray();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(Exception error) {
+                completedOrders = new JSONArray();
+            }
+        });
+    }
+
+    // ── Mark Intervention Done ─────────────────────────────────────────────
+    private void markOrderDone(String orderId, int adapterPosition) {
+        new AlertDialog.Builder(this)
+                .setTitle("Complete Check")
+                .setMessage("Are you sure you want to mark this intervention check as completed?")
+                .setPositiveButton("Complete", (dialog, which) -> executeMarkOrderDone(orderId, adapterPosition))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void executeMarkOrderDone(String orderId, int adapterPosition) {
+        String token = getToken();
+        if (token == null)
+            return;
+
+        try {
+            JSONObject body = new JSONObject();
+            body.put("status", "COMPLETED");
+            body.put("userId", getUserId());
+
+            ApiClient.patch("/orders/" + orderId + "/status", body.toString(), token, new ApiClient.ApiCallback() {
+                @Override
+                public void onSuccess(String responseStr) {
+                    runOnUiThread(() -> {
+                        reminderAdapter.removeAt(adapterPosition);
+                        if (reminderAdapter.getItemCount() == 0) {
+                            layoutReminders.setVisibility(View.GONE);
+                        }
+                        Toast.makeText(DashboardActivity.this, "Intervention marked done", Toast.LENGTH_SHORT).show();
+                    });
+                }
+
+                @Override
+                public void onError(Exception error) {
+                    runOnUiThread(() -> Toast.makeText(DashboardActivity.this,
+                            "Failed to mark done", Toast.LENGTH_SHORT).show());
+                }
+            });
+        } catch (JSONException e) {
+            Toast.makeText(this, "Error preparing request", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private String getUserId() {
+        SharedPreferences prefs = getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
+        return prefs.getString("user_id", "");
+    }
+
+    // ── Shift Status ───────────────────────────────────────────────────────
+    private void checkActiveShift(String token) {
+        ApiClient.get("/shifts/status", token, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(final String responseStr) {
+                runOnUiThread(() -> {
+                    try {
+                        JSONObject response = new JSONObject(responseStr);
+                        if (response.has("data") && !response.isNull("data")
+                                && response.getJSONObject("data").has("activeShift")) {
+                            JSONObject shift = response.getJSONObject("data").getJSONObject("activeShift");
+                            // Extract user name for banner
+                            String userName = "Active";
+                            if (shift.has("user")) {
+                                userName = shift.getJSONObject("user").optString("name", "Active");
+                            }
+                            layoutActiveShift.setVisibility(View.VISIBLE);
+                            textShiftStatus.setText("Active Shift: " + userName);
+
+                            btnStartShift.setVisibility(View.GONE);
+                            btnEndShift.setVisibility(View.VISIBLE);
+                        } else {
+                            layoutActiveShift.setVisibility(View.GONE);
+                            btnStartShift.setVisibility(View.VISIBLE);
+                            btnEndShift.setVisibility(View.GONE);
+                        }
+                    } catch (JSONException e) {
+                        layoutActiveShift.setVisibility(View.GONE);
+                        btnStartShift.setVisibility(View.VISIBLE);
+                        btnEndShift.setVisibility(View.GONE);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(Exception error) {
+                runOnUiThread(() -> {
+                    layoutActiveShift.setVisibility(View.GONE);
+                    btnStartShift.setVisibility(View.VISIBLE);
+                    btnEndShift.setVisibility(View.GONE);
+                });
+            }
+        });
+    }
+
+    private void startShift() {
+        String token = getToken();
+        if (token == null)
+            return;
+
+        ApiClient.post("/shifts/start", new JSONObject(), token, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(String response) {
+                runOnUiThread(() -> {
+                    Toast.makeText(DashboardActivity.this, "Shift Started", Toast.LENGTH_SHORT).show();
+                    checkActiveShift(token);
+                });
+            }
+
+            @Override
+            public void onError(Exception error) {
+                runOnUiThread(() -> Toast.makeText(DashboardActivity.this,
+                        "Failed to start shift: " + error.getMessage(), Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
+    private void endShift() {
+        String token = getToken();
+        if (token == null)
+            return;
+
+        ApiClient.post("/shifts/end", new JSONObject(), token, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(String response) {
+                runOnUiThread(() -> {
+                    Toast.makeText(DashboardActivity.this, "Shift Ended", Toast.LENGTH_SHORT).show();
+                    checkActiveShift(token);
+                });
+            }
+
+            @Override
+            public void onError(Exception error) {
+                runOnUiThread(() -> Toast.makeText(DashboardActivity.this, "Failed to end shift: " + error.getMessage(),
+                        Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
+    private void showShiftHistory() {
+        String token = getToken();
+        if (token == null)
+            return;
+
+        ApiClient.get("/shifts/history", token, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(String responseStr) {
+                runOnUiThread(() -> {
+                    try {
+                        JSONObject response = new JSONObject(responseStr);
+                        JSONArray history = response.getJSONObject("data").getJSONArray("shifts");
+
+                        StringBuilder sb = new StringBuilder();
+                        for (int i = 0; i < history.length(); i++) {
+                            JSONObject shift = history.getJSONObject(i);
+                            String start = shift.optString("startTime", "Unknown");
+                            String end = shift.optString("endTime", "Ongoing");
+                            if (start.length() > 16)
+                                start = start.substring(0, 16).replace("T", " ");
+                            if (end.length() > 16)
+                                end = end.substring(0, 16).replace("T", " ");
+
+                            sb.append("Start: ").append(start).append("\n");
+                            sb.append("End: ").append(end).append("\n");
+                            sb.append("Status: ").append(shift.optString("status", "Unknown")).append("\n\n");
+                        }
+
+                        String display = sb.toString().trim();
+                        if (display.isEmpty())
+                            display = "No shift history found.";
+
+                        new AlertDialog.Builder(DashboardActivity.this)
+                                .setTitle("Shift History")
+                                .setMessage(display)
+                                .setPositiveButton("Close", null)
+                                .show();
+                    } catch (JSONException e) {
+                        Toast.makeText(DashboardActivity.this, "Failed to parse history", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(Exception error) {
+                runOnUiThread(() -> Toast.makeText(DashboardActivity.this,
+                        "Failed to fetch history: " + error.getMessage(), Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
+    // ── Util ───────────────────────────────────────────────────────────────
+    private void setLoading(boolean isLoading) {
+        progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        if (isLoading)
+            textError.setVisibility(View.GONE);
+    }
+
+    private void showError(String message) {
+        textError.setText(message);
+        textError.setVisibility(View.VISIBLE);
+        recyclerViewPatients.setVisibility(View.GONE);
+    }
+}
