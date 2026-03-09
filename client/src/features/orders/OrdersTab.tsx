@@ -42,8 +42,15 @@ export default function OrdersTab({ patientId }: OrdersTabProps) {
         return <div className="p-8 text-center text-muted-foreground">Loading orders...</div>;
     }
 
-    const handleStatusUpdate = async (orderId: string, status: 'APPROVED' | 'DISCONTINUED' | 'COMPLETED') => {
+    const handleStatusUpdate = async (orderId: string, status: 'APPROVED' | 'DISCONTINUED' | 'COMPLETED', order?: ClinicalOrder) => {
         if (!user) return;
+
+        // Restrict nurses to only NURSING care orders when completing
+        if (status === 'COMPLETED' && user.role === 'NURSE' && order?.type !== 'NURSING') {
+            toast.error("Nurses can only complete Nursing Care orders. Medical orders must be verified by clinical staff.");
+            return;
+        }
+
         try {
             await ordersApi.updateStatus(orderId, status, user.id);
             toast.success(`Order ${status.toLowerCase()}`);
@@ -86,6 +93,11 @@ export default function OrdersTab({ patientId }: OrdersTabProps) {
                             <Clock className="w-3 h-3 mr-1" />
                             {new Date(order.createdAt).toLocaleString()}
                         </span>
+                        {order.details?.repetition && (
+                            <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 ml-1">
+                                🔄 {order.details.repetition}
+                            </Badge>
+                        )}
                     </div>
                     <h4 className="font-semibold text-lg text-slate-800">{order.title}</h4>
                     {order.details?.info && <p className="text-sm text-slate-600 mt-1">{order.details.info}</p>}
@@ -123,7 +135,7 @@ export default function OrdersTab({ patientId }: OrdersTabProps) {
                                 if (order.type === 'CONSULT') {
                                     setCompletingConsult(order);
                                 } else {
-                                    handleStatusUpdate(order.id, 'COMPLETED');
+                                    handleStatusUpdate(order.id, 'COMPLETED', order);
                                 }
                             }}
                         >
@@ -142,7 +154,7 @@ export default function OrdersTab({ patientId }: OrdersTabProps) {
                     <h3 className="text-lg font-medium">Order Management</h3>
                     <p className="text-sm text-muted-foreground">Review and manage clinical orders</p>
                 </div>
-                {user?.role === 'SENIOR' && (
+                {(user?.role === 'SENIOR' || user?.role === 'RESIDENT') && (
                     <CreateOrderDialog patientId={patientId} onOrderCreated={fetchOrders} />
                 )}
             </div>

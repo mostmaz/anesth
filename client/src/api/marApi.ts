@@ -8,6 +8,7 @@ export interface Medication {
     otherInstructions?: string;
     isActive: boolean;
     startedAt: string;
+    discontinuedAt?: string;
     dilution?: number;
     durationReminder?: number;
     administrations: MedicationAdministration[];

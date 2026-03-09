@@ -24,6 +24,7 @@ export default function CreateOrderDialog({ patientId, onOrderCreated }: CreateO
     const [title, setTitle] = useState('');
     const [notes, setNotes] = useState('');
     const [details, setDetails] = useState('');
+    const [repetition, setRepetition] = useState<string>('ONCE');
 
     const handleSubmit = async () => {
         if (!user) return;
@@ -40,7 +41,10 @@ export default function CreateOrderDialog({ patientId, onOrderCreated }: CreateO
                 title,
                 priority,
                 notes,
-                details: { info: details }
+                details: {
+                    info: details,
+                    repetition: type === 'NURSING' ? repetition : undefined
+                }
             });
             toast.success("Order placed successfully");
             setOpen(false);
@@ -115,6 +119,27 @@ export default function CreateOrderDialog({ patientId, onOrderCreated }: CreateO
                         />
                     </div>
 
+                    {type === 'NURSING' && (
+                        <div className="space-y-2">
+                            <Label>Repetition</Label>
+                            <Select value={repetition} onValueChange={setRepetition}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ONCE">Once Only</SelectItem>
+                                    <SelectItem value="Q1H">Every Hour (Q1H)</SelectItem>
+                                    <SelectItem value="Q2H">Every 2 Hours (Q2H)</SelectItem>
+                                    <SelectItem value="Q4H">Every 4 Hours (Q4H)</SelectItem>
+                                    <SelectItem value="Q6H">Every 6 Hours (Q6H)</SelectItem>
+                                    <SelectItem value="Q8H">Every 8 Hours (Q8H)</SelectItem>
+                                    <SelectItem value="Q12H">Every 12 Hours (Q12H)</SelectItem>
+                                    <SelectItem value="DAILY">Daily</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+
                     <div className="space-y-2">
                         <Label>Clinical Notes (Optional)</Label>
                         <Input
@@ -129,6 +154,6 @@ export default function CreateOrderDialog({ patientId, onOrderCreated }: CreateO
                     <Button onClick={handleSubmit}>Place Order</Button>
                 </DialogFooter>
             </DialogContent>
-        </Dialog>
+        </Dialog >
     );
 }

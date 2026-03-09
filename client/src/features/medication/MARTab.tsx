@@ -159,11 +159,41 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
                                                 return <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">Day {day}</Badge>;
                                             })()}
                                         </div>
-                                        {med.startedAt && (
-                                            <div className="text-xs text-slate-500 font-medium">
-                                                Started: {new Date(med.startedAt).toLocaleDateString()}
-                                            </div>
-                                        )}
+                                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 font-medium">
+                                            {med.startedAt && (
+                                                <div>
+                                                    Started: {new Date(med.startedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                                                </div>
+                                            )}
+                                            {med.isActive ? (
+                                                <div>
+                                                    Duration: {(() => {
+                                                        const start = new Date(med.startedAt).getTime();
+                                                        const now = new Date().getTime();
+                                                        const diffHours = Math.floor((now - start) / (1000 * 60 * 60));
+                                                        const days = Math.floor(diffHours / 24);
+                                                        const hours = diffHours % 24;
+                                                        return days > 0 ? `${days}d ${hours}h` : `${hours}h`;
+                                                    })()}
+                                                </div>
+                                            ) : med.discontinuedAt ? (
+                                                <>
+                                                    <div className="text-red-600 font-bold">
+                                                        Stopped: {new Date(med.discontinuedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                                                    </div>
+                                                    <div>
+                                                        Total Duration: {(() => {
+                                                            const start = new Date(med.startedAt).getTime();
+                                                            const stop = new Date(med.discontinuedAt!).getTime();
+                                                            const diffHours = Math.floor((stop - start) / (1000 * 60 * 60));
+                                                            const days = Math.floor(diffHours / 24);
+                                                            const hours = diffHours % 24;
+                                                            return days > 0 ? `${days}d ${hours}h` : `${hours}h`;
+                                                        })()}
+                                                    </div>
+                                                </>
+                                            ) : null}
+                                        </div>
                                         <div className="text-sm text-slate-600 font-medium flex items-center gap-2">
                                             <span>Dose: {med.defaultDose}</span>
                                             {med.isActive && user?.role !== 'NURSE' && (

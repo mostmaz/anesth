@@ -203,6 +203,7 @@ model Medication {
   isActive    Boolean  @default(true)
   patientId   String?
   startedAt   DateTime @default(now())
+  discontinuedAt DateTime?
   
   patient     Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
   administrations MedicationAdministration[]

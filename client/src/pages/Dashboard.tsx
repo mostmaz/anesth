@@ -54,11 +54,13 @@ function ConfirmCheckDialog({
 export default function Dashboard() {
     const navigate = useNavigate();
     const { user } = useAuthStore();
-    const { activeShift, endShift } = useShiftStore();
+    const { activeShift, startShift, endShift } = useShiftStore();
     const [patients, setPatients] = useState<Patient[]>([]);
     const [isAddPatientOpen, setIsAddPatientOpen] = useState(false);
     const [assignments, setAssignments] = useState<any[]>([]);
     const [pendingAssignments, setPendingAssignments] = useState<Assignment[]>([]);
+    const [showShiftDialog, setShowShiftDialog] = useState(false);
+    const [showHandoverChecklist, setShowHandoverChecklist] = useState(false);
 
     // Staff of the Day
     const [staffOnDuty, setStaffOnDuty] = useState<{ seniors: any[], nurses: any[] }>({ seniors: [], nurses: [] });
@@ -159,10 +161,26 @@ export default function Dashboard() {
 
             setAssignments(activeAssignments);
 
-            // Block nurse: must pick a patient before doing anything
-            if (user?.role === 'NURSE' && activeShift) {
-                const myAssignment = activeAssignments.find((a: any) => a.userId === user.id);
-                setShowAssignmentDialog(!myAssignment);
+            // ── Mandatory Nurse Workflow Logic ──
+            if (user?.role === 'NURSE') {
+                if (!activeShift) {
+                    setShowShiftDialog(true);
+                    setShowAssignmentDialog(false);
+                    setShowHandoverChecklist(false);
+                } else {
+                    const myAssignment = activeAssignments.find((a: any) => a.userId === user.id);
+                    if (!myAssignment) {
+                        setShowAssignmentDialog(true);
+                        setShowHandoverChecklist(false);
+                    } else {
+                        // Check if handover checklist was already done for this shift/patient assignment
+                        // For simplicity, we can store this in local storage or check if a "NURSING" note exists for today
+                        const handoverDone = localStorage.getItem(`handover_${myAssignment.id}`);
+                        if (!handoverDone) {
+                            setShowHandoverChecklist(true);
+                        }
+                    }
+                }
             }
 
             setStats({
@@ -408,6 +426,105 @@ export default function Dashboard() {
                 </div>
             </div>
 
+            {/* Shift Selection Dialog for Nurses */}
+            <Dialog open={showShiftDialog} onOpenChange={(open) => { if (!open && !activeShift) return; setShowShiftDialog(open); }}>
+                <DialogContent className="sm:max-w-[400px] [&>button]:hidden">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl flex items-center gap-2">
+                            <Clock className="h-6 w-6 text-blue-600" />
+                            Start Your Shift
+                        </DialogTitle>
+                        <p className="text-sm text-muted-foreground pt-2">
+                            Please select your current shift type to continue.
+                        </p>
+                    </DialogHeader>
+                    <div className="grid grid-cols-2 gap-4 py-6">
+                        <Button
+                            variant="outline"
+                            className="h-24 flex flex-col gap-2 border-2 hover:border-blue-500 hover:bg-blue-50 transition-all"
+                            onClick={async () => {
+                                try {
+                                    await startShift(user!.id, 'DAY');
+                                    setShowShiftDialog(false);
+                                    fetchData();
+                                    toast.success("Day shift started");
+                                } catch {
+                                    toast.error("Failed to start shift");
+                                }
+                            }}
+                        >
+                            <span className="text-2xl">☀️</span>
+                            <span className="font-bold">Day Shift</span>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="h-24 flex flex-col gap-2 border-2 hover:border-blue-500 hover:bg-blue-50 transition-all"
+                            onClick={async () => {
+                                try {
+                                    await startShift(user!.id, 'NIGHT');
+                                    setShowShiftDialog(false);
+                                    fetchData();
+                                    toast.success("Night shift started");
+                                } catch {
+                                    toast.error("Failed to start shift");
+                                }
+                            }}
+                        >
+                            <span className="text-2xl">🌙</span>
+                            <span className="font-bold">Night Shift</span>
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Handover Checklist Dialog */}
+            <Dialog open={showHandoverChecklist} onOpenChange={(open) => { if (!open) return; setShowHandoverChecklist(open); }}>
+                <DialogContent className="sm:max-w-[500px] [&>button]:hidden">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl flex items-center gap-2">
+                            <ClipboardList className="h-6 w-6 text-green-600" />
+                            Patient Receiving Checklist
+                        </DialogTitle>
+                        <p className="text-sm text-muted-foreground pt-2">
+                            Complete this checklist while receiving the patient from the previous nurse.
+                        </p>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        {[
+                            "Verify Patient Identity & MRN",
+                            "Check All IV Access & Patency",
+                            "Confirm Current Infusions & Rates",
+                            "Review Recent Vital Signs",
+                            "Check Drains, Catheters & Output",
+                            "Verify Ventilator Settings (if applicable)",
+                            "Confirm Pending Medications/Orders"
+                        ].map((item, i) => (
+                            <div key={i} className="flex items-center gap-3 p-2 border rounded hover:bg-slate-50">
+                                <input type="checkbox" id={`item-${i}`} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                                <label htmlFor={`item-${i}`} className="text-sm font-medium leading-none cursor-pointer flex-1">
+                                    {item}
+                                </label>
+                            </div>
+                        ))}
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            className="w-full bg-green-600 hover:bg-green-700"
+                            onClick={() => {
+                                const myAssignment = assignments.find((a: any) => a.userId === user?.id);
+                                if (myAssignment) {
+                                    localStorage.setItem(`handover_${myAssignment.id}`, 'true');
+                                }
+                                setShowHandoverChecklist(false);
+                                toast.success("Handover checklist completed");
+                            }}
+                        >
+                            Complete Handover
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {/* Mandatory Assignment Dialog — blocks nurse until patient selected */}
             <Dialog
                 open={showAssignmentDialog}
@@ -584,111 +701,113 @@ export default function Dashboard() {
 
                 {/* Left Column (Labs + Patients) */}
                 <div className="lg:col-span-3 lg:order-1 space-y-8">
-                    {/* System Notifications Feed */}
-                    <Card className={`shadow-sm ${recentLabsFeed.length > 0 ? 'border-blue-200 bg-gradient-to-r from-blue-50/50 to-white' : 'border-slate-200 bg-white'}`}>
-                        <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
-                            <CardTitle className="text-base font-semibold flex items-center text-slate-800">
-                                <div className="relative mr-3 flex items-center justify-center">
-                                    <Bell className={`w-5 h-5 ${recentLabsFeed.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
-                                    {recentLabsFeed.length > 0 && (
-                                        <>
-                                            <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full animate-ping"></span>
-                                            <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full"></span>
-                                        </>
-                                    )}
-                                </div>
-                                System Notifications & Updates
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {recentLabsFeed.length === 0 ? (
-                                <div className="p-6 text-center text-slate-500 text-sm">
-                                    No recent notifications or updates.
-                                </div>
-                            ) : (
-                                <div className="divide-y divide-blue-50/50 max-h-[260px] overflow-y-auto">
-                                    {recentLabsFeed.map((lab: any, index) => (
-                                        <div key={index} className={cn(
-                                            "p-4 flex items-center justify-between hover:bg-blue-50/50 transition-colors group",
-                                            lab.type === 'intervention_reminder' ? 'bg-amber-50/10' : '',
-                                            lab.isAbnormal ? 'bg-rose-50/30 border-l-4 border-l-rose-500' : ''
-                                        )}>
-                                            <div
-                                                className="flex items-center space-x-4 flex-1 cursor-pointer"
-                                                onClick={() => lab.patientId && handlePatientClick(lab.patientId)}
-                                            >
-                                                <div className={cn(
-                                                    "h-10 w-10 rounded-full flex items-center justify-center transition-colors shadow-sm",
-                                                    lab.isAbnormal ? "bg-rose-100" : (lab.type === 'intervention_reminder' ? 'bg-amber-100' : 'bg-blue-100')
-                                                )}>
-                                                    {lab.isAbnormal ? (
-                                                        <AlertTriangle className="w-5 h-5 text-rose-600 animate-pulse" />
-                                                    ) : lab.type === 'intervention_reminder' ? (
-                                                        <Clock className="w-5 h-5 text-amber-600" />
-                                                    ) : (
-                                                        <FlaskConical className="w-5 h-5 text-blue-600" />
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <p className={cn(
-                                                        "text-sm font-medium",
-                                                        lab.isAbnormal ? "text-rose-900" : "text-slate-900"
-                                                    )}>
-                                                        <span className="font-bold">{lab.patientName}</span> — {lab.title}
-                                                        {lab.isAbnormal && <Badge variant="destructive" className="ml-2 text-[8px] h-3 px-1 uppercase tracking-tighter">Abnormal</Badge>}
-                                                    </p>
-                                                    {lab.type === 'intervention_reminder' && (
-                                                        <p className="text-xs text-amber-700 font-medium mt-0.5">⏰ Intervention Reminder</p>
-                                                    )}
-                                                    <p className="text-xs text-slate-500 flex items-center mt-0.5">
-                                                        <Clock className="w-3 h-3 mr-1" />
-                                                        {new Date(lab.timestamp).toLocaleString()}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            {lab.type === 'intervention_reminder' ? (
-                                                <Button
-                                                    size="sm"
-                                                    className="ml-2 bg-green-600 hover:bg-green-700 text-white h-8 text-xs"
-                                                    onClick={async (e) => {
-                                                        e.stopPropagation();
-                                                        try {
-                                                            await ordersApi.updateStatus(lab.orderId, 'COMPLETED', user!.id);
-                                                            toast.success('Intervention marked done');
-                                                            setRecentLabsFeed(prev => prev.filter((_: any, i: number) => i !== index));
-                                                        } catch {
-                                                            toast.error('Failed to mark done');
-                                                        }
-                                                    }}
+                    {/* System Notifications Feed — Hidden for NURSE */}
+                    {user?.role !== 'NURSE' && (
+                        <Card className={`shadow-sm ${recentLabsFeed.length > 0 ? 'border-blue-200 bg-gradient-to-r from-blue-50/50 to-white' : 'border-slate-200 bg-white'}`}>
+                            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+                                <CardTitle className="text-base font-semibold flex items-center text-slate-800">
+                                    <div className="relative mr-3 flex items-center justify-center">
+                                        <Bell className={`w-5 h-5 ${recentLabsFeed.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                                        {recentLabsFeed.length > 0 && (
+                                            <>
+                                                <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full animate-ping"></span>
+                                                <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full"></span>
+                                            </>
+                                        )}
+                                    </div>
+                                    System Notifications & Updates
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {recentLabsFeed.length === 0 ? (
+                                    <div className="p-6 text-center text-slate-500 text-sm">
+                                        No recent notifications or updates.
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-blue-50/50 max-h-[260px] overflow-y-auto">
+                                        {recentLabsFeed.map((lab: any, index) => (
+                                            <div key={index} className={cn(
+                                                "p-4 flex items-center justify-between hover:bg-blue-50/50 transition-colors group",
+                                                lab.type === 'intervention_reminder' ? 'bg-amber-50/10' : '',
+                                                lab.isAbnormal ? 'bg-rose-50/30 border-l-4 border-l-rose-500' : ''
+                                            )}>
+                                                <div
+                                                    className="flex items-center space-x-4 flex-1 cursor-pointer"
+                                                    onClick={() => lab.patientId && handlePatientClick(lab.patientId)}
                                                 >
-                                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Mark Done
-                                                </Button>
-                                            ) : (
-                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 h-8"
-                                                        onClick={() => lab.patientId && handlePatientClick(lab.patientId)}
-                                                    >
-                                                        View Chart
-                                                    </Button>
-                                                    {lab.id && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-8 w-8 p-0"
-                                                            onClick={(e) => handleDismissLab(lab.id, e)}
-                                                            title="Dismiss Notification"
-                                                        >
-                                                            <ArchiveX className="w-4 h-4" />
-                                                        </Button>
-                                                    )}
+                                                    <div className={cn(
+                                                        "h-10 w-10 rounded-full flex items-center justify-center transition-colors shadow-sm",
+                                                        lab.isAbnormal ? "bg-rose-100" : (lab.type === 'intervention_reminder' ? 'bg-amber-100' : 'bg-blue-100')
+                                                    )}>
+                                                        {lab.isAbnormal ? (
+                                                            <AlertTriangle className="w-5 h-5 text-rose-600 animate-pulse" />
+                                                        ) : lab.type === 'intervention_reminder' ? (
+                                                            <Clock className="w-5 h-5 text-amber-600" />
+                                                        ) : (
+                                                            <FlaskConical className="w-5 h-5 text-blue-600" />
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <p className={cn(
+                                                            "text-sm font-medium",
+                                                            lab.isAbnormal ? "text-rose-900" : "text-slate-900"
+                                                        )}>
+                                                            <span className="font-bold">{lab.patientName}</span> — {lab.title}
+                                                            {lab.isAbnormal && <Badge variant="destructive" className="ml-2 text-[8px] h-3 px-1 uppercase tracking-tighter">Abnormal</Badge>}
+                                                        </p>
+                                                        {lab.type === 'intervention_reminder' && (
+                                                            <p className="text-xs text-amber-700 font-medium mt-0.5">⏰ Intervention Reminder</p>
+                                                        )}
+                                                        <p className="text-xs text-slate-500 flex items-center mt-0.5">
+                                                            <Clock className="w-3 h-3 mr-1" />
+                                                            {new Date(lab.timestamp).toLocaleString()}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                                                {lab.type === 'intervention_reminder' ? (
+                                                    <Button
+                                                        size="sm"
+                                                        className="ml-2 bg-green-600 hover:bg-green-700 text-white h-8 text-xs"
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            try {
+                                                                await ordersApi.updateStatus(lab.orderId, 'COMPLETED', user!.id);
+                                                                toast.success('Intervention marked done');
+                                                                setRecentLabsFeed(prev => prev.filter((_: any, i: number) => i !== index));
+                                                            } catch {
+                                                                toast.error('Failed to mark done');
+                                                            }
+                                                        }}
+                                                    >
+                                                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Mark Done
+                                                    </Button>
+                                                ) : (
+                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 h-8"
+                                                            onClick={() => lab.patientId && handlePatientClick(lab.patientId)}
+                                                        >
+                                                            View Chart
+                                                        </Button>
+                                                        {lab.id && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-8 w-8 p-0"
+                                                                onClick={(e) => handleDismissLab(lab.id, e)}
+                                                                title="Dismiss Notification"
+                                                            >
+                                                                <ArchiveX className="w-4 h-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Patient List */}
                     <Card>
@@ -793,55 +912,57 @@ export default function Dashboard() {
                 </div>
 
 
-                {/* Clinical Orders — Tabbed Layout */}
-                <Card className="col-span-full mt-6 border-slate-200">
-                    <CardHeader className="bg-slate-50 border-b pb-3">
-                        <CardTitle className="text-lg flex items-center text-slate-800">
-                            <ClipboardList className="w-5 h-5 mr-2 text-blue-600" />
-                            Clinical Orders
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 bg-slate-50/50">
-                        <Tabs defaultValue="active">
-                            <TabsList className="mb-4">
-                                <TabsTrigger value="active">Active Orders</TabsTrigger>
-                                <TabsTrigger value="recent">Recent Orders</TabsTrigger>
-                                <TabsTrigger value="completed">Recently Completed</TabsTrigger>
-                            </TabsList>
+                {/* Clinical Orders — Tabbed Layout — Hidden for NURSE */}
+                {user?.role !== 'NURSE' && (
+                    <Card className="col-span-full mt-6 border-slate-200">
+                        <CardHeader className="bg-slate-50 border-b pb-3">
+                            <CardTitle className="text-lg flex items-center text-slate-800">
+                                <ClipboardList className="w-5 h-5 mr-2 text-blue-600" />
+                                Clinical Orders
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4 bg-slate-50/50">
+                            <Tabs defaultValue="active">
+                                <TabsList className="mb-4">
+                                    <TabsTrigger value="active">Active Orders</TabsTrigger>
+                                    <TabsTrigger value="recent">Recent Orders</TabsTrigger>
+                                    <TabsTrigger value="completed">Recently Completed</TabsTrigger>
+                                </TabsList>
 
-                            <TabsContent value="active">
-                                <PendingExecutionList onSuccess={fetchData} />
-                            </TabsContent>
+                                <TabsContent value="active">
+                                    <PendingExecutionList onSuccess={fetchData} />
+                                </TabsContent>
 
-                            <TabsContent value="recent">
-                                <div className="space-y-3">
-                                    {(stats as any).recentOrders?.length === 0 && (
-                                        <p className="text-slate-500 italic text-sm">No recent orders.</p>
-                                    )}
-                                    {(stats as any).recentOrders?.map((order: any) => (
-                                        <div key={order.id} className="flex items-start space-x-3 text-sm border-b pb-2 last:border-0 last:pb-0">
-                                            <div className={`mt-0.5 p-1 rounded-full ${order.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
-                                                {order.status === 'COMPLETED' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                                            </div>
-                                            <div>
-                                                <div className="font-medium text-slate-900 flex items-center gap-2">
-                                                    {order.title}
-                                                    {order.status === 'COMPLETED' && <span className="text-[10px] bg-green-100 text-green-800 px-1.5 rounded-full">Done</span>}
+                                <TabsContent value="recent">
+                                    <div className="space-y-3">
+                                        {(stats as any).recentOrders?.length === 0 && (
+                                            <p className="text-slate-500 italic text-sm">No recent orders.</p>
+                                        )}
+                                        {(stats as any).recentOrders?.map((order: any) => (
+                                            <div key={order.id} className="flex items-start space-x-3 text-sm border-b pb-2 last:border-0 last:pb-0">
+                                                <div className={`mt-0.5 p-1 rounded-full ${order.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
+                                                    {order.status === 'COMPLETED' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                                                 </div>
-                                                <div className="text-xs text-slate-500">{order.patient.name}</div>
-                                                <div className="text-[10px] text-slate-400 mt-0.5">{new Date(order.createdAt).toLocaleString()}</div>
+                                                <div>
+                                                    <div className="font-medium text-slate-900 flex items-center gap-2">
+                                                        {order.title}
+                                                        {order.status === 'COMPLETED' && <span className="text-[10px] bg-green-100 text-green-800 px-1.5 rounded-full">Done</span>}
+                                                    </div>
+                                                    <div className="text-xs text-slate-500">{order.patient.name}</div>
+                                                    <div className="text-[10px] text-slate-400 mt-0.5">{new Date(order.createdAt).toLocaleString()}</div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </TabsContent>
+                                        ))}
+                                    </div>
+                                </TabsContent>
 
-                            <TabsContent value="completed">
-                                <CompletedOrdersList />
-                            </TabsContent>
-                        </Tabs>
-                    </CardContent>
-                </Card>
+                                <TabsContent value="completed">
+                                    <CompletedOrdersList />
+                                </TabsContent>
+                            </Tabs>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
 
 
@@ -890,11 +1011,18 @@ function PendingExecutionList({ onSuccess }: { onSuccess: () => void }) {
         }
     };
 
-    const handleComplete = async (orderId: string) => {
+    const handleComplete = async (order: any) => {
         if (!user) return;
-        setProcessingId(orderId);
+
+        // Restrict nurses to only NURSING care orders
+        if (user.role === 'NURSE' && order.type !== 'NURSING') {
+            toast.error("Nurses can only complete Nursing Care orders. Medical orders must be verified by clinical staff.");
+            return;
+        }
+
+        setProcessingId(order.id);
         try {
-            await ordersApi.updateStatus(orderId, 'COMPLETED', user.id);
+            await ordersApi.updateStatus(order.id, 'COMPLETED', user.id);
             await loadOrders();
             onSuccess();
         } catch (error) {
@@ -929,7 +1057,7 @@ function PendingExecutionList({ onSuccess }: { onSuccess: () => void }) {
                     <Button
                         size="sm"
                         className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => handleComplete(order.id)}
+                        onClick={() => handleComplete(order)}
                         disabled={!!processingId}
                     >
                         <CheckCircle2 className="w-4 h-4 mr-2" />
