@@ -22,7 +22,7 @@ export default function AppShell() {
     const location = useLocation();
     const { user, logout } = useAuthStore();
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const { checkActiveShift } = useShiftStore();
+    const { checkActiveShift, endShift } = useShiftStore();
 
     useEffect(() => {
         if (user) {
@@ -92,9 +92,9 @@ export default function AppShell() {
         };
     }, [user]);
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        await endShift().catch(() => { });
         logout();
-        useShiftStore.setState({ activeShift: null });
         navigate('/login');
         toast.success("Signed out successfully");
     };

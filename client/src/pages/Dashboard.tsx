@@ -297,7 +297,8 @@ export default function Dashboard() {
         if (!user) return;
         try {
             await assignmentApi.unassign(patientId, user.id);
-            toast.success("Signed out from patient");
+            await endShift().catch(() => { }); // End shift on patient sign-out
+            toast.success("Signed out from patient and shift ended");
 
             if (user.role === 'NURSE') {
                 logout();
