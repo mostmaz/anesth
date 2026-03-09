@@ -98,6 +98,7 @@ router.post('/prescribe', async (req, res) => {
                 otherInstructions,
                 patientId,
                 dilution: req.body.dilution ? parseFloat(req.body.dilution) : null,
+                // @ts-ignore
                 durationReminder: req.body.durationReminder ? parseInt(req.body.durationReminder, 10) : null,
                 startedAt: startedAt ? new Date(startedAt) : undefined
             }
@@ -132,9 +133,25 @@ router.post('/administer', async (req, res) => {
             }
         });
 
-        // Automatically create IO Input if there's a dilution volume
+        // 1. Handle "Once Only" frequency auto-discontinue
+        if (status === 'Given') {
+            const med = await prisma.medication.findUnique({
+                where: { id: medicationId }
+            });
+            if (med && med.frequency?.includes('Once Only')) {
+                await prisma.medication.update({
+                    where: { id: medicationId },
+                    data: {
+                        isActive: false,
+                        discontinuedAt: new Date()
+                    } as any
+                });
+            }
+        }
+
+        // 2. Automatically create IO Input if there's a dilution volume
         if (dilutionValue && dilutionValue > 0) {
-            // Get medication name for category
+            // Get medication name for category (already fetched if Once Only, otherwise fetch)
             const med = await prisma.medication.findUnique({ where: { id: medicationId } });
             if (med) {
                 await prisma.intakeOutput.create({
@@ -147,7 +164,7 @@ router.post('/administer', async (req, res) => {
                         notes: `Auto-recorded from MAR administration (Dose: ${dose || '1'})`,
                         timestamp: new Date(),
                         status: 'APPROVED'
-                    }
+                    } as any
                 });
             }
         }

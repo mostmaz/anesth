@@ -207,18 +207,18 @@ export default function PatientDetails() {
                                 <TabsTrigger value="ventilator">Ventilator</TabsTrigger>
                                 <TabsTrigger value="orders">Orders</TabsTrigger>
                                 <TabsTrigger value="io">I/O</TabsTrigger>
-                                <TabsTrigger value="investigations">Investigations</TabsTrigger>
-                                <TabsTrigger value="radiology">Radiology</TabsTrigger>
-                                <TabsTrigger value="cardiology">Cardiology</TabsTrigger>
+                                {user?.role !== 'NURSE' && <TabsTrigger value="investigations">Investigations</TabsTrigger>}
+                                {user?.role !== 'NURSE' && <TabsTrigger value="radiology">Radiology</TabsTrigger>}
+                                {user?.role !== 'NURSE' && <TabsTrigger value="cardiology">Cardiology</TabsTrigger>}
                                 <TabsTrigger value="interventions" className="relative">
                                     Interventions
                                     {visibleReminders.length > 0 && (
                                         <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full" />
                                     )}
                                 </TabsTrigger>
-                                <TabsTrigger value="consultation">Consultation</TabsTrigger>
+                                {user?.role !== 'NURSE' && <TabsTrigger value="consultation">Consultation</TabsTrigger>}
                                 <TabsTrigger value="notes">Notes</TabsTrigger>
-                                <TabsTrigger value="handover">Handover</TabsTrigger>
+                                {user?.role !== 'NURSE' && <TabsTrigger value="handover">Handover</TabsTrigger>}
                             </TabsList>
 
                             <TabsContent value="overview" className="space-y-6">

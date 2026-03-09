@@ -212,6 +212,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                                     <SelectItem value="4">4 (QID - Four times)</SelectItem>
                                     <SelectItem value="5">5 (5 times/day)</SelectItem>
                                     <SelectItem value="6">6 (Q4H - Six times)</SelectItem>
+                                    <SelectItem value="Once Only">Once Only</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

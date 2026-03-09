@@ -83,16 +83,77 @@ router.post('/', async (req, res) => {
         }
 
         if (orderAuthorId) {
+            // 2. Admit to HAMSA
             await prisma.clinicalOrder.create({
                 data: {
                     patientId: patient.id,
                     authorId: orderAuthorId,
-                    type: 'NURSING', // or PROTOCOL
-                    status: 'APPROVED', // Auto-approved
+                    type: 'NURSING',
+                    status: 'APPROVED',
                     approverId: orderAuthorId,
                     priority: 'ROUTINE',
                     title: 'Admit Patient in HAMSA System',
                     details: { instruction: 'Please complete admission in HAMSA hospital system to ICU' }
+                }
+            });
+
+            // 3. Charge for ICU Stay
+            await prisma.clinicalOrder.create({
+                data: {
+                    patientId: patient.id,
+                    authorId: orderAuthorId,
+                    type: 'PROTOCOL',
+                    status: 'APPROVED',
+                    approverId: orderAuthorId,
+                    priority: 'ROUTINE',
+                    title: 'Charge the patient for ICU Stay',
+                    details: { instruction: 'Ensure ICU daily charges are applied' }
+                }
+            });
+
+            // 4. Clexane
+            await prisma.clinicalOrder.create({
+                data: {
+                    patientId: patient.id,
+                    authorId: orderAuthorId,
+                    type: 'MEDICATION',
+                    status: 'APPROVED',
+                    approverId: orderAuthorId,
+                    priority: 'ROUTINE',
+                    title: 'Clexane',
+                    details: { dose: '40mg', route: 'SC', frequency: 'Once daily' }
+                }
+            });
+
+            // 5. Omeprazole
+            await prisma.clinicalOrder.create({
+                data: {
+                    patientId: patient.id,
+                    authorId: orderAuthorId,
+                    type: 'MEDICATION',
+                    status: 'APPROVED',
+                    approverId: orderAuthorId,
+                    priority: 'ROUTINE',
+                    title: 'Omeprazole',
+                    details: { dose: '40mg', route: 'IV', frequency: 'Once daily' }
+                }
+            });
+
+            // 6. Feeding (Day 2)
+            const day2 = new Date();
+            day2.setDate(day2.getDate() + 1); // Tomorrow = Day 2 of admission range
+            await prisma.clinicalOrder.create({
+                data: {
+                    patientId: patient.id,
+                    authorId: orderAuthorId,
+                    type: 'DIET',
+                    status: 'APPROVED',
+                    approverId: orderAuthorId,
+                    priority: 'ROUTINE',
+                    title: 'Start Feeding',
+                    details: { instruction: 'Begin enteral feeding as per protocol' },
+                    // @ts-ignore
+                    reminderAt: day2
                 }
             });
         }

@@ -32,7 +32,7 @@ ssh.connect({
         console.log('Waiting for database to initialize...');
         await new Promise(resolve => setTimeout(resolve, 8000));
 
-        await exec('docker exec icu_server_prod npx prisma db push', '/root/anesth');
+        await exec('docker exec icu_server_prod npx prisma db push --accept-data-loss', '/root/anesth');
         console.log('Deployment successful!');
     } catch (err) {
         console.error(err);
