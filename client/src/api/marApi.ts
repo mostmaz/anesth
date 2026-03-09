@@ -49,6 +49,7 @@ export const marApi = {
         infusionRate?: string;
         otherInstructions?: string;
         dilution?: number;
+        durationReminder?: number;
         startedAt?: string;
     }): Promise<Medication> => {
         const response = await fetch(`${API_URL}/medications/prescribe`, {
@@ -70,7 +71,7 @@ export const marApi = {
         return response.json();
     },
 
-    editMedication: async (id: string, data: { dose: string; route: string; frequency?: string; infusionRate?: string; otherInstructions?: string; dilution?: number; }): Promise<Medication> => {
+    editMedication: async (id: string, data: { dose: string; route: string; frequency?: string; infusionRate?: string; otherInstructions?: string; dilution?: number; durationReminder?: number; }): Promise<Medication> => {
         const response = await fetch(`${API_URL}/medications/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
