@@ -9,6 +9,7 @@ const prisma = new PrismaClient();
 router.get('/active', async (req, res) => {
     try {
         const assignments = await prisma.patientAssignment.findMany({
+            where: { isActive: true },
             include: {
                 user: { select: { id: true, name: true, role: true } },
                 patient: { select: { id: true, name: true, mrn: true } }
@@ -25,6 +26,10 @@ router.get('/active', async (req, res) => {
 router.get('/pending', async (req, res) => {
     try {
         const pending = await prisma.patientAssignment.findMany({
+            where: {
+                isPending: true,
+                isActive: false
+            },
             include: {
                 user: { select: { id: true, name: true, role: true } },
                 patient: { select: { id: true, name: true, mrn: true } }
@@ -69,7 +74,7 @@ router.post('/', async (req, res) => {
 
         // 1. Check if Nurse is already assigned to ANY patient (active, non-pending)
         const existingNurseAssignment = await prisma.patientAssignment.findFirst({
-            where: { userId }
+            where: { userId, isActive: true }
         });
 
         if (existingNurseAssignment) {
@@ -83,7 +88,7 @@ router.post('/', async (req, res) => {
 
         // 3. Check if Patient already has an assigned nurse (active, non-pending)
         const existingPatientAssignments = await prisma.patientAssignment.findMany({
-            where: { patientId }
+            where: { patientId, isActive: true }
         });
 
         if (existingPatientAssignments.length > 0) {
@@ -101,7 +106,12 @@ router.post('/', async (req, res) => {
             if (!isAuthorized) {
                 // Create a PENDING assignment request — nurse waits for approval
                 const pending = await prisma.patientAssignment.create({
-                    data: { patientId, userId }
+                    data: {
+                        patientId,
+                        userId,
+                        isPending: true,
+                        isActive: false
+                    }
                 });
                 return res.status(202).json({
                     success: true,
@@ -114,7 +124,12 @@ router.post('/', async (req, res) => {
 
         // Direct assignment
         const assignment = await prisma.patientAssignment.create({
-            data: { patientId, userId }
+            data: {
+                patientId,
+                userId,
+                isPending: false,
+                isActive: true
+            }
         });
 
         res.json({ success: true, pending: false, data: assignment });
@@ -129,11 +144,18 @@ router.post('/', async (req, res) => {
 router.post('/end', async (req, res) => {
     try {
         const { patientId, userId } = req.body;
+        console.log(`[ASSIGNMENT] Ending assignment for user ${userId} on patient ${patientId}`);
 
         const result = await prisma.patientAssignment.updateMany({
-            where: { patientId, userId },
-            data: { endedAt: new Date() }
+            where: { patientId, userId, isActive: true },
+            data: {
+                endedAt: new Date(),
+                isActive: false,
+                isPending: false
+            }
         });
+
+        console.log(`[ASSIGNMENT] Ended ${result.count} assignments`);
 
         if (result.count === 0) {
             return res.status(404).json({ success: false, message: 'No active assignment found to end.' });

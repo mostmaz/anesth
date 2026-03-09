@@ -55,51 +55,30 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
     const syncLabs = async () => {
         if (!patientMrn || !patientName || isSyncing) return;
 
-        console.log("Manual Sync reports via exact matching for", patientName);
         setIsSyncing(true);
         try {
-            toast.info("Fetching recent lab records...");
-            const labPatientsRes = await import('@/api/labApi').then(mod => mod.fetchLabPatients(true));
-
-            if (!labPatientsRes.success || !labPatientsRes.data) {
-                toast.error("Failed to fetch lab records");
-                return;
-            }
-
-            const allLabRecords = labPatientsRes.data;
-            const normalize = (s: string) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
-            const normalizedTargetName = normalize(patientName);
-
-            // Filter strictly by MRN or exact Name match
-            const matches = allLabRecords.filter((record: any) => {
-                const recordName = normalize(record.name);
-                return record.mrn === patientMrn || recordName === normalizedTargetName;
+            toast.info("Syncing reports from lab portal...");
+            const { syncPatientLabs } = await import('@/api/labApi');
+            const result = await syncPatientLabs({
+                patientId,
+                mrn: patientMrn,
+                name: patientName,
+                authorId: user?.id || 'manual-sync'
             });
 
-            if (matches.length > 0) {
-                toast.info(`Found ${matches.length} matching lab records. Importing...`);
-                let successCount = 0;
-
-                for (const match of matches) {
-                    try {
-                        // Pass patientId to ensure it gets tied correctly manually
-                        const importPayload = { ...match, patientId: patientId, forceSync: true };
-                        await import('@/api/labApi').then(mod => mod.importLabReport(importPayload));
-                        successCount++;
-                    } catch (importErr) {
-                        console.error(`Failed to import record ${match.id}`, importErr);
-                    }
+            if (result.success) {
+                if (result.count > 0) {
+                    toast.success(`Successfully synced ${result.count} new reports`);
+                    fetchInvestigations();
+                } else {
+                    toast.info("No new reports found to sync");
                 }
-
-                toast.success(`Successfully imported ${successCount} out of ${matches.length} records`);
-                setTimeout(() => fetchInvestigations(), 1500);
             } else {
-                toast.info("No new matching lab reports found");
+                toast.error(result.message || "Sync failed");
             }
-
-        } catch (error) {
-            console.error("Manual strict auto-sync failed", error);
-            toast.error("Sync failed");
+        } catch (error: any) {
+            console.error("Manual sync failed", error);
+            toast.error(error.message || "Sync failed");
         } finally {
             setIsSyncing(false);
         }

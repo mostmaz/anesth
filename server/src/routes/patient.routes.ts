@@ -10,6 +10,10 @@ router.get('/', async (req, res) => {
             include: {
                 admissions: {
                     include: { doctor: true, specialty: true }
+                },
+                assignments: {
+                    where: { isActive: true },
+                    include: { user: { select: { name: true, role: true } } }
                 }
             }
         });
@@ -28,6 +32,10 @@ router.get('/:id', async (req, res) => {
             include: {
                 admissions: {
                     include: { doctor: true, specialty: true }
+                },
+                assignments: {
+                    where: { isActive: true },
+                    include: { user: { select: { name: true, role: true } } }
                 }
             }
         });

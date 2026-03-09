@@ -94,7 +94,9 @@ export default function AppShell() {
 
     const handleLogout = () => {
         logout();
+        useShiftStore.setState({ activeShift: null });
         navigate('/login');
+        toast.success("Signed out successfully");
     };
 
     const menuItems = [
