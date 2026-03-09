@@ -9,6 +9,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { CheckCircle2, Clock, XCircle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import CreateOrderDialog from './CreateOrderDialog';
+import CompleteConsultDialog from './CompleteConsultDialog';
 
 interface OrdersTabProps {
     patientId: string;
@@ -18,6 +19,7 @@ export default function OrdersTab({ patientId }: OrdersTabProps) {
     const { user } = useAuthStore();
     const [orders, setOrders] = useState<ClinicalOrder[]>([]);
     const [loading, setLoading] = useState(true);
+    const [completingConsult, setCompletingConsult] = useState<ClinicalOrder | null>(null);
 
     const fetchOrders = async () => {
         setLoading(true);
@@ -117,7 +119,13 @@ export default function OrdersTab({ patientId }: OrdersTabProps) {
                         <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleStatusUpdate(order.id, 'COMPLETED')}
+                            onClick={() => {
+                                if (order.type === 'CONSULT') {
+                                    setCompletingConsult(order);
+                                } else {
+                                    handleStatusUpdate(order.id, 'COMPLETED');
+                                }
+                            }}
                         >
                             <FileText className="w-4 h-4 mr-1" /> Complete
                         </Button>
@@ -156,6 +164,15 @@ export default function OrdersTab({ patientId }: OrdersTabProps) {
                     {historyOrders.length === 0 ? <div className="text-center p-8 text-muted-foreground">No history</div> : historyOrders.map(o => <OrderCard key={o.id} order={o} />)}
                 </TabsContent>
             </Tabs>
+
+            {completingConsult && (
+                <CompleteConsultDialog
+                    isOpen={!!completingConsult}
+                    onClose={() => setCompletingConsult(null)}
+                    order={completingConsult}
+                    onSuccess={fetchOrders}
+                />
+            )}
         </div >
     );
 }

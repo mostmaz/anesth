@@ -330,6 +330,7 @@ model ClinicalOrder {
   author    User    @relation("CreatedOrders", fields: [authorId], references: [id])
   approver  User?   @relation("ApprovedOrders", fields: [approverId], references: [id])
   investigations Investigation[]
+  consultation   Consultation?
 }
 
 enum InvestigationStatus {
@@ -473,6 +474,7 @@ model Consultation {
   id          String   @id @default(uuid())
   patientId   String
   authorId    String
+  orderId     String?  @unique
   
   doctorName  String
   specialty   String
@@ -483,5 +485,6 @@ model Consultation {
   updatedAt   DateTime @default(now()) @updatedAt
   
   patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  order       ClinicalOrder? @relation(fields: [orderId], references: [id])
 }
 
