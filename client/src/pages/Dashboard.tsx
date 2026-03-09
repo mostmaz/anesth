@@ -65,8 +65,7 @@ export default function Dashboard() {
 
     // Live Feed for new lab results via SSE
     const [recentLabsFeed, setRecentLabsFeed] = useState<any[]>([]);
-    const [dismissedLabs, setDismissedLabs] = useState<Set<string>>(new Set());
-    const dismissedLabsRef = useRef<Set<string>>(new Set()); // Ref to keep SSE closure fresh
+    const dismissedLabsRef = useRef<Set<string>>(new Set()); // Tracks dismissed labs for SSE listener
 
     // Due intervention reminders (global, across all patients)
     const [dueReminders, setDueReminders] = useState<ClinicalOrder[]>([]);
@@ -98,8 +97,7 @@ export default function Dashboard() {
             setPendingAssignments(pendingData);
 
             const dismissedSet = new Set<string>((userPrefs as any).dismissedLabs || []);
-            setDismissedLabs(dismissedSet);
-            dismissedLabsRef.current = dismissedSet; // keep ref in sync
+            dismissedLabsRef.current = dismissedSet;
 
             // Prefill with recent global investigations
             if (historicalLabs && historicalLabs.length > 0) {
@@ -235,11 +233,7 @@ export default function Dashboard() {
 
         // Optimistic UI update
         setRecentLabsFeed(prev => prev.filter(lab => lab.id !== labId));
-        setDismissedLabs(prev => {
-            const next = new Set([...prev, labId]);
-            dismissedLabsRef.current = next; // Keep ref in sync
-            return next;
-        });
+        dismissedLabsRef.current = new Set([...dismissedLabsRef.current, labId]);
 
         try {
             await userApi.dismissLab(user.id, labId);
