@@ -54,7 +54,7 @@ function ConfirmCheckDialog({
 export default function Dashboard() {
     const navigate = useNavigate();
     const { user, logout } = useAuthStore();
-    const { activeShift, startShift, endShift, checkActiveShift } = useShiftStore();
+    const { activeShift, loadingShift, startShift, endShift, checkActiveShift } = useShiftStore();
     const [patients, setPatients] = useState<Patient[]>([]);
     const [isAddPatientOpen, setIsAddPatientOpen] = useState(false);
     const [assignments, setAssignments] = useState<any[]>([]);
@@ -161,27 +161,7 @@ export default function Dashboard() {
 
             setAssignments(activeAssignments);
 
-            // ── Mandatory Nurse Workflow Logic ──
-            if (user?.role === 'NURSE') {
-                if (!activeShift) {
-                    setShowShiftDialog(true);
-                    setShowAssignmentDialog(false);
-                    setShowHandoverChecklist(false);
-                } else {
-                    const myAssignment = activeAssignments.find((a: any) => a.userId === user.id);
-                    if (!myAssignment) {
-                        setShowAssignmentDialog(true);
-                        setShowHandoverChecklist(false);
-                    } else {
-                        // Check if handover checklist was already done for this shift/patient assignment
-                        // For simplicity, we can store this in local storage or check if a "NURSING" note exists for today
-                        const handoverDone = localStorage.getItem(`handover_${myAssignment.id}`);
-                        if (!handoverDone) {
-                            setShowHandoverChecklist(true);
-                        }
-                    }
-                }
-            }
+            // Workflow logic is now handled in a separate useEffect for better state sync
 
             setStats({
                 critical: Math.floor(Math.random() * 2),
@@ -240,6 +220,30 @@ export default function Dashboard() {
         };
     }, []);
 
+    // ── Mandatory Nurse Workflow Management ──
+    useEffect(() => {
+        if (!user || user.role !== 'NURSE' || loadingShift) return;
+
+        if (!activeShift) {
+            setShowShiftDialog(true);
+            setShowAssignmentDialog(false);
+            setShowHandoverChecklist(false);
+        } else {
+            setShowShiftDialog(false); // Close if shift is detected
+            const myAssignment = assignments.find((a: any) => a.userId === user.id);
+            if (!myAssignment) {
+                setShowAssignmentDialog(true);
+                setShowHandoverChecklist(false);
+            } else {
+                const handoverDone = localStorage.getItem(`handover_${myAssignment.id}`);
+                if (!handoverDone) {
+                    setShowHandoverChecklist(true);
+                } else {
+                    setShowHandoverChecklist(false);
+                }
+            }
+        }
+    }, [user, activeShift, loadingShift, assignments]);
     const handleDashboardCompleteCheck = async (orderId: string) => {
         if (!user) return;
         try {
