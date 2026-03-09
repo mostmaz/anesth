@@ -16,5 +16,13 @@ export const patientApi = {
 
     getPatient: async (patientId: string) => {
         return apiClient.get(`/patients/${patientId}`);
+    },
+
+    getConsultations: async (patientId: string) => {
+        return apiClient.get(`/patients/${patientId}/consultations`);
+    },
+
+    addConsultation: async (patientId: string, data: any) => {
+        return apiClient.post(`/patients/${patientId}/consultations`, data);
     }
 };
