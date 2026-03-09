@@ -4,6 +4,7 @@ import { shiftApi } from '../api/shiftApi';
 
 interface ShiftState {
     activeShift: Shift | null;
+    loadingShift: boolean;
     checkActiveShift: (userId: string) => Promise<void>;
     startShift: (userId: string, type: 'DAY' | 'NIGHT') => Promise<void>;
     endShift: () => Promise<void>;
@@ -11,13 +12,15 @@ interface ShiftState {
 
 export const useShiftStore = create<ShiftState>((set, get) => ({
     activeShift: null,
+    loadingShift: true,
 
     checkActiveShift: async (userId: string) => {
         try {
             const activeShift = await shiftApi.getActiveShift(userId);
-            set({ activeShift });
+            set({ activeShift, loadingShift: false });
         } catch (error) {
             console.error('Failed to check active shift:', error);
+            set({ loadingShift: false });
         }
     },
 
