@@ -334,7 +334,8 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
                                             className="h-4 p-0 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`, '_blank');
+                                                const url = lab.result.imageUrl.startsWith('/') ? lab.result.imageUrl : `/${lab.result.imageUrl}`;
+                                                window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${url}`, '_blank');
                                             }}
                                         >
                                             View Report <ChevronRight className="w-3 h-3" />

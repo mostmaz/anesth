@@ -43,7 +43,7 @@ router.patch('/:id/approve', async (req, res) => {
         const { id } = req.params;
         const assignment = await prisma.patientAssignment.update({
             where: { id },
-            data: {}
+            data: { isPending: false, isActive: true }
         });
         res.json({ success: true, data: assignment });
     } catch (error) {

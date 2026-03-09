@@ -13,7 +13,7 @@ import {
     SelectValue,
 } from "../../components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '../../components/ui/dialog';
-import { Plus, Droplets, ArrowDown, ArrowUp, Printer } from 'lucide-react';
+import { Plus, Droplets, ArrowDown, ArrowUp, Printer, Edit2, Check, X } from 'lucide-react';
 import { ioApi, type IOEntry } from '../../api/ioApi';
 import { useAuthStore } from '../../stores/authStore';
 import { useShiftStore } from '../../stores/shiftStore';
@@ -33,6 +33,8 @@ export default function IOTab({ patientId }: IOTabProps) {
     const [category, setCategory] = useState('');
     const [amount, setAmount] = useState('');
     const [notes, setNotes] = useState('');
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editAmount, setEditAmount] = useState('');
 
     useEffect(() => {
         loadHistory();
@@ -107,6 +109,43 @@ export default function IOTab({ patientId }: IOTabProps) {
             toast.success("I/O recorded");
         } catch (error) {
             toast.error("Failed to record I/O");
+        }
+    };
+
+    const handleEditClick = (entry: IOEntry) => {
+        setEditingId(entry.id);
+        setEditAmount(entry.amount.toString());
+    };
+
+    const handleSaveEdit = async (id: string) => {
+        if (!user || !editAmount) return;
+        try {
+            await ioApi.editEntry(id, Number(editAmount), user.id);
+            toast.success("Edit submitted");
+            setEditingId(null);
+            loadHistory();
+        } catch (error) {
+            toast.error("Failed to submit edit");
+        }
+    };
+
+    const handleApprove = async (id: string) => {
+        try {
+            await ioApi.approveEdit(id);
+            toast.success("Edit approved");
+            loadHistory();
+        } catch (error) {
+            toast.error("Failed to approve");
+        }
+    };
+
+    const handleReject = async (id: string) => {
+        try {
+            await ioApi.rejectEdit(id);
+            toast.success("Edit rejected");
+            loadHistory();
+        } catch (error) {
+            toast.error("Failed to reject");
         }
     };
 
@@ -295,8 +334,10 @@ export default function IOTab({ patientId }: IOTabProps) {
                                     <th className="text-left p-2">Type</th>
                                     <th className="text-left p-2">Category</th>
                                     <th className="text-right p-2">Amount</th>
+                                    <th className="text-left p-2">Status</th>
                                     <th className="text-left p-2">Nurse</th>
                                     <th className="text-left p-2">Notes</th>
+                                    <th className="text-right p-2">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -314,9 +355,44 @@ export default function IOTab({ patientId }: IOTabProps) {
                                             </span>
                                         </td>
                                         <td className="p-2">{entry.category}</td>
-                                        <td className="p-2 text-right font-medium">{entry.amount} mL</td>
+                                        <td className="p-2 text-right font-medium">
+                                            {editingId === entry.id ? (
+                                                <Input type="number" value={editAmount} onChange={e => setEditAmount(e.target.value)} className="w-20 ml-auto h-8 py-1 px-2" />
+                                            ) : (
+                                                <span>{entry.amount} mL</span>
+                                            )}
+                                        </td>
+                                        <td className="p-2">
+                                            {entry.status === 'PENDING_EDIT' ? (
+                                                <span className="text-amber-600 font-medium whitespace-nowrap text-xs bg-amber-50 px-2 py-1 rounded">
+                                                    Pending: {entry.pendingValue} mL
+                                                </span>
+                                            ) : (
+                                                <span className="text-green-600 whitespace-nowrap text-xs bg-green-50 px-2 py-1 rounded">Approved</span>
+                                            )}
+                                        </td>
                                         <td className="p-2 text-slate-500">{entry.user.name}</td>
                                         <td className="p-2 text-slate-500">{entry.notes}</td>
+                                        <td className="p-2 text-right space-x-1 whitespace-nowrap">
+                                            {editingId === entry.id ? (
+                                                <>
+                                                    <Button size="icon" variant="ghost" onClick={() => handleSaveEdit(entry.id)} className="h-8 w-8 text-green-600"><Check className="w-4 h-4" /></Button>
+                                                    <Button size="icon" variant="ghost" onClick={() => setEditingId(null)} className="h-8 w-8 text-slate-400"><X className="w-4 h-4" /></Button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {entry.status === 'PENDING_EDIT' && user?.role === 'SENIOR' && (
+                                                        <>
+                                                            <Button size="sm" variant="outline" className="h-8 border-green-200 text-green-700 bg-green-50 hover:bg-green-100" onClick={() => handleApprove(entry.id)}>Approve</Button>
+                                                            <Button size="sm" variant="outline" className="h-8 border-red-200 text-red-700 bg-red-50 hover:bg-red-100" onClick={() => handleReject(entry.id)}>Reject</Button>
+                                                        </>
+                                                    )}
+                                                    {entry.status === 'APPROVED' && (
+                                                        <Button size="icon" variant="ghost" onClick={() => handleEditClick(entry)} className="h-8 w-8 text-slate-400 hover:text-blue-600"><Edit2 className="w-4 h-4" /></Button>
+                                                    )}
+                                                </>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

@@ -10,7 +10,6 @@ import { investigationsApi, Investigation } from '../../api/investigationsApi';
 import { FileText, Microscope, Search, Filter, Trash2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-import { apiClient } from '../../api/client';
 import { UploadExternalResultDialog } from './components/UploadExternalResultDialog';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Eye } from 'lucide-react';
@@ -56,30 +55,51 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
     const syncLabs = async () => {
         if (!patientMrn || !patientName || isSyncing) return;
 
-        console.log("Auto-syncing labs for", patientName);
+        console.log("Manual Sync reports via exact matching for", patientName);
         setIsSyncing(true);
         try {
-            const result = await apiClient.post<{ success: boolean, count: number }>('/lab/sync', {
-                patientId,
-                mrn: patientMrn,
-                name: patientName,
-                authorId: user?.id
-            }, { timeout: 120000 });
+            toast.info("Fetching recent lab records...");
+            const labPatientsRes = await import('@/api/labApi').then(mod => mod.fetchLabPatients(true));
 
-            console.log("Lab sync response:", result);
-
-            if (result.success && result.count > 0) {
-                console.log(`Auto-synced ${result.count} new reports`);
-                toast.success(`Synced ${result.count} new lab reports`);
-                // Add a small delay for DB consistency and then refresh
-                setTimeout(() => {
-                    fetchInvestigations();
-                }, 1000);
-            } else if (result.success) {
-                toast.info("No new lab reports found");
+            if (!labPatientsRes.success || !labPatientsRes.data) {
+                toast.error("Failed to fetch lab records");
+                return;
             }
+
+            const allLabRecords = labPatientsRes.data;
+            const normalize = (s: string) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+            const normalizedTargetName = normalize(patientName);
+
+            // Filter strictly by MRN or exact Name match
+            const matches = allLabRecords.filter((record: any) => {
+                const recordName = normalize(record.name);
+                return record.mrn === patientMrn || recordName === normalizedTargetName;
+            });
+
+            if (matches.length > 0) {
+                toast.info(`Found ${matches.length} matching lab records. Importing...`);
+                let successCount = 0;
+
+                for (const match of matches) {
+                    try {
+                        // Pass patientId to ensure it gets tied correctly manually
+                        const importPayload = { ...match, patientId: patientId, forceSync: true };
+                        await import('@/api/labApi').then(mod => mod.importLabReport(importPayload));
+                        successCount++;
+                    } catch (importErr) {
+                        console.error(`Failed to import record ${match.id}`, importErr);
+                    }
+                }
+
+                toast.success(`Successfully imported ${successCount} out of ${matches.length} records`);
+                setTimeout(() => fetchInvestigations(), 1500);
+            } else {
+                toast.info("No new matching lab reports found");
+            }
+
         } catch (error) {
-            console.error("Auto-sync failed", error);
+            console.error("Manual strict auto-sync failed", error);
+            toast.error("Sync failed");
         } finally {
             setIsSyncing(false);
         }

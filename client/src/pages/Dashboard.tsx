@@ -11,7 +11,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useShiftStore } from '../stores/shiftStore';
 import { Patient } from '../types';
 import { ClinicalOrder } from '../api/ordersApi';
-import { Activity, Users, ClipboardList, AlertTriangle, Clock, CheckCircle2, LogOut, CheckCheck, X, FlaskConical, Bell, ArchiveX } from 'lucide-react';
+import { ClipboardList, AlertTriangle, Clock, CheckCircle2, LogOut, CheckCheck, X, FlaskConical, Bell, ArchiveX } from 'lucide-react';
 
 import { ordersApi } from '../api/ordersApi';
 import { userApi } from '../api/userApi';
@@ -66,6 +66,7 @@ export default function Dashboard() {
     // Live Feed for new lab results via SSE
     const [recentLabsFeed, setRecentLabsFeed] = useState<any[]>([]);
     const [dismissedLabs, setDismissedLabs] = useState<Set<string>>(new Set());
+    const dismissedLabsRef = useRef<Set<string>>(new Set()); // Ref to keep SSE closure fresh
 
     // Due intervention reminders (global, across all patients)
     const [dueReminders, setDueReminders] = useState<ClinicalOrder[]>([]);
@@ -98,6 +99,7 @@ export default function Dashboard() {
 
             const dismissedSet = new Set<string>((userPrefs as any).dismissedLabs || []);
             setDismissedLabs(dismissedSet);
+            dismissedLabsRef.current = dismissedSet; // keep ref in sync
 
             // Prefill with recent global investigations
             if (historicalLabs && historicalLabs.length > 0) {
@@ -192,7 +194,7 @@ export default function Dashboard() {
         eventSource.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                if (data.type === 'new_investigation' && data.id && !dismissedLabs.has(data.id)) {
+                if (data.type === 'new_investigation' && data.id && !dismissedLabsRef.current.has(data.id)) {
                     setRecentLabsFeed(prev => {
                         // Avoid duplicates
                         if (prev.find(p => p.id === data.id)) return prev;
@@ -233,7 +235,11 @@ export default function Dashboard() {
 
         // Optimistic UI update
         setRecentLabsFeed(prev => prev.filter(lab => lab.id !== labId));
-        setDismissedLabs(prev => new Set([...prev, labId]));
+        setDismissedLabs(prev => {
+            const next = new Set([...prev, labId]);
+            dismissedLabsRef.current = next; // Keep ref in sync
+            return next;
+        });
 
         try {
             await userApi.dismissLab(user.id, labId);
@@ -503,49 +509,7 @@ export default function Dashboard() {
                 </Card>
             )}
 
-            {/* Key Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Census</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{patients.length}</div>
-                        <p className="text-xs text-muted-foreground">Occupancy: {Math.round((patients.length / 20) * 100)}%</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Critical Alerts</CardTitle>
-                        <Activity className="h-4 w-4 text-red-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-red-600">{stats.critical}</div>
-                        <p className="text-xs text-muted-foreground">Requires attention</p>
-                    </CardContent>
-                </Card>
-                <Card className="cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Active Orders</CardTitle>
-                        <ClipboardList className="h-4 w-4 text-blue-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">{stats.activeOrders.length}</div>
-                        <p className="text-xs text-muted-foreground">In Progress</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">New Admissions</CardTitle>
-                        <AlertTriangle className="h-4 w-4 text-blue-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">{stats.newAdmissions}</div>
-                        <p className="text-xs text-muted-foreground">Last 24 hours</p>
-                    </CardContent>
-                </Card>
-            </div>
+
 
             {/* Main Content Area */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

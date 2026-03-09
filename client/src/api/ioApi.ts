@@ -13,6 +13,8 @@ export interface IOEntry {
     user: {
         name: string;
     };
+    status: 'APPROVED' | 'PENDING_EDIT';
+    pendingValue?: number | null;
 }
 
 export const ioApi = {
@@ -30,5 +32,17 @@ export const ioApi = {
         notes?: string;
     }) => {
         return apiClient.post<IOEntry>('/io', data);
+    },
+
+    editEntry: async (id: string, amount: number, userId: string): Promise<IOEntry> => {
+        return apiClient.put<IOEntry>(`/io/${id}`, { amount, userId });
+    },
+
+    approveEdit: async (id: string): Promise<IOEntry> => {
+        return apiClient.patch<IOEntry>(`/io/${id}/approve`, {});
+    },
+
+    rejectEdit: async (id: string): Promise<IOEntry> => {
+        return apiClient.patch<IOEntry>(`/io/${id}/reject`, {});
     }
 };

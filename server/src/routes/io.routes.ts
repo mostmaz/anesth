@@ -49,4 +49,83 @@ router.post('/', async (req, res) => {
     }
 });
 
+// Edit I/O Entry (Nurse requires approval, Senior direct)
+router.put('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { amount, userId } = req.body;
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        if (user.role === 'NURSE') {
+            // Nurse edit requires approval
+            const entry = await prisma.intakeOutput.update({
+                where: { id },
+                data: {
+                    status: 'PENDING_EDIT',
+                    pendingValue: Number(amount)
+                },
+                include: { user: { select: { name: true } } }
+            });
+            return res.json(entry);
+        } else {
+            // Direct edit for SENIOR/RESIDENT
+            const entry = await prisma.intakeOutput.update({
+                where: { id },
+                data: {
+                    amount: Number(amount),
+                    status: 'APPROVED',
+                    pendingValue: null
+                },
+                include: { user: { select: { name: true } } }
+            });
+            return res.json(entry);
+        }
+    } catch (error) {
+        console.error('Error editing I/O:', error);
+        res.status(500).json({ error: 'Failed to edit I/O' });
+    }
+});
+
+// Approve Pending Edit
+router.patch('/:id/approve', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const entry = await prisma.intakeOutput.findUnique({ where: { id } });
+        if (!entry || !entry.pendingValue) return res.status(400).json({ error: 'No pending edit found' });
+
+        const updated = await prisma.intakeOutput.update({
+            where: { id },
+            data: {
+                amount: entry.pendingValue,
+                status: 'APPROVED',
+                pendingValue: null
+            },
+            include: { user: { select: { name: true } } }
+        });
+        res.json(updated);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to approve edit' });
+    }
+});
+
+// Reject Pending Edit
+router.patch('/:id/reject', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updated = await prisma.intakeOutput.update({
+            where: { id },
+            data: {
+                status: 'APPROVED',
+                pendingValue: null
+            },
+            include: { user: { select: { name: true } } }
+        });
+        res.json(updated);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to reject edit' });
+    }
+});
+
 export default router;

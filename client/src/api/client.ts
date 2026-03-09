@@ -40,6 +40,21 @@ export const apiClient = {
         }
         return response.json();
     },
+    put: async <T>(endpoint: string, data: any): Promise<T> => {
+        const response = await fetchWithTimeout(`${API_URL}${endpoint}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("API Error Body:", errorText);
+            throw new Error(`API Error: ${response.statusText} (${response.status}) - ${errorText}`);
+        }
+        return response.json();
+    },
     patch: async <T>(endpoint: string, data: any): Promise<T> => {
         const response = await fetchWithTimeout(`${API_URL}${endpoint}`, {
             method: 'PATCH',
