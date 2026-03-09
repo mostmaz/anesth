@@ -11,13 +11,14 @@ import { useAuthStore } from '../stores/authStore';
 import { useShiftStore } from '../stores/shiftStore';
 import { Patient } from '../types';
 import { ClinicalOrder } from '../api/ordersApi';
-import { ClipboardList, AlertTriangle, Clock, CheckCircle2, LogOut, CheckCheck, X, FlaskConical, Bell, ArchiveX } from 'lucide-react';
+import { ClipboardList, AlertTriangle, Clock, CheckCircle2, LogOut, CheckCheck, X, FlaskConical, Bell, ArchiveX, Users } from 'lucide-react';
 
 import { ordersApi } from '../api/ordersApi';
 import { userApi } from '../api/userApi';
 import { assignmentApi, Assignment } from '../api/assignmentApi';
 import { shiftApi } from '../api/shiftApi';
 import { toast } from 'sonner';
+import { cn } from '../lib/utils';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -506,9 +507,77 @@ export default function Dashboard() {
 
 
             {/* Main Content Area */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                {/* Right Sidebar: Quick Actions & Shift Info - MOVED TO TOP ON MOBILE */}
+                <div className="lg:col-span-1 lg:order-2 space-y-6">
+                    <Card className="border-blue-100 bg-blue-50/30">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <Users className="w-5 h-5 text-blue-600" /> Staff On Duty
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                <div>
+                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Seniors On Call</h4>
+                                    <div className="space-y-1.5 font-medium">
+                                        {staffOnDuty.seniors.length === 0 ? <p className="text-xs italic text-slate-400">No seniors found</p> :
+                                            staffOnDuty.seniors.map((s) => (
+                                                <div key={s.id} className="flex justify-between items-center text-sm">
+                                                    <span className={s.id === user?.id ? "text-blue-700 font-bold" : "text-slate-700"}>{s.name} {s.id === user?.id && "(You)"}</span>
+                                                    <Badge variant="secondary" className="text-[9px] h-4">Active</Badge>
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Nurses Active</h4>
+                                    <div className="space-y-2">
+                                        {staffOnDuty.nurses.length === 0 ? <p className="text-xs italic text-slate-400">No nurses on shift</p> :
+                                            staffOnDuty.nurses.map((n) => (
+                                                <div key={n.id} className="flex flex-col text-sm border-b border-blue-100/50 pb-2 last:border-0 last:pb-0">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className={cn("font-medium", n.id === user?.id ? "text-blue-700 font-bold" : "text-slate-700")}>{n.name}</span>
+                                                        <span className="text-[9px] text-slate-400 uppercase font-bold">{n.shiftType}</span>
+                                                    </div>
+                                                    <div className="text-[11px] text-slate-500 mt-0.5">
+                                                        {n.assignment ? <span className="flex items-center gap-1"><Badge className="h-3 w-3 p-0 rounded-full" /> {n.assignment}</span> : <span className="text-rose-400 italic">No patient assigned</span>}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
+                                </div>
+                                {(user?.role === 'SENIOR' || user?.role === 'RESIDENT') && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full mt-2 text-rose-600 border-rose-200 hover:bg-rose-50"
+                                        onClick={async () => {
+                                            if (confirm("Sign out all staff and clear assignments?")) {
+                                                try {
+                                                    await shiftApi.endAllShifts();
+                                                    toast.success("Signed out all staff");
+                                                    fetchData();
+                                                } catch (err) {
+                                                    toast.error("Failed to sign out all staff");
+                                                }
+                                            }
+                                        }}
+                                    >
+                                        <LogOut className="w-3.5 h-3.5 mr-2" />
+                                        End All Shifts
+                                    </Button>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
                 {/* Left Column (Labs + Patients) */}
-                <div className="lg:col-span-2 space-y-8">
+                <div className="lg:col-span-3 lg:order-1 space-y-8">
                     {/* System Notifications Feed */}
                     <Card className={`shadow-sm ${recentLabsFeed.length > 0 ? 'border-blue-200 bg-gradient-to-r from-blue-50/50 to-white' : 'border-slate-200 bg-white'}`}>
                         <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
@@ -704,154 +773,72 @@ export default function Dashboard() {
                         </CardContent>
                     </Card>
 
-                    {/* Right Sidebar: Quick Actions & Shift Info */}
-                    <div className="space-y-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg">Staff On Duty</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    <div>
-                                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Seniors (On Call)</h4>
-                                        <div className="space-y-2">
-                                            {staffOnDuty.seniors.length === 0 ? <p className="text-xs italic text-slate-400">No seniors found</p> :
-                                                staffOnDuty.seniors.map((s) => (
-                                                    <div key={s.id} className="flex justify-between items-center text-sm">
-                                                        <span className={s.id === user?.id ? "font-bold" : ""}>{s.name} {s.id === user?.id && "(You)"}</span>
-                                                        <Badge variant="outline" className="text-[10px]">On Call</Badge>
-                                                    </div>
-                                                ))
-                                            }
-                                            {user?.role === 'SENIOR' && !staffOnDuty.seniors.find(s => s.id === user.id) && (
-                                                <Button
-                                                    size="sm"
-                                                    className="w-full mt-2"
-                                                    variant="secondary"
-                                                    onClick={async () => {
-                                                        try {
-                                                            await shiftApi.startShift(user.id, 'DAY');
-                                                            fetchData();
-                                                            toast.success("You are now On Call");
-                                                        } catch (err) {
-                                                            toast.error("Failed to set On Call status");
-                                                        }
-                                                    }}
-                                                >
-                                                    I am On Call
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Nurses (Active Shift)</h4>
-                                        <div className="space-y-2">
-                                            {staffOnDuty.nurses.length === 0 ? <p className="text-xs italic text-slate-400">No nurses on shift</p> :
-                                                staffOnDuty.nurses.map((n) => (
-                                                    <div key={n.id} className="flex flex-col text-sm border-b pb-1 last:border-0 last:pb-0">
-                                                        <div className="flex justify-between items-center">
-                                                            <span className={n.id === user?.id ? "font-bold" : ""}>{n.name}</span>
-                                                            <span className="text-[10px] text-slate-400">{n.shiftType}</span>
-                                                        </div>
-                                                        <div className="text-xs text-slate-500">
-                                                            {n.assignment ? `Assigned: ${n.assignment}` : <span className="text-red-400">Unassigned</span>}
-                                                        </div>
-                                                    </div>
-                                                ))
-                                            }
-                                        </div>
-                                    </div>
-                                    {(user?.role === 'SENIOR' || user?.role === 'RESIDENT') && (
-                                        <Button
-                                            variant="destructive"
-                                            size="sm"
-                                            className="w-full mt-4"
-                                            onClick={async () => {
-                                                if (confirm("Are you sure you want to sign out ALL staff and clear all patient assignments?")) {
-                                                    try {
-                                                        await shiftApi.endAllShifts();
-                                                        toast.success("Signed out all staff");
-                                                        fetchData();
-                                                    } catch (err) {
-                                                        toast.error("Failed to sign out all staff");
-                                                    }
-                                                }
-                                            }}
-                                        >
-                                            <LogOut className="w-4 h-4 mr-2" />
-                                            Sign Out All
-                                        </Button>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-
-                    {/* Clinical Orders — Tabbed Layout */}
-                    <Card className="col-span-full mt-6 border-slate-200">
-                        <CardHeader className="bg-slate-50 border-b pb-3">
-                            <CardTitle className="text-lg flex items-center text-slate-800">
-                                <ClipboardList className="w-5 h-5 mr-2 text-blue-600" />
-                                Clinical Orders
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 bg-slate-50/50">
-                            <Tabs defaultValue="active">
-                                <TabsList className="mb-4">
-                                    <TabsTrigger value="active">Active Orders</TabsTrigger>
-                                    <TabsTrigger value="recent">Recent Orders</TabsTrigger>
-                                    <TabsTrigger value="completed">Recently Completed</TabsTrigger>
-                                </TabsList>
-
-                                <TabsContent value="active">
-                                    <PendingExecutionList onSuccess={fetchData} />
-                                </TabsContent>
-
-                                <TabsContent value="recent">
-                                    <div className="space-y-3">
-                                        {(stats as any).recentOrders?.length === 0 && (
-                                            <p className="text-slate-500 italic text-sm">No recent orders.</p>
-                                        )}
-                                        {(stats as any).recentOrders?.map((order: any) => (
-                                            <div key={order.id} className="flex items-start space-x-3 text-sm border-b pb-2 last:border-0 last:pb-0">
-                                                <div className={`mt-0.5 p-1 rounded-full ${order.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
-                                                    {order.status === 'COMPLETED' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                                                </div>
-                                                <div>
-                                                    <div className="font-medium text-slate-900 flex items-center gap-2">
-                                                        {order.title}
-                                                        {order.status === 'COMPLETED' && <span className="text-[10px] bg-green-100 text-green-800 px-1.5 rounded-full">Done</span>}
-                                                    </div>
-                                                    <div className="text-xs text-slate-500">{order.patient.name}</div>
-                                                    <div className="text-[10px] text-slate-400 mt-0.5">{new Date(order.createdAt).toLocaleString()}</div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </TabsContent>
-
-                                <TabsContent value="completed">
-                                    <CompletedOrdersList />
-                                </TabsContent>
-                            </Tabs>
-                        </CardContent>
-                    </Card>
                 </div>
 
-                <Dialog open={isAddPatientOpen} onOpenChange={setIsAddPatientOpen}>
-                    <DialogContent>
-                        <AddPatientForm
-                            onSuccess={() => {
-                                setIsAddPatientOpen(false);
-                                fetchData();
-                            }}
-                            onCancel={() => setIsAddPatientOpen(false)}
-                        />
-                    </DialogContent>
-                </Dialog>
+
+                {/* Clinical Orders — Tabbed Layout */}
+                <Card className="col-span-full mt-6 border-slate-200">
+                    <CardHeader className="bg-slate-50 border-b pb-3">
+                        <CardTitle className="text-lg flex items-center text-slate-800">
+                            <ClipboardList className="w-5 h-5 mr-2 text-blue-600" />
+                            Clinical Orders
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 bg-slate-50/50">
+                        <Tabs defaultValue="active">
+                            <TabsList className="mb-4">
+                                <TabsTrigger value="active">Active Orders</TabsTrigger>
+                                <TabsTrigger value="recent">Recent Orders</TabsTrigger>
+                                <TabsTrigger value="completed">Recently Completed</TabsTrigger>
+                            </TabsList>
+
+                            <TabsContent value="active">
+                                <PendingExecutionList onSuccess={fetchData} />
+                            </TabsContent>
+
+                            <TabsContent value="recent">
+                                <div className="space-y-3">
+                                    {(stats as any).recentOrders?.length === 0 && (
+                                        <p className="text-slate-500 italic text-sm">No recent orders.</p>
+                                    )}
+                                    {(stats as any).recentOrders?.map((order: any) => (
+                                        <div key={order.id} className="flex items-start space-x-3 text-sm border-b pb-2 last:border-0 last:pb-0">
+                                            <div className={`mt-0.5 p-1 rounded-full ${order.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
+                                                {order.status === 'COMPLETED' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                                            </div>
+                                            <div>
+                                                <div className="font-medium text-slate-900 flex items-center gap-2">
+                                                    {order.title}
+                                                    {order.status === 'COMPLETED' && <span className="text-[10px] bg-green-100 text-green-800 px-1.5 rounded-full">Done</span>}
+                                                </div>
+                                                <div className="text-xs text-slate-500">{order.patient.name}</div>
+                                                <div className="text-[10px] text-slate-400 mt-0.5">{new Date(order.createdAt).toLocaleString()}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </TabsContent>
+
+                            <TabsContent value="completed">
+                                <CompletedOrdersList />
+                            </TabsContent>
+                        </Tabs>
+                    </CardContent>
+                </Card>
             </div>
+
+
+            <Dialog open={isAddPatientOpen} onOpenChange={setIsAddPatientOpen}>
+                <DialogContent>
+                    <AddPatientForm
+                        onSuccess={() => {
+                            setIsAddPatientOpen(false);
+                            fetchData();
+                        }}
+                        onCancel={() => setIsAddPatientOpen(false)}
+                    />
+                </DialogContent>
+            </Dialog>
 
             {/* Confirm check dialog — global, for dashboard banner buttons */}
             {confirmOrder && (

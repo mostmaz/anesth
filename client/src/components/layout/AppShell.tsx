@@ -174,14 +174,19 @@ export default function AppShell() {
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 {/* Mobile Header */}
-                <header className="lg:hidden h-16 bg-white border-b border-slate-200 flex items-center px-4 print:hidden">
+                <header className="lg:hidden sticky top-0 z-30 h-16 bg-white border-b border-slate-200 flex items-center px-4 shadow-sm print:hidden">
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="text-slate-500 hover:text-slate-700"
+                        className="text-slate-500 hover:text-slate-700 p-2 -ml-2"
                     >
                         <Menu className="w-6 h-6" />
                     </button>
-                    <span className="ml-4 font-semibold text-slate-900">ICU Manager</span>
+                    <div className="flex-1 flex items-center justify-between ml-2">
+                        <span className="font-bold text-slate-900 tracking-tight">ICU Manager</span>
+                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-[10px] font-bold text-white uppercase">
+                            {user?.name.charAt(0)}
+                        </div>
+                    </div>
                 </header>
 
                 {/* Page Content */}

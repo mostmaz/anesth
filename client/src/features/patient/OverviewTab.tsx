@@ -11,8 +11,6 @@ import {
     Droplets,
     ClipboardList,
     Clock,
-    ChevronRight,
-    Stethoscope,
     Heart,
     Zap,
     Microscope,
@@ -21,7 +19,9 @@ import {
 import { Button } from '../../components/ui/button';
 import { Progress } from "../../components/ui/progress";
 import { marApi, type Medication } from '../../api/marApi';
+import { patientApi, type TimelineEvent } from '../../api/patientApi';
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 
 interface OverviewTabProps {
     patientId: string;
@@ -34,6 +34,7 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
     const [latestLabs, setLatestLabs] = useState<Investigation[]>([]);
     const [completedInterventions, setCompletedInterventions] = useState<ClinicalOrder[]>([]);
     const [medications, setMedications] = useState<Medication[]>([]);
+    const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const [now, setNow] = useState(new Date());
 
@@ -46,12 +47,13 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const [v, io, o, i, m] = await Promise.all([
+                const [v, io, o, i, m, t] = await Promise.all([
                     vitalsApi.getVitals(patientId),
                     ioApi.getHistory(patientId),
                     ordersApi.getOrders(patientId),
                     investigationsApi.getAll(patientId),
-                    marApi.getMAR(patientId)
+                    marApi.getMAR(patientId),
+                    patientApi.getTimeline(patientId).catch(() => [])
                 ]);
 
                 if (v && v.length > 0) setLastVitals(v[v.length - 1]);
@@ -63,6 +65,7 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
                     .slice(0, 4));
                 setLatestLabs((i || []).filter((inv: any) => inv.type === 'LAB').slice(0, 3));
                 setMedications(m || []);
+                setTimeline(t || []);
             } catch (error) {
                 console.error("Failed to fetch overview data", error);
             } finally {
@@ -117,7 +120,7 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
     return (
         <div className="space-y-6 pb-8">
             {/* --- TOP ROW: VITALS & BALANCE --- */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Vitals Card */}
                 <Card className={cn(
                     "border-l-4 transition-all hover:shadow-md",
@@ -126,39 +129,36 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
                     <CardHeader className="pb-2">
                         <div className="flex justify-between items-start">
                             <CardTitle className="text-sm font-medium text-slate-500 uppercase flex items-center gap-2">
-                                <Activity className="w-4 h-4" /> Last Vitals
+                                <Activity className="w-4 h-4" /> Vitals
                             </CardTitle>
                             {vitalsDelayed && <Badge variant="destructive" className="animate-pulse">Delayed</Badge>}
                         </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="py-2">
                         {lastVitals ? (
-                            <div className="space-y-2">
+                            <div className="space-y-1">
                                 <div className="flex justify-between items-baseline">
-                                    <span className="text-2xl font-bold tracking-tight">
-                                        {lastVitals.bpSys}/{lastVitals.bpDia}
+                                    <span className="text-xl font-bold tracking-tight">
+                                        {lastVitals.bpSys}/{lastVitals.bpDia} <span className="text-[10px] text-slate-400 font-normal">mmHg</span>
                                     </span>
-                                    <span className="text-xs text-slate-400">mmHg</span>
                                 </div>
-                                <div className="grid grid-cols-2 gap-2 mt-4">
-                                    <div className="flex items-center gap-2 text-sm">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="flex items-center gap-1.5 text-sm">
                                         <Heart className="w-3.5 h-3.5 text-rose-500" />
                                         <span className="font-semibold">{lastVitals.heartRate}</span>
-                                        <span className="text-[10px] text-slate-400">bpm</span>
                                     </div>
-                                    <div className="flex items-center gap-2 text-sm">
+                                    <div className="flex items-center gap-1.5 text-sm">
                                         <Droplets className="w-3.5 h-3.5 text-blue-500" />
                                         <span className="font-semibold">{lastVitals.spo2}%</span>
-                                        <span className="text-[10px] text-slate-400">SpO2</span>
                                     </div>
                                 </div>
-                                <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
+                                <p className="text-[9px] text-slate-400 mt-1 flex items-center gap-1">
                                     <Clock className="w-3 h-3" />
                                     {new Date(lastVitals.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </p>
                             </div>
                         ) : (
-                            <p className="text-slate-400 italic text-sm">No records</p>
+                            <p className="text-slate-400 italic text-xs">No records</p>
                         )}
                     </CardContent>
                 </Card>
@@ -176,177 +176,264 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
                             {ioDelayed && <Badge variant="destructive" className="animate-pulse">Delayed</Badge>}
                         </div>
                     </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
+                    <CardContent className="py-2">
+                        <div className="space-y-1">
                             <div className="flex justify-between items-baseline">
                                 <span className={cn(
-                                    "text-2xl font-bold tracking-tight",
+                                    "text-xl font-bold tracking-tight",
                                     balance > 0 ? "text-blue-600" : balance < 0 ? "text-amber-600" : ""
                                 )}>
-                                    {balance > 0 ? '+' : ''}{balance}
+                                    {balance > 0 ? '+' : ''}{balance} <span className="text-[10px] text-slate-400 font-normal">mL</span>
                                 </span>
-                                <span className="text-xs text-slate-400">mL</span>
                             </div>
-                            <div className="space-y-1 mt-4">
-                                <div className="flex justify-between text-[10px] uppercase font-bold text-slate-400">
+                            <div className="space-y-1">
+                                <div className="flex justify-between text-[9px] uppercase font-bold text-slate-400">
                                     <span>In: {totalInput}</span>
                                     <span>Out: {totalOutput}</span>
                                 </div>
-                                <Progress value={(totalInput / (totalInput + totalOutput)) * 100 || 50} className="h-1.5" />
+                                <Progress value={(totalInput / (totalInput + totalOutput)) * 100 || 50} className="h-1" />
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
                 {/* Support Card */}
-                <Card className="border-l-4 border-l-amber-500 transition-all hover:shadow-md lg:col-span-2">
+                <Card className="border-l-4 border-l-amber-500 transition-all hover:shadow-md sm:col-span-2">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-slate-500 uppercase flex items-center gap-2">
-                            <Zap className="w-4 h-4 text-amber-500" /> Support (Vasopressors/Inotropes)
+                            <Zap className="w-4 h-4 text-amber-500" /> Active Support
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {activeSupport.length > 0 ? activeSupport.map((s, i) => (
-                                <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
-                                    <div>
-                                        <p className="font-bold text-slate-800 text-sm">{s.name}</p>
-                                        <p className="text-[10px] text-slate-500">{s.doseMg} in {s.dilution}cc</p>
+                    <CardContent className="py-2">
+                        <div className="grid grid-cols-2 gap-2">
+                            {activeSupport.length > 0 ? activeSupport.slice(0, 4).map((s, i) => (
+                                <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100">
+                                    <div className="min-w-0">
+                                        <p className="font-bold text-slate-800 text-[11px] truncate">{s.name}</p>
+                                        <p className="text-[9px] text-slate-500 truncate">{s.doseMg}</p>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-lg font-black text-amber-600 leading-none">{(s.doseMlHr || '0').split(' ')[0]}</p>
-                                        <p className="text-[10px] text-slate-400">ml/hr</p>
+                                    <div className="text-right shrink-0">
+                                        <p className="text-sm font-black text-amber-600">{(s.doseMlHr || '0').split(' ')[0]}</p>
                                     </div>
                                 </div>
                             )) : (
-                                <p className="text-slate-400 italic text-sm">No active support</p>
+                                <p className="text-slate-400 italic text-xs col-span-2 py-2">No active support</p>
                             )}
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* --- MIDDLE ROW: ORDERS, INTERVENTIONS, LABS --- */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Latest Orders */}
-                <Card className="shadow-sm border-slate-200">
-                    <CardHeader className="border-b bg-slate-50/50 py-3">
-                        <div className="flex justify-between items-center">
-                            <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                <ClipboardList className="w-4 h-4" /> Latest Clinical Orders
-                            </CardTitle>
-                            <Button variant="ghost" size="sm" className="text-[10px] h-6 px-2">View All</Button>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <div className="divide-y divide-slate-100">
-                            {latestOrders.map((order) => (
-                                <div key={order.id} className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-                                    <div className="flex gap-3 items-start">
-                                        <div className={cn(
-                                            "mt-1 p-1.5 rounded-md",
-                                            order.type === 'MEDICATION' ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600"
-                                        )}>
-                                            <Stethoscope className="w-3.5 h-3.5" />
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold text-slate-900 text-sm">{order.title}</p>
-                                            <p className="text-xs text-slate-500">{order.notes || "No special instructions"}</p>
-                                        </div>
-                                    </div>
-                                    <Badge variant={order.status === 'APPROVED' ? 'default' : 'secondary'} className="text-[10px]">
-                                        {order.status}
-                                    </Badge>
-                                </div>
-                            ))}
-                            {latestOrders.length === 0 && <p className="p-8 text-center text-slate-400 italic text-sm">No active orders</p>}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Completed Interventions */}
-                <Card className="shadow-sm border-slate-200">
-                    <CardHeader className="border-b bg-emerald-50/50 py-3">
-                        <div className="flex justify-between items-center">
-                            <CardTitle className="text-sm font-bold flex items-center gap-2 text-emerald-800">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Completed Interventions
-                            </CardTitle>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <div className="divide-y divide-slate-100">
-                            {completedInterventions.map((order) => (
-                                <div key={order.id} className="p-4 flex flex-col hover:bg-emerald-50/30 transition-colors">
-                                    <div className="flex justify-between items-start">
-                                        <p className="font-semibold text-slate-900 text-sm">{order.title}</p>
-                                        <span className="text-[10px] text-slate-400">
-                                            {new Date((order.details as any)?.timeDone || order.updatedAt).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-1 mt-1 text-xs text-slate-500">
-                                        <Clock className="w-3 h-3" />
-                                        <span>
-                                            {new Date((order.details as any)?.timeDone || order.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
-                                    </div>
-                                    {order.notes && (
-                                        <p className="text-xs text-slate-500 mt-2 bg-slate-50 p-2 rounded">{order.notes}</p>
-                                    )}
-                                    {(order.details as any)?.notificationText && (
-                                        <p className="text-xs text-amber-600 mt-1 bg-amber-50 p-2 rounded">
-                                            Reminder: {(order.details as any).notificationText}
-                                        </p>
-                                    )}
-                                </div>
-                            ))}
-                            {completedInterventions.length === 0 && <p className="p-8 text-center text-slate-400 italic text-sm">No recent completed interventions</p>}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Recent Investigation Summary */}
-                <Card className="shadow-sm border-slate-200">
-                    <CardHeader className="border-b bg-slate-50/50 py-3">
-                        <CardTitle className="text-sm font-bold flex items-center gap-2">
-                            <Microscope className="w-4 h-4" /> Recent Investigations
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 space-y-4">
-                        {latestLabs.map((lab) => (
-                            <div key={lab.id} className="group cursor-pointer">
-                                <div className="flex justify-between items-center mb-1">
-                                    <p className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{lab.title}</p>
-                                    <span className="text-[10px] text-slate-400">{new Date(lab.conductedAt).toLocaleDateString()}</span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {Object.entries(lab.result || {}).filter(([k]) => k !== 'imageUrl' && k !== 'impression').slice(0, 4).map(([key, val]) => (
-                                        <div key={key} className="flex justify-between text-[10px] p-1.5 bg-slate-50 rounded border border-slate-100">
-                                            <span className="text-slate-500 truncate mr-1">{key}</span>
-                                            <span className="font-bold text-slate-900">{String(val)}</span>
+            {/* --- MAIN CONTENT: TABS ON MOBILE, GRID ON DESKTOP --- */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div className="lg:col-span-3 space-y-6">
+                    {/* Desktop Grid View */}
+                    <div className="hidden lg:grid lg:grid-cols-3 gap-6">
+                        {/* Latest Orders */}
+                        <Card className="shadow-sm border-slate-200">
+                            <CardHeader className="border-b bg-slate-50/50 py-3">
+                                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                    <ClipboardList className="w-4 h-4" /> Orders
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <div className="divide-y divide-slate-100">
+                                    {latestOrders.map((order) => (
+                                        <div key={order.id} className="p-3 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                                            <div className="min-w-0">
+                                                <p className="font-semibold text-slate-900 text-xs truncate">{order.title}</p>
+                                                <p className="text-[10px] text-slate-500 truncate">{order.notes || "No instructions"}</p>
+                                            </div>
+                                            <Badge variant={order.status === 'APPROVED' ? 'default' : 'secondary'} className="text-[8px] px-1 h-4">
+                                                {order.status}
+                                            </Badge>
                                         </div>
                                     ))}
+                                    {latestOrders.length === 0 && <p className="p-4 text-center text-slate-400 italic text-xs">No active orders</p>}
                                 </div>
-                                {lab.result?.imageUrl && (
-                                    <div className="mt-2 flex justify-end">
-                                        <Button
-                                            variant="link"
-                                            size="sm"
-                                            className="h-4 p-0 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                const url = lab.result.imageUrl.startsWith('/') ? lab.result.imageUrl : `/${lab.result.imageUrl}`;
-                                                window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${url}`, '_blank');
-                                            }}
-                                        >
-                                            View Report <ChevronRight className="w-3 h-3" />
-                                        </Button>
+                            </CardContent>
+                        </Card>
+
+                        {/* Investigations */}
+                        <Card className="shadow-sm border-slate-200">
+                            <CardHeader className="border-b bg-slate-50/50 py-3">
+                                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                    <Microscope className="w-4 h-4" /> Labs
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-3 space-y-3">
+                                {latestLabs.map((lab) => (
+                                    <div key={lab.id} className="group cursor-pointer border-b border-slate-50 last:border-0 pb-2">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <p className="text-xs font-bold text-slate-800 truncate">{lab.title}</p>
+                                            <span className="text-[9px] text-slate-400 shrink-0">{new Date(lab.conductedAt).toLocaleDateString()}</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-1 px-1">
+                                            {Object.entries(lab.result || {}).filter(([k]) => k !== 'imageUrl' && k !== 'impression').slice(0, 4).map(([key, val]) => (
+                                                <div key={key} className="flex justify-between text-[9px] py-0.5">
+                                                    <span className="text-slate-500 truncate">{key}</span>
+                                                    <span className="font-bold text-slate-900 ml-1">{String(val)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                )}
+                                ))}
+                                {latestLabs.length === 0 && <p className="p-4 text-center text-slate-400 italic text-xs">No recent labs</p>}
+                            </CardContent>
+                        </Card>
+
+                        {/* Interventions */}
+                        <Card className="shadow-sm border-slate-200">
+                            <CardHeader className="border-b bg-emerald-50/50 py-3">
+                                <CardTitle className="text-sm font-bold flex items-center gap-2 text-emerald-800">
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Done
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <div className="divide-y divide-slate-100">
+                                    {completedInterventions.map((order) => (
+                                        <div key={order.id} className="p-3 hover:bg-emerald-50/30 transition-colors">
+                                            <div className="flex justify-between items-start">
+                                                <p className="font-semibold text-slate-900 text-xs truncate">{order.title}</p>
+                                                <span className="text-[9px] text-slate-400">
+                                                    {new Date((order.details as any)?.timeDone || order.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
+                                            {order.notes && <p className="text-[9px] text-slate-500 mt-1 line-clamp-1">{order.notes}</p>}
+                                        </div>
+                                    ))}
+                                    {completedInterventions.length === 0 && <p className="p-4 text-center text-slate-400 italic text-xs">No recent completions</p>}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Mobile Tabbed View */}
+                    <div className="lg:hidden">
+                        <Tabs defaultValue="orders" className="w-full">
+                            <TabsList className="grid grid-cols-3 w-full mb-4">
+                                <TabsTrigger value="orders" className="text-xs">Orders</TabsTrigger>
+                                <TabsTrigger value="labs" className="text-xs">Labs</TabsTrigger>
+                                <TabsTrigger value="done" className="text-xs">Done</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="orders">
+                                <Card className="p-0 border-none shadow-none bg-transparent">
+                                    <div className="divide-y divide-slate-200 bg-white rounded-lg border">
+                                        {latestOrders.map((order) => (
+                                            <div key={order.id} className="p-4 flex items-center justify-between">
+                                                <div>
+                                                    <p className="font-semibold text-slate-900 text-sm">{order.title}</p>
+                                                    <p className="text-xs text-slate-500">{order.notes}</p>
+                                                </div>
+                                                <Badge variant="secondary" className="text-[10px]">{order.status}</Badge>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </Card>
+                            </TabsContent>
+                            <TabsContent value="labs">
+                                <Card className="p-4 border-none shadow-none bg-white rounded-lg border">
+                                    <div className="space-y-4">
+                                        {latestLabs.map((lab) => (
+                                            <div key={lab.id} className="border-b pb-2 last:border-0">
+                                                <p className="text-sm font-bold text-slate-800">{lab.title}</p>
+                                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                                    {Object.entries(lab.result || {}).filter(([k]) => k !== 'imageUrl' && k !== 'impression').map(([key, val]) => (
+                                                        <div key={key} className="flex justify-between text-xs p-2 bg-slate-50 rounded">
+                                                            <span>{key}</span>
+                                                            <span className="font-bold">{String(val)}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </Card>
+                            </TabsContent>
+                            <TabsContent value="done">
+                                <Card className="p-0 border-none shadow-none bg-transparent">
+                                    <div className="divide-y divide-slate-200 bg-white rounded-lg border">
+                                        {completedInterventions.map((order) => (
+                                            <div key={order.id} className="p-4">
+                                                <div className="flex justify-between items-center">
+                                                    <p className="font-semibold text-slate-900 text-sm">{order.title}</p>
+                                                    <span className="text-xs text-slate-400">
+                                                        {new Date((order.details as any)?.timeDone || order.updatedAt).toLocaleTimeString()}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-slate-500 mt-1">{order.notes}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </Card>
+                            </TabsContent>
+                        </Tabs>
+                    </div>
+                </div>
+
+                {/* --- RIGHT COLUMN: RECENT ACTIVITY TIMELINE --- */}
+                <div className="lg:col-span-1">
+                    <Card className="h-full border-slate-200 shadow-sm sticky top-6">
+                        <CardHeader className="border-b bg-slate-50/80 py-3">
+                            <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                <Clock className="w-4 h-4 text-blue-600" /> Recent Activity
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="p-4 relative">
+                                {/* Vertical line */}
+                                <div className="absolute left-6 top-8 bottom-8 w-px bg-slate-200 border-dashed" />
+
+                                <div className="space-y-6">
+                                    {timeline.slice(0, 10).map((event, idx) => (
+                                        <div key={`${event.type}-${event.id}-${idx}`} className="relative pl-8">
+                                            {/* Dot */}
+                                            <div className={cn(
+                                                "absolute left-[-2px] top-1.5 w-4 h-4 rounded-full border-2 border-white shadow-sm z-10",
+                                                event.type === 'MEDICATION' ? "bg-blue-500" :
+                                                    event.type === 'ORDER' ? "bg-purple-500" :
+                                                        event.type === 'INVESTIGATION' ? "bg-emerald-500" :
+                                                            event.type === 'CONSULTATION' ? "bg-amber-500" : "bg-slate-400"
+                                            )} />
+
+                                            <div className="space-y-0.5">
+                                                <div className="flex justify-between items-start pt-0.5">
+                                                    <p className="text-[11px] font-bold text-slate-900 leading-tight pr-2">{event.title}</p>
+                                                    <span className="text-[9px] font-medium text-slate-400 whitespace-nowrap">
+                                                        {new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <Badge variant="outline" className={cn(
+                                                        "text-[8px] h-3.5 px-1 py-0 border-none font-bold uppercase",
+                                                        event.status === 'STARTED' || event.status === 'COMPLETED' || event.status === 'APPROVED' ? "bg-emerald-50 text-emerald-700" :
+                                                            event.status === 'STOPPED' || event.status === 'DISCONTINUED' ? "bg-rose-50 text-rose-700" : "bg-slate-50 text-slate-600"
+                                                    )}>
+                                                        {event.status}
+                                                    </Badge>
+                                                    <span className="text-[10px] text-slate-500 truncate italic">
+                                                        {event.details}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {timeline.length === 0 && (
+                                        <div className="text-center py-8">
+                                            <Clock className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+                                            <p className="text-xs text-slate-400 italic">No recent activity found</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        ))}
-                        {latestLabs.length === 0 && <p className="p-8 text-center text-slate-400 italic text-sm">No recent labs</p>}
-                    </CardContent>
-                </Card>
+                            <div className="p-3 border-t bg-slate-50/30">
+                                <Button variant="ghost" size="sm" className="w-full text-[10px] h-6 text-slate-500">
+                                    Load Full History
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );

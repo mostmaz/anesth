@@ -185,7 +185,91 @@ router.patch('/:id/discharge', async (req, res) => {
     }
 });
 
-// DELETE patient
+// GET patient timeline activity
+router.get('/:id/timeline', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const [meds, orders, consults, notes, labs] = await Promise.all([
+            prisma.medication.findMany({ where: { patientId: id }, orderBy: { updatedAt: 'desc' } }),
+            prisma.clinicalOrder.findMany({ where: { patientId: id }, orderBy: { createdAt: 'desc' } }),
+            prisma.consultation.findMany({ where: { patientId: id }, orderBy: { timestamp: 'desc' } }),
+            prisma.clinicalNote.findMany({ where: { patientId: id }, orderBy: { createdAt: 'desc' } }),
+            prisma.investigation.findMany({ where: { patientId: id }, orderBy: { updatedAt: 'desc' } })
+        ]);
+
+        const timeline: any[] = [];
+
+        // 1. Process Medications
+        meds.forEach(m => {
+            timeline.push({
+                id: m.id,
+                type: 'MEDICATION',
+                title: m.name,
+                status: m.isActive ? 'STARTED' : 'STOPPED',
+                timestamp: m.isActive ? m.startedAt : m.updatedAt,
+                details: `${m.defaultDose} ${m.route} ${m.frequency || ''}`
+            });
+        });
+
+        // 2. Process Orders
+        orders.forEach(o => {
+            timeline.push({
+                id: o.id,
+                type: 'ORDER',
+                title: o.title,
+                status: o.status,
+                timestamp: o.updatedAt,
+                details: o.notes
+            });
+        });
+
+        // 3. Process Consultations
+        consults.forEach(c => {
+            timeline.push({
+                id: c.id,
+                type: 'CONSULTATION',
+                title: `Consultation: ${c.specialty}`,
+                status: 'COMPLETED',
+                timestamp: c.timestamp,
+                details: `Dr. ${c.doctorName}`
+            });
+        });
+
+        // 4. Process Notes
+        notes.forEach(n => {
+            timeline.push({
+                id: n.id,
+                type: 'NOTE',
+                title: n.title,
+                status: 'ADDED',
+                timestamp: n.createdAt,
+                details: n.content.substring(0, 100) + (n.content.length > 100 ? '...' : '')
+            });
+        });
+
+        // 5. Process Labs
+        labs.forEach(l => {
+            timeline.push({
+                id: l.id,
+                type: 'INVESTIGATION',
+                title: l.title,
+                status: l.status,
+                timestamp: l.updatedAt,
+                details: l.impression
+            });
+        });
+
+        // Sort by timestamp descending
+        timeline.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        res.json(timeline.slice(0, 20)); // Return top 20 events
+    } catch (error) {
+        console.error("Timeline error:", error);
+        res.status(500).json({ error: 'Failed to fetch timeline' });
+    }
+});
+
 router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
