@@ -651,6 +651,7 @@ export default function Dashboard() {
                                                 {(() => {
                                                     const patientAssignments = assignments.filter(a => a.patientId === patient.id);
                                                     const myAssignment = patientAssignments.find(a => a.userId === user?.id);
+                                                    const myPending = pendingAssignments.find(a => a.patientId === patient.id && a.userId === user?.id);
 
                                                     if (myAssignment) {
                                                         return (
@@ -662,6 +663,14 @@ export default function Dashboard() {
                                                             >
                                                                 Sign Out
                                                             </Button>
+                                                        );
+                                                    }
+
+                                                    if (myPending) {
+                                                        return (
+                                                            <Badge variant="outline" className="h-7 bg-orange-50 text-orange-600 border-orange-200">
+                                                                Pending Approval
+                                                            </Badge>
                                                         );
                                                     }
 

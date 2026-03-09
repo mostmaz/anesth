@@ -54,7 +54,7 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
                     marApi.getMAR(patientId)
                 ]);
 
-                if (v && v.length > 0) setLastVitals(v[0]);
+                if (v && v.length > 0) setLastVitals(v[v.length - 1]);
                 setIoHistory(io || []);
                 setLatestOrders((o || []).filter((order: any) => order.type !== 'PROCEDURE').slice(0, 5));
                 setCompletedInterventions((o || [])
