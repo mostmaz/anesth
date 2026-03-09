@@ -363,7 +363,7 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                                                 </TableCell>
                                             </TableRow>
                                         );
-                                    })}
+                                    })
                                 )}
                             </TableBody>
                         </Table>
