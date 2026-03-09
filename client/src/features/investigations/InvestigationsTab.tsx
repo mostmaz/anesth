@@ -172,20 +172,24 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                         defaultTab === 'cardiology' ? 'Cardiology' : 'Radiology'}
                 </h3>
                 <div className="flex gap-2">
-                    <Button
-                        variant="default" // Primary action
-                        size="sm"
-                        onClick={syncLabs}
-                        disabled={isSyncing || isDeletingAll}
-                        className="bg-blue-600 hover:bg-blue-700"
-                    >
-                        <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-                        {isSyncing ? 'Syncing...' : 'Sync Reports'}
-                    </Button>
-                    <Button variant="outline" onClick={() => setIsLabImportOpen(true)} disabled={isDeletingAll}>
-                        <Microscope className="w-4 h-4 mr-2" />
-                        Import Lab
-                    </Button>
+                    {defaultTab === 'labs' && (
+                        <>
+                            <Button
+                                variant="default" // Primary action
+                                size="sm"
+                                onClick={syncLabs}
+                                disabled={isSyncing || isDeletingAll}
+                                className="bg-blue-600 hover:bg-blue-700"
+                            >
+                                <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                                {isSyncing ? 'Syncing...' : 'Sync Reports'}
+                            </Button>
+                            <Button variant="outline" onClick={() => setIsLabImportOpen(true)} disabled={isDeletingAll}>
+                                <Microscope className="w-4 h-4 mr-2" />
+                                Import Lab
+                            </Button>
+                        </>
+                    )}
                     <UploadExternalResultDialog patientId={patientId} onSuccess={fetchInvestigations} activeTab={activeTab} />
                     {investigations.length > 0 && (
                         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

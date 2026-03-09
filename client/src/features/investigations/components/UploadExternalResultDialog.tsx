@@ -191,15 +191,15 @@ export function UploadExternalResultDialog({ patientId, activeTab, onSuccess }: 
                     </div>
 
                     <div className="space-y-4 border p-3 rounded-md">
-                        <Label className="mb-2 block font-medium">Upload Images</Label>
+                        <Label className="mb-2 block font-medium">Upload Documents/Images</Label>
 
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="file">Select Images (Max 3)</Label>
+                                <Label htmlFor="file">Select Files (Max 3, Images/PDFs)</Label>
                                 <Input
                                     id="file"
                                     type="file"
-                                    accept="image/*"
+                                    accept="image/*,application/pdf"
                                     multiple
                                     required
                                     onChange={(e) => {
