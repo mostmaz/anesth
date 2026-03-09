@@ -21,7 +21,7 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
     const navigate = useNavigate();
     const patientId = propPatientId || paramPatientId;
     const [vitals, setVitals] = useState<VitalSign[]>([]);
-    const [newEntry, setNewEntry] = useState({ hr: '', bpSys: '', bpDia: '', spo2: '', temp: '', rbs: '', imageUrl: '' });
+    const [newEntry, setNewEntry] = useState({ hr: '', bpSys: '', bpDia: '', spo2: '', temp: '', rbs: '', rr: '', imageUrl: '' });
 
     useEffect(() => {
         if (patientId) {
@@ -54,10 +54,11 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                 spo2: newEntry.spo2 ? Number(newEntry.spo2) : null,
                 temp: newEntry.temp ? Number(newEntry.temp) : null,
                 rbs: newEntry.rbs ? Number(newEntry.rbs) : null,
+                rr: newEntry.rr ? Number(newEntry.rr) : null,
                 imageUrl: newEntry.imageUrl || null,
             });
             setVitals([entry, ...vitals]);
-            setNewEntry({ hr: '', bpSys: '', bpDia: '', spo2: '', temp: '', rbs: '', imageUrl: '' });
+            setNewEntry({ hr: '', bpSys: '', bpDia: '', spo2: '', temp: '', rbs: '', rr: '', imageUrl: '' });
             toast.success("Vitals recorded successfully");
         } catch (error) {
             toast.error('Failed to record vitals');
@@ -177,12 +178,13 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
             </div>
 
             {/* Visual Trends */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                 <TrendChart title="Heart Rate" data={vitals} dataKey="heartRate" color="#ef4444" unit="bpm" thresholdHigh={100} thresholdLow={60} min={40} max={140} />
                 <TrendChart title="Systolic BP" data={vitals} dataKey="bpSys" color="#3b82f6" unit="mmHg" thresholdHigh={140} thresholdLow={90} min={60} max={200} />
                 <TrendChart title="SpO2" data={vitals} dataKey="spo2" color="#10b981" unit="%" thresholdLow={92} min={80} max={100} />
                 <TrendChart title="Temperature" data={vitals} dataKey="temp" color="#f59e0b" unit="°C" thresholdHigh={38} min={35} max={40} />
                 <TrendChart title="RBS" data={vitals} dataKey="rbs" color="#8b5cf6" unit="mg/dL" thresholdHigh={200} min={50} max={400} />
+                <TrendChart title="RR" data={vitals} dataKey="rr" color="#06b6d4" unit="bpm" thresholdHigh={24} thresholdLow={12} min={8} max={40} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -199,6 +201,7 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                     bpDia: data.bpDia || prev.bpDia,
                                     spo2: data.spo2 || prev.spo2,
                                     temp: data.temp || prev.temp,
+                                    rr: data.rr || prev.rr,
                                     imageUrl: data.imageUrl || prev.imageUrl,
                                 }));
                             }}
@@ -238,12 +241,21 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                     />
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="temp">Temperature (°C)</Label>
-                                <Input
-                                    id="temp" type="number" placeholder="°C" step="0.1"
-                                    value={newEntry.temp} onChange={e => setNewEntry({ ...newEntry, temp: e.target.value })}
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="temp">Temperature (°C)</Label>
+                                    <Input
+                                        id="temp" type="number" placeholder="°C" step="0.1"
+                                        value={newEntry.temp} onChange={e => setNewEntry({ ...newEntry, temp: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="rr">Resp Rate (RR)</Label>
+                                    <Input
+                                        id="rr" type="number" placeholder="bpm"
+                                        value={newEntry.rr} onChange={e => setNewEntry({ ...newEntry, rr: e.target.value })}
+                                    />
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="rbs">RBS (mg/dL)</Label>
@@ -281,6 +293,7 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                         <TableHead>BP</TableHead>
                                         <TableHead>SpO2</TableHead>
                                         <TableHead>Temp</TableHead>
+                                        <TableHead>RR</TableHead>
                                         <TableHead>RBS</TableHead>
                                         <TableHead className="w-[50px]"></TableHead>
                                     </TableRow>
@@ -298,6 +311,7 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                             <TableCell>{entry.bpSys}/{entry.bpDia}</TableCell>
                                             <TableCell>{entry.spo2}%</TableCell>
                                             <TableCell>{entry.temp}°C</TableCell>
+                                            <TableCell>{entry.rr}</TableCell>
                                             <TableCell>{entry.rbs}</TableCell>
                                             <TableCell>
                                                 {entry.imageUrl && (
@@ -310,7 +324,7 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                     ))}
                                     {vitals.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={7} className="text-center text-muted-foreground">No records found</TableCell>
+                                            <TableCell colSpan={8} className="text-center text-muted-foreground">No records found</TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>

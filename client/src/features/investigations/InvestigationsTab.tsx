@@ -39,6 +39,7 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
     const [isSyncing, setIsSyncing] = useState(false);
     const [isDeletingAll, setIsDeletingAll] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<string>(defaultTab || 'labs');
 
     const fetchInvestigations = async () => {
         try {
@@ -185,7 +186,7 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                         <Microscope className="w-4 h-4 mr-2" />
                         Import Lab
                     </Button>
-                    <UploadExternalResultDialog patientId={patientId} onSuccess={fetchInvestigations} />
+                    <UploadExternalResultDialog patientId={patientId} onSuccess={fetchInvestigations} activeTab={activeTab} />
                     {investigations.length > 0 && (
                         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                             <DialogTrigger asChild>
@@ -254,7 +255,7 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                 </div>
             </div>
 
-            <Tabs defaultValue={defaultTab || "labs"} className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 {!defaultTab && (
                     <TabsList className="w-full justify-start">
                         <TabsTrigger value="labs">
@@ -285,71 +286,85 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                                             No lab results found
                                         </TableCell>
                                     </TableRow>
-                                ) : labs.map(lab => (
-                                    <TableRow key={lab.id}>
-                                        <TableCell className="font-mono text-xs">
-                                            {new Date(lab.conductedAt).toLocaleString()}
-                                        </TableCell>
-                                        <TableCell>
-                                            <button
-                                                className="font-medium hover:underline text-primary text-left"
-                                                onClick={() => setSelectedInvestigation(lab)}
-                                            >
-                                                {normalizeTestName(lab.title)}
-                                                {normalizeTestName(lab.title) !== lab.title && (
-                                                    <span className="text-xs text-muted-foreground ml-2">({lab.title})</span>
-                                                )}
-                                            </button>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant={lab.status === 'FINAL' ? 'secondary' : 'outline'}>
-                                                {lab.status}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            {lab.result?.imageUrl && (
-                                                <Dialog>
-                                                    <DialogTrigger asChild>
-                                                        <Button variant="ghost" size="sm" className="h-8 px-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50">
-                                                            <Eye className="w-4 h-4" />
-                                                            <span className="sr-only">View Image</span>
-                                                        </Button>
-                                                    </DialogTrigger>
-                                                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
-                                                        <div className="p-4 bg-black/5 flex justify-center items-center min-h-[200px]">
-                                                            {lab.result.imageUrl.toLowerCase().endsWith('.pdf') ? (
-                                                                <div className="text-center py-20 px-10">
-                                                                    <p className="mb-4 text-muted-foreground text-lg">This report is a PDF document.</p>
-                                                                    <Button size="lg" onClick={() => window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`, '_blank')}>
-                                                                        <FileText className="w-5 h-5 mr-3" />
-                                                                        Click here to open PDF in a new tab
-                                                                    </Button>
-                                                                </div>
-                                                            ) : (
-                                                                <img
-                                                                    src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`}
-                                                                    alt="Result"
-                                                                    className="max-w-full h-auto rounded shadow-sm"
-                                                                />
+                                ) : (
+                                    labs.map(lab => {
+                                        const isAbnormal = lab.result && typeof lab.result === 'object' &&
+                                            Object.values(lab.result).some((v: any) => typeof v === 'object' && v !== null && (v as any).isAbnormal === true);
+
+                                        return (
+                                            <TableRow key={lab.id} className={isAbnormal ? "bg-rose-50/20" : ""}>
+                                                <TableCell className="font-mono text-xs">
+                                                    {new Date(lab.conductedAt).toLocaleString()}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            className="font-medium hover:underline text-primary text-left"
+                                                            onClick={() => setSelectedInvestigation(lab)}
+                                                        >
+                                                            {normalizeTestName(lab.title)}
+                                                            {normalizeTestName(lab.title) !== lab.title && (
+                                                                <span className="text-xs text-muted-foreground ml-2">({lab.title})</span>
                                                             )}
-                                                        </div>
-                                                    </DialogContent>
-                                                </Dialog>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                onClick={() => handleDelete(lab.id)}
-                                                disabled={deletingId === lab.id}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
+                                                        </button>
+                                                        {isAbnormal && (
+                                                            <Badge variant="destructive" className="text-[8px] h-4 px-1 uppercase animate-pulse">
+                                                                Abnormal
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={lab.status === 'FINAL' ? 'secondary' : 'outline'}>
+                                                        {lab.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {lab.result?.imageUrl && (
+                                                        <Dialog>
+                                                            <DialogTrigger asChild>
+                                                                <Button variant="ghost" size="sm" className="h-8 px-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                                                                    <Eye className="w-4 h-4" />
+                                                                    <span className="sr-only">View Image</span>
+                                                                </Button>
+                                                            </DialogTrigger>
+                                                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
+                                                                <div className="p-4 bg-black/5 flex justify-center items-center min-h-[200px]">
+                                                                    {lab.result.imageUrl.toLowerCase().endsWith('.pdf') ? (
+                                                                        <div className="text-center py-20 px-10">
+                                                                            <p className="mb-4 text-muted-foreground text-lg">This report is a PDF document.</p>
+                                                                            <Button size="lg" onClick={() => window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`, '_blank')}>
+                                                                                <FileText className="w-5 h-5 mr-3" />
+                                                                                Click here to open PDF in a new tab
+                                                                            </Button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <img
+                                                                            src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`}
+                                                                            alt="Result"
+                                                                            className="max-w-full h-auto rounded shadow-sm"
+                                                                        />
+                                                                    )}
+                                                                </div>
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                        onClick={() => handleDelete(lab.id)}
+                                                        disabled={deletingId === lab.id}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                )}
                             </TableBody>
                         </Table>
                     </Card>

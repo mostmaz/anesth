@@ -43,6 +43,7 @@ router.post('/', async (req, res) => {
                 spo2: spo2 ? Number(spo2) : null,
                 temp: temp ? Number(temp) : null,
                 rbs: req.body.rbs ? Number(req.body.rbs) : null,
+                rr: req.body.rr ? Number(req.body.rr) : null,
                 imageUrl: imageUrl || null,
                 timestamp: new Date()
             }

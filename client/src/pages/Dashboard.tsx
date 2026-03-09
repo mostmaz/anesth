@@ -105,15 +105,21 @@ export default function Dashboard() {
                 const formattedLabs = historicalLabs
                     .filter((lab: any) => !dismissedSet.has(lab.id))
                     .sort((a: any, b: any) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime())
-                    .slice(0, 10)
-                    .map((lab: any) => ({
-                        id: lab.id,
-                        type: 'new_investigation',
-                        patientName: lab.patient?.name || 'Unknown Patient',
-                        patientId: lab.patientId,
-                        title: `New ${lab.type || 'Lab'} Result: ${lab.testName || 'Investigation'}`,
-                        timestamp: lab.createdAt || lab.date
-                    }));
+                    .slice(0, 15)
+                    .map((lab: any) => {
+                        const isAbnormal = lab.result && typeof lab.result === 'object' &&
+                            Object.values(lab.result).some((v: any) => typeof v === 'object' && v !== null && (v as any).isAbnormal === true);
+
+                        return {
+                            id: lab.id,
+                            type: 'new_investigation',
+                            patientName: lab.patient?.name || 'Unknown Patient',
+                            patientId: lab.patientId,
+                            title: `New ${lab.type || 'Lab'} Result: ${lab.title || lab.testName || 'Investigation'}`,
+                            timestamp: lab.createdAt || lab.date,
+                            isAbnormal
+                        };
+                    });
                 setRecentLabsFeed(formattedLabs);
             }
 
@@ -602,23 +608,34 @@ export default function Dashboard() {
                             ) : (
                                 <div className="divide-y divide-blue-50/50 max-h-[260px] overflow-y-auto">
                                     {recentLabsFeed.map((lab: any, index) => (
-                                        <div key={index} className={`p-4 flex items-center justify-between hover:bg-blue-50/50 transition-colors group ${lab.type === 'intervention_reminder' ? 'bg-amber-50/60' : ''}`}>
+                                        <div key={index} className={cn(
+                                            "p-4 flex items-center justify-between hover:bg-blue-50/50 transition-colors group",
+                                            lab.type === 'intervention_reminder' ? 'bg-amber-50/10' : '',
+                                            lab.isAbnormal ? 'bg-rose-50/30 border-l-4 border-l-rose-500' : ''
+                                        )}>
                                             <div
                                                 className="flex items-center space-x-4 flex-1 cursor-pointer"
                                                 onClick={() => lab.patientId && handlePatientClick(lab.patientId)}
                                             >
-                                                <div className={`h-10 w-10 rounded-full flex items-center justify-center transition-colors ${lab.type === 'intervention_reminder'
-                                                    ? 'bg-amber-100 group-hover:bg-amber-200'
-                                                    : 'bg-blue-100 group-hover:bg-blue-200'
-                                                    }`}>
-                                                    {lab.type === 'intervention_reminder'
-                                                        ? <Clock className="w-5 h-5 text-amber-600" />
-                                                        : <FlaskConical className="w-5 h-5 text-blue-600" />
-                                                    }
+                                                <div className={cn(
+                                                    "h-10 w-10 rounded-full flex items-center justify-center transition-colors shadow-sm",
+                                                    lab.isAbnormal ? "bg-rose-100" : (lab.type === 'intervention_reminder' ? 'bg-amber-100' : 'bg-blue-100')
+                                                )}>
+                                                    {lab.isAbnormal ? (
+                                                        <AlertTriangle className="w-5 h-5 text-rose-600 animate-pulse" />
+                                                    ) : lab.type === 'intervention_reminder' ? (
+                                                        <Clock className="w-5 h-5 text-amber-600" />
+                                                    ) : (
+                                                        <FlaskConical className="w-5 h-5 text-blue-600" />
+                                                    )}
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-medium text-slate-900">
+                                                    <p className={cn(
+                                                        "text-sm font-medium",
+                                                        lab.isAbnormal ? "text-rose-900" : "text-slate-900"
+                                                    )}>
                                                         <span className="font-bold">{lab.patientName}</span> — {lab.title}
+                                                        {lab.isAbnormal && <Badge variant="destructive" className="ml-2 text-[8px] h-3 px-1 uppercase tracking-tighter">Abnormal</Badge>}
                                                     </p>
                                                     {lab.type === 'intervention_reminder' && (
                                                         <p className="text-xs text-amber-700 font-medium mt-0.5">⏰ Intervention Reminder</p>

@@ -88,23 +88,33 @@ export function InvestigationDetailDialog({ investigation, onClose, patientId }:
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y">
-                                    {entries.map(([key, val]) => (
-                                        <tr key={key as string} className="hover:bg-slate-50/50">
-                                            <td className="px-4 py-3 font-medium">{key as string}</td>
-                                            <td className="px-4 py-3 font-bold text-base text-slate-900">{String(val as any)}</td>
-                                            <td className="px-4 py-3 text-muted-foreground">-</td> {/* Placeholder for Normal Range */}
-                                            <td className="px-4 py-3 text-right">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0"
-                                                    onClick={() => setSelectedParameter(key as string)}
-                                                >
-                                                    <TrendingUp className="h-4 w-4 text-blue-600" />
-                                                </Button>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {entries.map(([key, val]) => {
+                                        const isObject = typeof val === 'object' && val !== null && 'value' in (val as any);
+                                        const value = isObject ? (val as any).value : val;
+                                        const range = isObject ? (val as any).range : '-';
+                                        const isAbnormal = isObject ? (val as any).isAbnormal : false;
+
+                                        return (
+                                            <tr key={key as string} className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-3 font-medium">{key as string}</td>
+                                                <td className={`px-4 py-3 font-bold text-base ${isAbnormal ? 'text-red-600' : 'text-slate-900'}`}>
+                                                    {String(value)}
+                                                    {isAbnormal && <span className="ml-2 text-xs font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 uppercase">H/L</span>}
+                                                </td>
+                                                <td className="px-4 py-3 text-muted-foreground">{range || '-'}</td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 p-0"
+                                                        onClick={() => setSelectedParameter(key as string)}
+                                                    >
+                                                        <TrendingUp className="h-4 w-4 text-blue-600" />
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
