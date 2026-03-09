@@ -93,7 +93,7 @@ router.patch('/:id/approve', async (req, res) => {
     try {
         const { id } = req.params;
         const entry = await prisma.intakeOutput.findUnique({ where: { id } });
-        if (!entry || !entry.pendingValue) return res.status(400).json({ error: 'No pending edit found' });
+        if (!entry || entry.pendingValue === null || entry.pendingValue === undefined) return res.status(400).json({ error: 'No pending edit found' });
 
         const updated = await prisma.intakeOutput.update({
             where: { id },

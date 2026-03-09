@@ -53,8 +53,8 @@ function ConfirmCheckDialog({
 
 export default function Dashboard() {
     const navigate = useNavigate();
-    const { user } = useAuthStore();
-    const { activeShift, startShift, endShift } = useShiftStore();
+    const { user, logout } = useAuthStore();
+    const { activeShift, startShift, endShift, checkActiveShift } = useShiftStore();
     const [patients, setPatients] = useState<Patient[]>([]);
     const [isAddPatientOpen, setIsAddPatientOpen] = useState(false);
     const [assignments, setAssignments] = useState<any[]>([]);
@@ -205,6 +205,9 @@ export default function Dashboard() {
     };
 
     useEffect(() => {
+        if (user) {
+            checkActiveShift(user.id);
+        }
         fetchData();
         fetchDueReminders();
 
@@ -290,8 +293,14 @@ export default function Dashboard() {
         if (!user) return;
         try {
             await assignmentApi.unassign(patientId, user.id);
-            toast.success("Signed out successfully");
-            fetchData();
+            toast.success("Signed out from patient");
+
+            if (user.role === 'NURSE') {
+                logout();
+                navigate('/login');
+            } else {
+                fetchData();
+            }
         } catch (err: any) {
             toast.error(err.message || "Failed to sign out");
         }
@@ -339,8 +348,16 @@ export default function Dashboard() {
     };
 
     const handleEndShift = async () => {
-        await endShift();
-        toast.success("Shift ended");
+        try {
+            await endShift();
+            toast.success("Shift ended");
+            if (user?.role === 'NURSE') {
+                logout();
+                navigate('/login');
+            }
+        } catch (error) {
+            toast.error("Failed to end shift");
+        }
     };
 
     const visibleReminders = dueReminders.filter(o => !dismissedIds.has(o.id));
