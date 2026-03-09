@@ -27,6 +27,11 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
     const [medToStop, setMedToStop] = useState<Medication | null>(null);
     const [isStopping, setIsStopping] = useState(false);
 
+    // Administration State
+    const [medToAdminister, setMedToAdminister] = useState<Medication | null>(null);
+    const [administerDilution, setAdministerDilution] = useState<string>('');
+    const [isAdministering, setIsAdministering] = useState(false);
+
     const fetchMAR = () => {
         if (patientId) {
             marApi.getMAR(patientId)
@@ -42,20 +47,31 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
         return () => clearInterval(interval);
     }, [patientId]);
 
-    const handleAdminister = async (med: Medication) => {
-        if (!patientId || !user) return;
+    const handleAdministerClick = (med: Medication) => {
+        setMedToAdminister(med);
+        // Default to the prescribed dilution if any, otherwise empty
+        setAdministerDilution(med.dilution ? med.dilution.toString() : '');
+    };
+
+    const confirmAdminister = async () => {
+        if (!patientId || !user || !medToAdminister) return;
+        setIsAdministering(true);
         try {
             await marApi.administerMedication({
                 patientId,
-                medicationId: med.id,
+                medicationId: medToAdminister.id,
                 status: 'Given',
-                dose: med.defaultDose, // Assume default dose for 1-click
+                dose: medToAdminister.defaultDose, // Assume default dose for 1-click
+                dilution: administerDilution ? parseFloat(administerDilution) : undefined,
                 userId: user.id
             });
             toast.success("Medication administered");
             fetchMAR();
+            setMedToAdminister(null);
         } catch (error) {
             toast.error('Failed to administer medication');
+        } finally {
+            setIsAdministering(false);
         }
     };
 
@@ -130,6 +146,18 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
                                             {!med.isActive && <Badge variant="destructive">Discontinued</Badge>}
                                             <Badge variant="outline" className="font-mono">{med.route}</Badge>
                                             <Badge variant="secondary">{med.frequency || 'PRN'}</Badge>
+                                            {med.isActive && (() => {
+                                                let day = 1;
+                                                if (med.startedAt) {
+                                                    const diffTime = Math.abs(new Date().getTime() - new Date(med.startedAt).getTime());
+                                                    day = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                                                }
+                                                const isOverdue = med.durationReminder ? day >= med.durationReminder : false;
+                                                if (isOverdue) {
+                                                    return <Badge variant="destructive" className="ml-auto flex gap-1 items-center"><AlertCircle className="w-3 h-3" /> Day {day} (Review Needed)</Badge>;
+                                                }
+                                                return <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">Day {day}</Badge>;
+                                            })()}
                                         </div>
                                         {med.startedAt && (
                                             <div className="text-xs text-slate-500 font-medium">
@@ -175,7 +203,7 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
                                             <Button
                                                 size="sm"
                                                 disabled={!med.isActive}
-                                                onClick={() => handleAdminister(med)}
+                                                onClick={() => handleAdministerClick(med)}
                                                 className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
                                             >
                                                 Administer
@@ -237,6 +265,39 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
                         </Button>
                         <Button variant="destructive" onClick={confirmDiscontinue} disabled={isStopping}>
                             {isStopping ? "Stopping..." : "Stop Medication"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Administer Dialog */}
+            <Dialog open={!!medToAdminister} onOpenChange={(open) => !open && setMedToAdminister(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Administer Medication</DialogTitle>
+                        <DialogDescription>
+                            Record administration of <strong>{medToAdminister?.name}</strong> ({medToAdminister?.defaultDose}).
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Actual Dilution / Volume (mL)</label>
+                            <input
+                                type="number"
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Optional: Volume in mL"
+                                value={administerDilution}
+                                onChange={(e) => setAdministerDilution(e.target.value)}
+                            />
+                            <p className="text-xs text-slate-500">Entering a dilution volume will automatically create an Input record in the IO Chart.</p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setMedToAdminister(null)} disabled={isAdministering}>
+                            Cancel
+                        </Button>
+                        <Button onClick={confirmAdminister} disabled={isAdministering} className="bg-emerald-600 hover:bg-emerald-700">
+                            {isAdministering ? "Recording..." : "Record Administration"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -14,8 +14,10 @@ import {
     Heart,
     Zap,
     Microscope,
-    CheckCircle2
+    CheckCircle2,
+    AlertTriangle
 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '../../components/ui/button';
 import { Progress } from "../../components/ui/progress";
 import { marApi, type Medication } from '../../api/marApi';
@@ -106,12 +108,30 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
     // Support Status (Filter from active prescriptions with infusion rates)
     const activeSupport = medications
         .filter(m => m.isActive && m.infusionRate && m.dilution)
-        .map(m => ({
-            name: m.name,
-            doseMg: m.defaultDose, // This usually contains the mg/content info
-            dilution: m.dilution,
-            doseMlHr: m.infusionRate
-        }));
+        .map(m => {
+            let day = 1;
+            if (m.startedAt) {
+                const diffTime = Math.abs(new Date().getTime() - new Date(m.startedAt).getTime());
+                day = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            }
+            return {
+                name: m.name,
+                doseMg: m.defaultDose, // This usually contains the mg/content info
+                dilution: m.dilution,
+                doseMlHr: m.infusionRate,
+                day,
+                isOverdue: m.durationReminder ? day >= m.durationReminder : false
+            };
+        });
+
+    const checkAbnormal = (val: any) => {
+        return typeof val === 'object' && val !== null && (val as any).isAbnormal === true;
+    };
+
+    const abnormalLabs = latestLabs.filter(lab => {
+        if (!lab.result) return false;
+        return Object.values(lab.result).some(val => checkAbnormal(val));
+    });
 
     if (loading) {
         return <div className="p-8 text-center text-slate-500 animate-pulse">Loading dashboard...</div>;
@@ -119,6 +139,21 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
 
     return (
         <div className="space-y-6 pb-8">
+            {/* Abnormal Labs Alert */}
+            {abnormalLabs.length > 0 && (
+                <Alert variant="destructive" className="bg-rose-50 border-rose-200 text-rose-800 shadow-sm animate-in fade-in slide-in-from-top-4">
+                    <AlertTriangle className="h-5 w-5 text-rose-600" />
+                    <div className="ml-3">
+                        <AlertTitle className="text-sm font-bold flex items-center gap-2">
+                            Abnormal Investigation Results Detected
+                        </AlertTitle>
+                        <AlertDescription className="text-xs mt-1 text-rose-700">
+                            Recent results for <span className="font-bold underline">{abnormalLabs.map(l => l.title).join(", ")}</span> show values outside normal ranges. Please review and acknowledge.
+                        </AlertDescription>
+                    </div>
+                </Alert>
+            )}
+
             {/* --- TOP ROW: VITALS & BALANCE --- */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Vitals Card */}
@@ -209,7 +244,14 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
                             {activeSupport.length > 0 ? activeSupport.slice(0, 4).map((s, i) => (
                                 <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100">
                                     <div className="min-w-0">
-                                        <p className="font-bold text-slate-800 text-[11px] truncate">{s.name}</p>
+                                        <div className="flex items-center gap-1">
+                                            <p className="font-bold text-slate-800 text-[11px] truncate">{s.name}</p>
+                                            {s.isOverdue ? (
+                                                <Badge variant="destructive" className="ml-1 text-[8px] h-3 px-1">Day {s.day}</Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="ml-1 text-[8px] h-3 px-1 border-primary/20 text-primary">Day {s.day}</Badge>
+                                            )}
+                                        </div>
                                         <p className="text-[9px] text-slate-500 truncate">{s.doseMg}</p>
                                     </div>
                                     <div className="text-right shrink-0">
@@ -269,12 +311,22 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
                                             <span className="text-[9px] text-slate-400 shrink-0">{new Date(lab.conductedAt).toLocaleDateString()}</span>
                                         </div>
                                         <div className="grid grid-cols-2 gap-1 px-1">
-                                            {Object.entries(lab.result || {}).filter(([k]) => k !== 'imageUrl' && k !== 'impression').slice(0, 4).map(([key, val]) => (
-                                                <div key={key} className="flex justify-between text-[9px] py-0.5">
-                                                    <span className="text-slate-500 truncate">{key}</span>
-                                                    <span className="font-bold text-slate-900 ml-1">{String(val)}</span>
-                                                </div>
-                                            ))}
+                                            {Object.entries(lab.result || {}).filter(([k]) => k !== 'imageUrl' && k !== 'impression').slice(0, 4).map(([key, val]) => {
+                                                const isAbnormal = checkAbnormal(val);
+                                                const displayValue = typeof val === 'object' && val !== null && 'value' in (val as any) ? (val as any).value : val;
+                                                return (
+                                                    <div key={key} className="flex justify-between text-[9px] py-0.5">
+                                                        <span className="text-slate-500 truncate">{key}</span>
+                                                        <span className={cn(
+                                                            "font-bold ml-1 shrink-0",
+                                                            isAbnormal ? "text-rose-600 animate-pulse" : "text-slate-900"
+                                                        )}>
+                                                            {String(displayValue)}
+                                                            {isAbnormal && "!"}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 ))}
@@ -338,12 +390,19 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
                                             <div key={lab.id} className="border-b pb-2 last:border-0">
                                                 <p className="text-sm font-bold text-slate-800">{lab.title}</p>
                                                 <div className="grid grid-cols-2 gap-2 mt-2">
-                                                    {Object.entries(lab.result || {}).filter(([k]) => k !== 'imageUrl' && k !== 'impression').map(([key, val]) => (
-                                                        <div key={key} className="flex justify-between text-xs p-2 bg-slate-50 rounded">
-                                                            <span>{key}</span>
-                                                            <span className="font-bold">{String(val)}</span>
-                                                        </div>
-                                                    ))}
+                                                    {Object.entries(lab.result || {}).filter(([k]) => k !== 'imageUrl' && k !== 'impression').map(([key, val]) => {
+                                                        const isAbnormal = checkAbnormal(val);
+                                                        const displayValue = typeof val === 'object' && val !== null && 'value' in (val as any) ? (val as any).value : val;
+                                                        return (
+                                                            <div key={key} className={cn(
+                                                                "flex justify-between text-xs p-2 rounded border",
+                                                                isAbnormal ? "bg-rose-50 border-rose-100 text-rose-700 font-bold" : "bg-slate-50 border-slate-100 text-slate-700"
+                                                            )}>
+                                                                <span>{key}</span>
+                                                                <span>{String(displayValue)}</span>
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         ))}

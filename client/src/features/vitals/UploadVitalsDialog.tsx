@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { uploadApi } from '@/api/uploadApi';
 
 interface UploadVitalsDialogProps {
-    onVitalsExtracted: (data: { hr?: string; bpSys?: string; bpDia?: string; spo2?: string; temp?: string; imageUrl?: string }) => void;
+    onVitalsExtracted: (data: { hr?: string; bpSys?: string; bpDia?: string; spo2?: string; temp?: string; rr?: string; imageUrl?: string }) => void;
 }
 
 export function UploadVitalsDialog({ onVitalsExtracted }: UploadVitalsDialogProps) {

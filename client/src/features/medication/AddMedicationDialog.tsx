@@ -34,7 +34,8 @@ const COMMON_ICU_DRUGS = [
     { name: 'Paracetamol', defaultDose: '1 g', defaultRoute: 'IV' },
     { name: 'Enoxaparin', defaultDose: '40 mg', defaultRoute: 'SC' },
     { name: 'Amiodarone', defaultDose: '150 mg', defaultRoute: 'IV' },
-    { name: 'Adrenaline', defaultDose: '1 mg', defaultRoute: 'IV' }
+    { name: 'Adrenaline', defaultDose: '1 mg', defaultRoute: 'IV' },
+    { name: 'Dobutamine', defaultDose: '250 mg', defaultRoute: 'IV' }
 ];
 
 export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicationDialogProps) {
@@ -48,6 +49,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
     const [frequency, setFrequency] = useState('1'); // Default to 1 (OD)
     const [infusionRate, setInfusionRate] = useState('');
     const [dilution, setDilution] = useState('');
+    const [durationReminder, setDurationReminder] = useState('');
     const [instructions, setInstructions] = useState('');
     const [startedAt, setStartedAt] = useState<string>(new Date().toISOString().split('T')[0]);
 
@@ -107,6 +109,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                 frequency: freqLabel,
                 infusionRate,
                 dilution: dilution ? parseFloat(dilution) : undefined,
+                durationReminder: durationReminder ? parseInt(durationReminder, 10) : undefined,
                 otherInstructions: instructions,
                 startedAt: new Date(startedAt).toISOString()
             });
@@ -118,6 +121,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
             setDose('');
             setInfusionRate('');
             setDilution('');
+            setDurationReminder('');
             setInstructions('');
             setFrequency('1');
             setStartedAt(new Date().toISOString().split('T')[0]);
@@ -228,7 +232,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="dilution">Dilution (Total Volume in mL)</Label>
                             <Input
@@ -237,6 +241,17 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                                 value={dilution}
                                 onChange={e => setDilution(e.target.value)}
                                 placeholder="e.g. 50 (for mg/50cc)"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="durationReminder">Reminder After (Days)</Label>
+                            <Input
+                                id="durationReminder"
+                                type="number"
+                                min="1"
+                                value={durationReminder}
+                                onChange={e => setDurationReminder(e.target.value)}
+                                placeholder="e.g. 3 (Optional)"
                             />
                         </div>
                     </div>

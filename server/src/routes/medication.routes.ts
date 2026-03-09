@@ -98,6 +98,7 @@ router.post('/prescribe', async (req, res) => {
                 otherInstructions,
                 patientId,
                 dilution: req.body.dilution ? parseFloat(req.body.dilution) : null,
+                durationReminder: req.body.durationReminder ? parseInt(req.body.durationReminder, 10) : null,
                 startedAt: startedAt ? new Date(startedAt) : undefined
             }
         });
@@ -117,17 +118,40 @@ router.post('/administer', async (req, res) => {
             console.warn("Administer called without userId");
         }
 
+        const dilutionValue = req.body.dilution ? parseFloat(req.body.dilution) : null;
+
         const admin = await prisma.medicationAdministration.create({
             data: {
                 patientId,
                 medicationId,
                 status,
                 dose,
-                dilution: req.body.dilution ? parseFloat(req.body.dilution) : null,
+                dilution: dilutionValue,
                 userId: userId || undefined, // Nurse ID
                 timestamp: new Date()
             }
         });
+
+        // Automatically create IO Input if there's a dilution volume
+        if (dilutionValue && dilutionValue > 0) {
+            // Get medication name for category
+            const med = await prisma.medication.findUnique({ where: { id: medicationId } });
+            if (med) {
+                await prisma.intakeOutput.create({
+                    data: {
+                        patientId,
+                        userId: userId || 'system', // Fallback to avoid error if missing
+                        type: 'INPUT',
+                        category: `Medication: ${med.name}`,
+                        amount: dilutionValue,
+                        notes: `Auto-recorded from MAR administration (Dose: ${dose || '1'})`,
+                        timestamp: new Date(),
+                        status: 'APPROVED'
+                    }
+                });
+            }
+        }
+
         res.json(admin);
     } catch (error) {
         console.error("Administer Error:", error);

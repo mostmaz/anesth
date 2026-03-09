@@ -19,10 +19,11 @@ import { uploadApi } from '@/api/uploadApi';
 
 interface UploadExternalResultDialogProps {
     patientId: string;
+    activeTab?: string;
     onSuccess?: () => void;
 }
 
-export function UploadExternalResultDialog({ patientId, onSuccess }: UploadExternalResultDialogProps) {
+export function UploadExternalResultDialog({ patientId, activeTab, onSuccess }: UploadExternalResultDialogProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [processingStatus, setProcessingStatus] = useState<string>('');
@@ -75,25 +76,37 @@ export function UploadExternalResultDialog({ patientId, onSuccess }: UploadExter
                     try {
                         const imageUrl = fileData.url;
 
-                        // 3. Analyze with AI
+                        // 3. Analyze with AI (Skip if Radiology or Cardiology)
                         let analysisResults: any[] = [];
-                        try {
-                            const aiResponse = await uploadApi.analyzeImage(imageUrl);
-                            // Ensure we have an array
-                            if (Array.isArray(aiResponse)) {
-                                analysisResults = aiResponse;
-                            } else if (aiResponse) {
-                                analysisResults = [aiResponse];
+                        const isManualOnly = activeTab === 'imaging' || activeTab === 'cardiology';
+
+                        if (!isManualOnly) {
+                            try {
+                                const aiResponse = await uploadApi.analyzeImage(imageUrl);
+                                // Ensure we have an array
+                                if (Array.isArray(aiResponse)) {
+                                    analysisResults = aiResponse;
+                                } else if (aiResponse) {
+                                    analysisResults = [aiResponse];
+                                }
+                            } catch (err) {
+                                console.error(`AI Analysis failed for ${fileData.originalName}`, err);
+                                toast.error(`AI Analysis failed for ${fileData.originalName}, saving as generic result.`);
+                                // Fallback to generic result
+                                analysisResults = [{
+                                    type: 'LAB',
+                                    category: 'External',
+                                    title: fileData.originalName,
+                                    results: { note: "AI Analysis Failed" }
+                                }];
                             }
-                        } catch (err) {
-                            console.error(`AI Analysis failed for ${fileData.originalName}`, err);
-                            toast.error(`AI Analysis failed for ${fileData.originalName}, saving as generic result.`);
-                            // Fallback to generic result
+                        } else {
+                            // Manual fallback
                             analysisResults = [{
-                                type: 'LAB',
-                                category: 'External',
+                                type: activeTab === 'imaging' ? 'IMAGING' : 'LAB', // Use IMAGING type for Radiology
+                                category: activeTab === 'imaging' ? 'Radiology' : 'Cardiology',
                                 title: fileData.originalName,
-                                results: { note: "AI Analysis Failed" }
+                                results: { note: formData.impression || "Manual Upload" }
                             }];
                         }
 

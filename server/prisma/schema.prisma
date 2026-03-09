@@ -183,6 +183,7 @@ model VitalSign {
   bpDia     Int?
   spo2      Int?
   temp      Float?
+  rr        Int?   // Respiratory Rate
   rbs       Float? // Random Blood Sugar
   imageUrl  String? // Uploaded monitor image
   
@@ -206,6 +207,7 @@ model Medication {
   patient     Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
   administrations MedicationAdministration[]
   dilution    Float?   // Dilution volume in mL
+  durationReminder Int? // Reminder after X days
   updatedAt   DateTime @default(now()) @updatedAt
 }
 

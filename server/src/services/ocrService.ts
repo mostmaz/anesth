@@ -65,7 +65,11 @@ export const ocrService = {
                     3. "title": The name of the test or panel (e.g., CBC, Lipid Profile, Liver Function Test).
                     4. "date": Extract the "Collection Date", "Report Date", or "Date" printed on the report. Return it in YYYY-MM-DD format if clearly identifiable. If only a raw string is found (e.g. "12/05/2024"), return exactly that string. If no date is found, return null.
                     5. "time": Extract the exact time (e.g. "14:30" or "02:30 PM") of the investigation / collection printed on the report. Return null if not found.
-                    6. "results": A JSON object where keys are the specific test parameter names (e.g., Hemoglobin, WBC, Platelets) and values are the numerical result or string finding.
+                    6. "results": A JSON object where keys are the parameter names (e.g., "Hemoglobin", "WBC").
+                       The value for EACH key MUST be an object: { "value": number|string, "range": string|null, "isAbnormal": boolean }.
+                       - "value": The numerical result or finding text.
+                       - "range": The normal/reference range printed next to the result (e.g., "13.5 - 17.5").
+                       - "isAbnormal": Set to true if the result is outside the normal range or flagged (e.g., with H/L or *).
                     
                     Return ONLY the JSON ARRAY. Do not include markdown formatting like \`\`\`json.
                 `;

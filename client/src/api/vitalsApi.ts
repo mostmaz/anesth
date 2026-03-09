@@ -7,6 +7,7 @@ export interface VitalSign {
     bpDia: number | null;
     spo2: number | null;
     temp: number | null;
+    rr: number | null;
     rbs: number | null;
     imageUrl?: string | null;
     timestamp: string;
