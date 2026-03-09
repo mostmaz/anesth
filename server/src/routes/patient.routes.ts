@@ -303,7 +303,7 @@ router.get('/:id/consultations', async (req, res) => {
 router.post('/:id/consultations', async (req, res) => {
     try {
         const { id } = req.params;
-        const { doctorName, specialty, imageUrl, notes, authorId } = req.body;
+        const { doctorName, specialty, imageUrl, notes, authorId, orderId } = req.body;
 
         const consultation = await prisma.consultation.create({
             data: {
@@ -313,9 +313,19 @@ router.post('/:id/consultations', async (req, res) => {
                 specialty,
                 imageUrl,
                 notes,
+                orderId: orderId || undefined,
                 timestamp: new Date()
-            }
+            } as any
         });
+
+        // If this consultation is linked to an order, complete the order
+        if (orderId) {
+            await prisma.clinicalOrder.update({
+                where: { id: orderId },
+                data: { status: 'COMPLETED' }
+            });
+        }
+
         res.status(201).json(consultation);
     } catch (error) {
         console.error("Error creating consultation:", error);
