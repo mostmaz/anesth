@@ -19,6 +19,7 @@ import assignmentRoutes from './assignment.routes';
 import userRoutes from './user.routes';
 import authRoutes from './auth.routes';
 import doctorRoutes from './doctor.routes';
+import ventilatorRoutes from './ventilator.routes';
 
 const router = Router();
 
@@ -42,5 +43,6 @@ router.use('/seed', seedRoutes);
 router.use('/lab', labRoutes);
 router.use('/assignments', assignmentRoutes);
 router.use('/doctors', doctorRoutes);
+router.use('/ventilator', ventilatorRoutes);
 
 export default router;
