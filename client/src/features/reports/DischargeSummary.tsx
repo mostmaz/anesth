@@ -159,7 +159,7 @@ export default function DischargeSummary() {
                                 }
 
                                 // Fallback redirect if window is still open
-                                window.location.href = '/dashboard';
+                                window.location.hash = '#/dashboard';
                             }, 1500);
 
                         } catch (error) {
