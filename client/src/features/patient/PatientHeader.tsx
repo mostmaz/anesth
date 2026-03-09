@@ -119,7 +119,7 @@ export default function PatientHeader({ patient, onUpdate }: PatientHeaderProps)
                             <Printer className="w-4 h-4" />
                             Print Chart
                         </Button>
-                        <Button variant="outline" className="gap-2" onClick={() => window.open(`/discharge/${patient.id}`, '_blank')}>
+                        <Button variant="outline" className="gap-2" onClick={() => window.open(`#/discharge/${patient.id}`, '_blank')}>
                             <Activity className="w-4 h-4" />
                             Discharge
                         </Button>
