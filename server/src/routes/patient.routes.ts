@@ -191,11 +191,11 @@ router.get('/:id/timeline', async (req, res) => {
         const { id } = req.params;
 
         const [meds, orders, consults, notes, labs] = await Promise.all([
-            prisma.medication.findMany({ where: { patientId: id }, orderBy: { updatedAt: 'desc' } }),
+            prisma.medication.findMany({ where: { patientId: id }, orderBy: { updatedAt: 'desc' } as any }),
             prisma.clinicalOrder.findMany({ where: { patientId: id }, orderBy: { createdAt: 'desc' } }),
             prisma.consultation.findMany({ where: { patientId: id }, orderBy: { timestamp: 'desc' } }),
             prisma.clinicalNote.findMany({ where: { patientId: id }, orderBy: { createdAt: 'desc' } }),
-            prisma.investigation.findMany({ where: { patientId: id }, orderBy: { updatedAt: 'desc' } })
+            prisma.investigation.findMany({ where: { patientId: id }, orderBy: { updatedAt: 'desc' } as any })
         ]);
 
         const timeline: any[] = [];
@@ -207,7 +207,7 @@ router.get('/:id/timeline', async (req, res) => {
                 type: 'MEDICATION',
                 title: m.name,
                 status: m.isActive ? 'STARTED' : 'STOPPED',
-                timestamp: m.isActive ? m.startedAt : m.updatedAt,
+                timestamp: m.isActive ? m.startedAt : (m as any).updatedAt,
                 details: `${m.defaultDose} ${m.route} ${m.frequency || ''}`
             });
         });
@@ -255,7 +255,7 @@ router.get('/:id/timeline', async (req, res) => {
                 type: 'INVESTIGATION',
                 title: l.title,
                 status: l.status,
-                timestamp: l.updatedAt,
+                timestamp: (l as any).updatedAt,
                 details: l.impression
             });
         });
@@ -281,6 +281,45 @@ router.delete('/:id', async (req, res) => {
     } catch (error) {
         console.error("Error deleting patient:", error);
         res.status(500).json({ error: 'Failed to delete patient' });
+    }
+});
+
+
+// GET consultations
+router.get('/:id/consultations', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const consultations = await prisma.consultation.findMany({
+            where: { patientId: id },
+            orderBy: { timestamp: 'desc' }
+        });
+        res.json(consultations);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch consultations' });
+    }
+});
+
+// CREATE consultation
+router.post('/:id/consultations', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { doctorName, specialty, imageUrl, notes, authorId } = req.body;
+
+        const consultation = await prisma.consultation.create({
+            data: {
+                patientId: id,
+                authorId: authorId,
+                doctorName,
+                specialty,
+                imageUrl,
+                notes,
+                timestamp: new Date()
+            }
+        });
+        res.status(201).json(consultation);
+    } catch (error) {
+        console.error("Error creating consultation:", error);
+        res.status(500).json({ error: 'Failed to create consultation' });
     }
 });
 
