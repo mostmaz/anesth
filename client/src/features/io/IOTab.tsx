@@ -29,7 +29,6 @@ export default function IOTab({ patientId }: IOTabProps) {
     const { user } = useAuthStore();
     const { activeShift } = useShiftStore();
     const [history, setHistory] = useState<IOEntry[]>([]);
-    const [loading, setLoading] = useState<boolean>(false);
     const [type, setType] = useState<'INPUT' | 'OUTPUT'>('INPUT');
     const [category, setCategory] = useState('');
     const [amount, setAmount] = useState('');
@@ -42,15 +41,12 @@ export default function IOTab({ patientId }: IOTabProps) {
     }, [patientId]);
 
     const loadHistory = async () => {
-        setLoading(true);
         try {
             const data = await ioApi.getHistory(patientId);
             setHistory(data);
         } catch (error) {
             console.error("I/O load error:", error);
             toast.error("Failed to load I/O history");
-        } finally {
-            setLoading(false);
         }
     };
 
