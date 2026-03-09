@@ -235,6 +235,7 @@ export default function Dashboard() {
                 setShowAssignmentDialog(true);
                 setShowHandoverChecklist(false);
             } else {
+                setShowAssignmentDialog(false); // Close the dialog if assigned
                 const handoverDone = localStorage.getItem(`handover_${myAssignment.id}`);
                 if (!handoverDone) {
                     setShowHandoverChecklist(true);
@@ -579,17 +580,25 @@ export default function Dashboard() {
                                     </div>
                                     {isOccupied ? (
                                         <div className="flex items-center gap-2">
-                                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                                                Occupied
-                                            </Badge>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="text-xs border-orange-300 text-orange-700 hover:bg-orange-50"
-                                                onClick={() => handleMandatoryAssign(patient.id)}
-                                            >
-                                                Request Sign-In
-                                            </Button>
+                                            {patientAssignments.some(pa => pa.userId === user?.id) ? (
+                                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                                    Your Patient
+                                                </Badge>
+                                            ) : (
+                                                <>
+                                                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                                                        Occupied
+                                                    </Badge>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="text-xs border-orange-300 text-orange-700 hover:bg-orange-50"
+                                                        onClick={() => handleMandatoryAssign(patient.id)}
+                                                    >
+                                                        Request Sign-In
+                                                    </Button>
+                                                </>
+                                            )}
                                         </div>
                                     ) : (
                                         <Button size="sm" onClick={() => handleMandatoryAssign(patient.id)}>
