@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import TrendChart from './TrendChart';
 import { vitalsApi, type VitalSign } from '../../api/vitalsApi';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Printer } from 'lucide-react';
+import { Printer, Image as ImageIcon, ExternalLink } from 'lucide-react';
 import { UploadVitalsDialog } from './UploadVitalsDialog';
 
 interface VitalsTabProps {
@@ -21,7 +21,7 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
     const navigate = useNavigate();
     const patientId = propPatientId || paramPatientId;
     const [vitals, setVitals] = useState<VitalSign[]>([]);
-    const [newEntry, setNewEntry] = useState({ hr: '', bpSys: '', bpDia: '', spo2: '', temp: '', rbs: '' });
+    const [newEntry, setNewEntry] = useState({ hr: '', bpSys: '', bpDia: '', spo2: '', temp: '', rbs: '', imageUrl: '' });
 
     useEffect(() => {
         if (patientId) {
@@ -54,9 +54,10 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                 spo2: newEntry.spo2 ? Number(newEntry.spo2) : null,
                 temp: newEntry.temp ? Number(newEntry.temp) : null,
                 rbs: newEntry.rbs ? Number(newEntry.rbs) : null,
+                imageUrl: newEntry.imageUrl || null,
             });
             setVitals([entry, ...vitals]);
-            setNewEntry({ hr: '', bpSys: '', bpDia: '', spo2: '', temp: '', rbs: '' });
+            setNewEntry({ hr: '', bpSys: '', bpDia: '', spo2: '', temp: '', rbs: '', imageUrl: '' });
             toast.success("Vitals recorded successfully");
         } catch (error) {
             toast.error('Failed to record vitals');
@@ -198,6 +199,7 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                     bpDia: data.bpDia || prev.bpDia,
                                     spo2: data.spo2 || prev.spo2,
                                     temp: data.temp || prev.temp,
+                                    imageUrl: data.imageUrl || prev.imageUrl,
                                 }));
                             }}
                         />
@@ -250,6 +252,15 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                     value={newEntry.rbs} onChange={e => setNewEntry({ ...newEntry, rbs: e.target.value })}
                                 />
                             </div>
+                            {newEntry.imageUrl && (
+                                <div className="text-sm text-green-600 flex items-center gap-1 bg-green-50 p-2 rounded">
+                                    <ImageIcon className="w-4 h-4" />
+                                    Image attached from scan
+                                    <Button variant="ghost" size="sm" className="ml-auto h-auto py-0 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => setNewEntry({ ...newEntry, imageUrl: '' })}>
+                                        Remove
+                                    </Button>
+                                </div>
+                            )}
                             <Button type="submit" className="w-full">Record Vitals</Button>
                         </form>
                     </CardContent>
@@ -271,6 +282,7 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                         <TableHead>SpO2</TableHead>
                                         <TableHead>Temp</TableHead>
                                         <TableHead>RBS</TableHead>
+                                        <TableHead className="w-[50px]"></TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -287,11 +299,18 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                             <TableCell>{entry.spo2}%</TableCell>
                                             <TableCell>{entry.temp}°C</TableCell>
                                             <TableCell>{entry.rbs}</TableCell>
+                                            <TableCell>
+                                                {entry.imageUrl && (
+                                                    <a href={entry.imageUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800" title="View attached image">
+                                                        <ExternalLink className="w-4 h-4" />
+                                                    </a>
+                                                )}
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                     {vitals.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center text-muted-foreground">No records found</TableCell>
+                                            <TableCell colSpan={7} className="text-center text-muted-foreground">No records found</TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>

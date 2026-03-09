@@ -33,7 +33,7 @@ router.get('/:patientId', async (req, res) => {
 // POST new vital sign
 router.post('/', async (req, res) => {
     try {
-        const { patientId, heartRate, bpSys, bpDia, spo2, temp } = req.body;
+        const { patientId, heartRate, bpSys, bpDia, spo2, temp, imageUrl } = req.body;
         const vital = await prisma.vitalSign.create({
             data: {
                 patientId,
@@ -43,6 +43,7 @@ router.post('/', async (req, res) => {
                 spo2: spo2 ? Number(spo2) : null,
                 temp: temp ? Number(temp) : null,
                 rbs: req.body.rbs ? Number(req.body.rbs) : null,
+                imageUrl: imageUrl || null,
                 timestamp: new Date()
             }
         });

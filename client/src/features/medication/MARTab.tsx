@@ -109,7 +109,7 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
                         <Printer className="w-4 h-4" />
                         Print 7-Day MAR
                     </Button>
-                    {patientId && (
+                    {patientId && user?.role !== 'NURSE' && (
                         <AddMedicationDialog
                             patientId={patientId}
                             onMedicationAdded={fetchMAR}
@@ -138,7 +138,7 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
                                         )}
                                         <div className="text-sm text-slate-600 font-medium flex items-center gap-2">
                                             <span>Dose: {med.defaultDose}</span>
-                                            {med.isActive && (
+                                            {med.isActive && user?.role !== 'NURSE' && (
                                                 <EditMedicationDialog
                                                     medication={med}
                                                     onMedicationEdited={fetchMAR}
@@ -161,7 +161,7 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
 
                                     <div className="flex flex-col items-start md:items-end gap-3 w-full md:w-auto mt-2 md:mt-0 pt-4 md:pt-0 border-t md:border-0">
                                         <div className="flex gap-2">
-                                            {med.isActive && (
+                                            {med.isActive && user?.role !== 'NURSE' && (
                                                 <Button
                                                     size="sm"
                                                     variant="outline"

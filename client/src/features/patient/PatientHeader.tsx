@@ -12,8 +12,10 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 import { Separator } from '../../components/ui/separator';
-import { Bed, Stethoscope, Printer, Activity } from 'lucide-react';
+import { Bed, Stethoscope, Printer, Activity, LogOut } from 'lucide-react';
 import { calculateAge } from '../../lib/utils';
+import { assignmentApi } from '../../api/assignmentApi';
+import { useNavigate } from 'react-router-dom';
 
 import EditPatientDialog from './EditPatientDialog';
 
@@ -25,6 +27,7 @@ interface PatientHeaderProps {
 export default function PatientHeader({ patient, onUpdate }: PatientHeaderProps) {
     const { user } = useAuthStore();
     const { activeShift } = useShiftStore();
+    const navigate = useNavigate();
     const [open, setOpen] = useState(false);
     const [notes, setNotes] = useState('');
     const [checks, setChecks] = useState({
@@ -50,6 +53,17 @@ export default function PatientHeader({ patient, onUpdate }: PatientHeaderProps)
             setNotes('');
         } catch (error) {
             toast.error("Failed to record check-in");
+        }
+    };
+
+    const handleSignOut = async () => {
+        if (!user || user.role !== 'NURSE') return;
+        try {
+            await assignmentApi.unassign(patient.id, user.id);
+            toast.success("Signed out of patient completely.");
+            navigate('/');
+        } catch (error) {
+            toast.error("Failed to sign out from patient");
         }
     };
 
@@ -159,6 +173,12 @@ export default function PatientHeader({ patient, onUpdate }: PatientHeaderProps)
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
+                        {user?.role === 'NURSE' && (
+                            <Button variant="destructive" className="gap-2 ml-2" onClick={handleSignOut}>
+                                <LogOut className="w-4 h-4" />
+                                Leave Patient
+                            </Button>
+                        )}
                     </div>
 
                 </div>

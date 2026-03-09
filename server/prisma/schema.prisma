@@ -184,6 +184,7 @@ model VitalSign {
   spo2      Int?
   temp      Float?
   rbs       Float? // Random Blood Sugar
+  imageUrl  String? // Uploaded monitor image
   
   timestamp DateTime @default(now())
   
@@ -244,6 +245,8 @@ model IntakeOutput {
   amount    Float    // mL
   notes     String?
   timestamp DateTime @default(now())
+  status    String   @default("APPROVED") // APPROVED, PENDING_EDIT
+  pendingValue Float? // If edited by nurse, the proposed new amount
 
   patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
   user      User    @relation(fields: [userId], references: [id])

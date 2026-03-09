@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { uploadApi } from '@/api/uploadApi';
 
 interface UploadVitalsDialogProps {
-    onVitalsExtracted: (data: { hr?: string; bpSys?: string; bpDia?: string; spo2?: string; temp?: string }) => void;
+    onVitalsExtracted: (data: { hr?: string; bpSys?: string; bpDia?: string; spo2?: string; temp?: string; imageUrl?: string }) => void;
 }
 
 export function UploadVitalsDialog({ onVitalsExtracted }: UploadVitalsDialogProps) {
@@ -73,7 +73,6 @@ export function UploadVitalsDialog({ onVitalsExtracted }: UploadVitalsDialogProp
                 return;
             }
 
-            // 3. Pass data back to parent
             if (analysisResult) {
                 toast.success("Vitals successfully extracted from image!");
                 onVitalsExtracted({
@@ -82,9 +81,13 @@ export function UploadVitalsDialog({ onVitalsExtracted }: UploadVitalsDialogProp
                     bpDia: analysisResult.bpDia?.toString() || '',
                     spo2: analysisResult.spo2?.toString() || '',
                     temp: analysisResult.temp?.toString() || '',
+                    imageUrl: fileData.url, // Pass image URL up
                 });
             } else {
-                toast.warning("No clear vitals detected in the image.");
+                toast.warning("No clear vitals detected in the image. Uploading for reference.");
+                onVitalsExtracted({
+                    imageUrl: fileData.url, // Still pass URL even if OCR failed
+                });
             }
 
             setIsOpen(false);
@@ -121,6 +124,21 @@ export function UploadVitalsDialog({ onVitalsExtracted }: UploadVitalsDialogProp
                                 type="file"
                                 accept="image/*"
                                 required
+                                onChange={(e) => {
+                                    if (e.target.files && e.target.files.length > 0) {
+                                        setSelectedFile(e.target.files[0]);
+                                    }
+                                }}
+                                className="bg-white"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="vitals-camera">Or Take a Photo (Mobile)</Label>
+                            <Input
+                                id="vitals-camera"
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
                                 onChange={(e) => {
                                     if (e.target.files && e.target.files.length > 0) {
                                         setSelectedFile(e.target.files[0]);
