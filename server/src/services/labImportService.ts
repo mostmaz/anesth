@@ -375,15 +375,17 @@ export class LabImportService {
 
                 if (targetTokens.length === 0 || rowTokens.length === 0) return false;
 
-                let matchCount = 0;
-                for (const t of targetTokens) {
-                    if (rowTokens.includes(t)) matchCount++;
+                const isRowSubset = rowTokens.every(t => targetTokens.includes(t));
+                const isTargetSubset = targetTokens.every(t => rowTokens.includes(t));
+
+                if (isRowSubset || isTargetSubset) {
+                    // Require at least 2 matching words to prevent single generic word matches 
+                    // e.g. "المياحي" shouldn't automatically match any patient with that last name.
+                    const minTokens = Math.min(targetTokens.length, rowTokens.length);
+                    if (minTokens >= 2) return true;
                 }
 
-                // If they share at least 2 significant words, it's a match.
-                // If one of the names only has 1 word, then 1 match is enough (though rare for full names).
-                const requiredMatches = Math.min(2, targetTokens.length, rowTokens.length);
-                return matchCount >= requiredMatches && matchCount > 0;
+                return false;
             };
 
             let patientReports = allReports.filter(r => {
