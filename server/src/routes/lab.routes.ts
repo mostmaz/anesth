@@ -76,4 +76,16 @@ router.post('/sync', async (req, res) => {
     }
 });
 
+router.get('/last-sync', async (req, res) => {
+    try {
+        const lastSync = await prisma.syncLog.findFirst({
+            where: { type: 'LAB_SYNC' },
+            orderBy: { startedAt: 'desc' }
+        });
+        res.json({ success: true, data: lastSync });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to fetch last sync info', error: String(error) });
+    }
+});
+
 export default router;

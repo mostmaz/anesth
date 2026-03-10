@@ -82,10 +82,11 @@ export default function Dashboard() {
         recentOrders: [] as any[],
         newAdmissions: 0
     });
+    const [lastSyncResult, setLastSyncResult] = useState<any>(null);
 
     const fetchData = async () => {
         try {
-            const [pts, activeData, recentData, activeAssignments, staffData, pendingData, historicalLabs, userPrefs] = await Promise.all([
+            const [pts, activeData, recentData, activeAssignments, staffData, pendingData, historicalLabs, userPrefs, lastSync] = await Promise.all([
                 apiClient.get<Patient[]>('/patients'),
                 ordersApi.getActiveOrders().catch(() => []),
                 ordersApi.getRecentOrders().catch(() => []),
@@ -93,8 +94,15 @@ export default function Dashboard() {
                 shiftApi.getStaffOnDuty().catch(() => ({ seniors: [], nurses: [] })),
                 assignmentApi.getPending().catch(() => []),
                 apiClient.get<any[]>('/investigations').catch(() => []),
-                user ? userApi.getPreferences(user.id).catch(() => ({ dismissedLabs: [] })) : Promise.resolve({ dismissedLabs: [] })
+                user ? userApi.getPreferences(user.id).catch(() => ({ dismissedLabs: [] })) : Promise.resolve({ dismissedLabs: [] }),
+                user?.role === 'SENIOR' ? apiClient.get<{ success: boolean, data: any }>('/lab/last-sync').catch(() => null) : Promise.resolve(null)
             ]);
+
+            if (lastSync?.data?.success) {
+                setLastSyncResult(lastSync.data.data);
+            } else if (lastSync?.success) {
+                setLastSyncResult(lastSync.data);
+            }
 
             setStaffOnDuty(staffData);
             setPendingAssignments(pendingData);
@@ -428,6 +436,30 @@ export default function Dashboard() {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
+                    {user?.role === 'SENIOR' && lastSyncResult && (
+                        <div className={cn(
+                            "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border shadow-sm transition-all",
+                            lastSyncResult.status === 'RUNNING' ? "bg-blue-50 text-blue-700 border-blue-200 animate-pulse" :
+                                lastSyncResult.status === 'SUCCESS' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                                    "bg-rose-50 text-rose-700 border-rose-200"
+                        )}>
+                            <div className={cn(
+                                "w-2 h-2 rounded-full",
+                                lastSyncResult.status === 'RUNNING' ? "bg-blue-500 animate-ping" :
+                                    lastSyncResult.status === 'SUCCESS' ? "bg-emerald-500" : "bg-rose-500"
+                            )} />
+                            <span>
+                                Lab Sync: {lastSyncResult.status}
+                                {lastSyncResult.endedAt ? ` (${new Date(lastSyncResult.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` :
+                                    ` (${new Date(lastSyncResult.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`}
+                            </span>
+                            {lastSyncResult.status === 'SUCCESS' && lastSyncResult.resultsCount > 0 && (
+                                <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 border-none h-4 px-1.5 text-[10px]">
+                                    +{lastSyncResult.resultsCount}
+                                </Badge>
+                            )}
+                        </div>
+                    )}
                     {activeShift && (
                         <Badge variant="outline" className="px-4 py-2 text-sm bg-green-50 text-green-700 border-green-200">
                             <Clock className="w-4 h-4 mr-2" />

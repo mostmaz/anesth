@@ -84,22 +84,40 @@ export class LabImportService {
         await new Promise(r => setTimeout(r, 4000));
     }
 
-    async getPatients(username: string, password: string, forceRefresh: boolean = false): Promise<any[]> {
-        // Check Cache
-        if (!forceRefresh && LabImportService.patientCache && (Date.now() - LabImportService.cacheTimestamp < LabImportService.CACHE_TTL)) {
+    async getPatients(username: string, password: string, forceRefresh: boolean = false, browserInstance?: any, search: string = ''): Promise<any[]> {
+        // Check Cache ONLY if no search query
+        if (!search && !forceRefresh && LabImportService.patientCache && (Date.now() - LabImportService.cacheTimestamp < LabImportService.CACHE_TTL)) {
             console.log("Returning cached patient list.");
             return LabImportService.patientCache;
         }
 
-        console.log('Starting Lab Import Service (Fetching Fresh List)...');
-        const browser = await this.launchBrowser();
+        console.log(`Starting Lab Import Service (Fetching List, Search="${search}")...`);
+        const browser = browserInstance || await this.launchBrowser();
         const page = await browser.newPage();
 
-        // Pipe browser logs to node console
-        page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-
         try {
-            await this.login(page, username, password);
+            if (!browserInstance) {
+                await this.login(page, username, password);
+            } else {
+                // If browser passed, assume already logged in or needs navigation to list
+                await page.goto('https://amrlab.net/referral/invoices', { waitUntil: 'networkidle2', timeout: 45000 });
+                await new Promise(r => setTimeout(r, 4000));
+            }
+
+            // If search query provided, use the portal's search box
+            if (search) {
+                console.log(`Searching for "${search}" on portal...`);
+                await page.evaluate((val: string) => {
+                    const el = document.querySelector('input[type="search"]') as HTMLInputElement;
+                    if (el) {
+                        el.value = val;
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }, search);
+                // Wait for the processing class to appear and then disappear, or just wait long enough
+                await new Promise(r => setTimeout(r, 4000));
+            }
 
             // 4. Scrape Data
             console.log('Scraping patient list...');
@@ -111,34 +129,41 @@ export class LabImportService {
 
                 rows.forEach((row, idx) => {
                     const cells = Array.from(row.querySelectorAll('td'));
-                    if (cells.length < 5) return; // We need enough columns
+                    if (cells.length < 5) return;
 
                     const dateStr = cells[1] ? cells[1].innerText.trim() : '';
-
                     const barcodeDiv = cells[2] ? cells[2].querySelector('.invoice_samples') : null;
                     const invoiceId = barcodeDiv ? barcodeDiv.getAttribute('invoice_id') : '';
                     const accNo = cells[2] ? (cells[2] as HTMLElement).innerText.trim().split('\n')[0] : '';
 
-                    const nameCardHeader = cells[3] ? cells[3].querySelector('.card-title') : null;
+                    // Patient Info is in cells[3]
+                    const patientInfoCell = cells[3];
+                    const nameCardHeader = patientInfoCell ? patientInfoCell.querySelector('.card-title') : null;
                     const name = nameCardHeader ? (nameCardHeader as HTMLElement).innerText.trim() : '';
+                    const patientInfoTable = patientInfoCell ? patientInfoCell.querySelector('table') : null;
 
-                    // Extract titles
-                    const testsTable = cells[3] ? cells[3].querySelector('table') : null;
+                    // Investigations / Status are in cells[4]
+                    const investigationsCell = cells[4];
+                    const investigationsTable = investigationsCell ? investigationsCell.querySelector('table') : null;
+
                     const titles: string[] = [];
-                    if (testsTable) {
-                        const trs = Array.from(testsTable.querySelectorAll('tr'));
+                    if (investigationsTable) {
+                        const trs = Array.from(investigationsTable.querySelectorAll('tr'));
                         for (let tr of trs) {
                             const td = tr.querySelector('td.text-success, td.text-danger, td.text-warning');
-                            if (td) {
-                                titles.push((td as HTMLElement).innerText.trim());
-                            }
+                            if (td) titles.push((td as HTMLElement).innerText.trim());
                         }
+                    } else if (investigationsCell) {
+                        // Fallback: If no table, maybe the status text itself contains the "Done" or "Under processing"
+                        // But usually we want the test names. 
+                        // If it's a card, let's look for test names in the card-body
+                        const testNames = Array.from(investigationsCell.querySelectorAll('.card-body table tr td.text-success, .card-body table tr td.text-danger'));
+                        testNames.forEach(td => titles.push((td as HTMLElement).innerText.trim()));
                     }
 
-                    // Extract MRN/ID NO
-                    let mrn = invoiceId || Math.random().toString(36).substr(2, 9);
-                    if (testsTable) {
-                        const infoRows = Array.from(testsTable.querySelectorAll('tr'));
+                    let mrn = invoiceId;
+                    if (patientInfoTable) {
+                        const infoRows = Array.from(patientInfoTable.querySelectorAll('tr'));
                         for (let ir of infoRows) {
                             const th = ir.querySelector('th');
                             if (th && (th as HTMLElement).innerText.includes('ID NO')) {
@@ -158,10 +183,8 @@ export class LabImportService {
                             records.push({
                                 id: `${mrn}-${title}-${idx}`,
                                 name: name,
-                                mrn: mrn, // Now mostly fallback or ID NO
+                                mrn: mrn,
                                 date: dateStr,
-                                gender: 'Unknown',
-                                dob: '',
                                 accNo: accNo,
                                 title: title,
                                 rowIndex: idx,
@@ -169,14 +192,11 @@ export class LabImportService {
                             });
                         });
                     } else {
-                        // Fallback if cell was somehow empty but row was valid
                         records.push({
                             id: `${mrn}-Unknown-${idx}`,
                             name: name,
                             mrn: mrn,
                             date: dateStr,
-                            gender: 'Unknown',
-                            dob: '',
                             accNo: accNo,
                             title: 'Lab Report',
                             rowIndex: idx,
@@ -194,444 +214,263 @@ export class LabImportService {
             LabImportService.cacheTimestamp = Date.now();
 
             return patients;
-
         } catch (error) {
-            console.error('Error in LabImportService:', error);
-            try {
-                const errorPath = `uploads/error-${Date.now()}.png`;
-                await page.screenshot({ path: require('path').resolve(errorPath) });
-                console.log(`Error screenshot saved to ${errorPath}`);
-            } catch (e) { }
+            console.error('Error in getPatients:', error);
             throw error;
         } finally {
-            await browser.close();
+            if (!browserInstance) await browser.close();
+            else await page.close();
         }
     }
 
-    async importReport(username: string, password: string, patientData: any): Promise<any> {
-        console.log('Starting Lab Report Import...', patientData);
-        const targetAccNo = patientData.accNo;
+    async importReport(username: string, password: string, patientData: any, browserInstance?: any): Promise<any> {
+        console.log('Starting Lab Report Import...', patientData.accNo);
         const targetInvoiceId = patientData.invoiceId;
 
-        const browser = await this.launchBrowser();
+        const browser = browserInstance || await this.launchBrowser();
         const page = await browser.newPage();
 
         try {
-            await this.login(page, username, password);
-
-            await page.waitForSelector('table.dataTable', { timeout: 30000 });
-
-            // Since we know the print action URL is `/referral/invoices/print_medical_report/:invoiceId`
-            // And we extracted invoiceId, we can directly trigger a print if we have it.
-            // But if we don't have it (fallback from older system), we find the row first.
-
-            let printUrl = '';
-
-            if (targetInvoiceId) {
-                printUrl = `https://amrlab.net/referral/invoices/print_medical_report/${targetInvoiceId}`;
-            } else {
-                // Find row and extract action
-                const extractedUrl = await page.evaluate((targetName, targetDate, accNo) => {
-                    const rows = Array.from(document.querySelectorAll('table.dataTable tbody tr[role="row"]'));
-
-                    const matchIndex = rows.findIndex((tr) => {
-                        const cells = Array.from(tr.querySelectorAll('td'));
-                        if (cells.length < 5) return false;
-
-                        const rowAccNo = cells[2] ? (cells[2] as HTMLElement).innerText.trim().split('\n')[0] : '';
-                        const date = cells[1] ? (cells[1] as HTMLElement).innerText.trim() : '';
-
-                        const nameCardHeader = cells[3] ? cells[3].querySelector('.card-title') : null;
-                        const name = nameCardHeader ? (nameCardHeader as HTMLElement).innerText.trim() : '';
-
-                        if (accNo && rowAccNo === accNo) return true;
-                        return (name === targetName && date === targetDate);
-                    });
-
-                    if (matchIndex !== -1) {
-                        const matchRow = rows[matchIndex];
-                        const cells = Array.from(matchRow.querySelectorAll('td'));
-                        const printForm = cells[5] ? cells[5].querySelector('form') : null;
-                        return printForm ? printForm.getAttribute('action') : '';
-                    }
-                    return '';
-                }, patientData.name, patientData.date, targetAccNo);
-
-                printUrl = extractedUrl || '';
+            if (!browserInstance) {
+                await this.login(page, username, password);
             }
 
-            if (!printUrl) {
-                throw new Error("Patient record or print link not found in current list");
-            }
-
+            const printUrl = `https://amrlab.net/referral/invoices/print_medical_report/${targetInvoiceId}`;
             console.log(`Navigating to Print URL: ${printUrl}`);
 
-            // The print url is a POST request according to the form snippet.
-            // <form action="..." method="POST" ...>
-            // We can evaluate a form submission on the current page to that URL to open it.
+            // Ensure we are on a page with a CSRF token
+            if (page.url() === 'about:blank') {
+                await page.goto('https://amrlab.net/referral/invoices', { waitUntil: 'networkidle2' });
+            }
 
-            // Try to fetch PDF bytes directly using the page's session/cookies
-            console.log("Puppeteer: Attempting to fetch PDF via browser fetch...");
-
-            const pdfData = await page.evaluate(async (url) => {
+            const pdfData = await page.evaluate(async (url: string) => {
                 const tokenInput = document.querySelector('input[name="_token"]') as HTMLInputElement;
                 const token = tokenInput ? tokenInput.value : '';
 
                 try {
                     const response = await fetch(url, {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: `_token=${encodeURIComponent(token)}`
                     });
 
-                    if (!response.ok) {
-                        return { error: `HTTP ${response.status}: ${response.statusText}` };
-                    }
-
+                    if (!response.ok) return { error: `HTTP ${response.status}` };
                     const contentType = response.headers.get('content-type') || '';
-                    if (!contentType.includes('application/pdf')) {
-                        const text = await response.text();
-                        return { error: `Expected PDF but got ${contentType}`, preview: text.substring(0, 500) };
-                    }
+                    if (!contentType.includes('application/pdf')) return { error: 'Not a PDF' };
 
                     const buffer = await response.arrayBuffer();
                     return { success: true, data: Array.from(new Uint8Array(buffer)) };
-                } catch (e: any) {
-                    return { error: e.message };
-                }
+                } catch (e: any) { return { error: e.message }; }
             }, printUrl);
 
+            let absolutePath = '';
             if (pdfData && (pdfData as any).success) {
                 const pdfBuffer = Buffer.from((pdfData as any).data);
                 const pdfPath = `uploads/import-${Date.now()}.pdf`;
-                const absolutePdfPath = require('path').resolve(pdfPath);
-                require('fs').writeFileSync(absolutePdfPath, pdfBuffer);
-                console.log(`PDF saved successfully via fetch to ${absolutePdfPath}, size: ${pdfBuffer.length}`);
-                return { screenshotPath: absolutePdfPath, accNo: targetAccNo };
+                absolutePath = require('path').resolve(pdfPath);
+                require('fs').writeFileSync(absolutePath, pdfBuffer);
+                console.log(`PDF saved successfully to ${absolutePath}`);
             } else {
-                console.error("PDF fetch failed:", (pdfData as any)?.error);
-                if ((pdfData as any)?.preview) {
-                    console.log("Response preview:", (pdfData as any).preview);
-                }
-            }
+                console.log("PDF fetch failed, falling back to screenshot...");
+                // Fallback screenshot logic
+                await page.evaluate((url: string) => {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = url;
+                    const token = (document.querySelector('input[name="_token"]') as HTMLInputElement)?.value;
+                    if (token) {
+                        const input = document.createElement('input');
+                        input.name = '_token';
+                        input.value = token;
+                        form.appendChild(input);
+                    }
+                    document.body.appendChild(form);
+                    form.submit();
+                }, printUrl);
 
-            console.log("Falling back to navigation and screenshot...");
-            await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(e => console.log('Navigation wait error', e));
+                await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => { });
+                await new Promise(r => setTimeout(r, 10000));
 
-            await page.setViewport({ width: 1280, height: 1024 });
-            await new Promise(r => setTimeout(r, 8000)); // Allow more render for fallback
-
-            const screenshotPath = `uploads/import-${Date.now()}.png`;
-            const absolutePath = require('path').resolve(screenshotPath);
-
-            try {
+                const screenshotPath = `uploads/import-${Date.now()}.png`;
+                absolutePath = require('path').resolve(screenshotPath);
                 await page.screenshot({ path: absolutePath, fullPage: true });
-            } catch (screenshotError) {
-                console.error("Screenshot failed, trying without fullPage:", screenshotError);
-                await page.screenshot({ path: absolutePath });
+                console.log(`Screenshot saved to ${absolutePath}`);
             }
 
-            return { screenshotPath: absolutePath, accNo: targetAccNo };
-
+            return { screenshotPath: absolutePath, accNo: patientData.accNo };
         } catch (error) {
             console.error('Error importing report:', error);
             throw error;
         } finally {
-            await browser.close();
+            if (!browserInstance) await browser.close();
+            else await page.close();
         }
     }
 
-    async syncPatientLabResults(username: string, password: string, mrn: string, existingAccNos: Set<string>, patientName?: string): Promise<any[]> {
-        console.log(`Syncing results for MRN: ${mrn}, Name: ${patientName || 'N/A'}`);
-
-        const browser = await this.launchBrowser();
-        const page = await browser.newPage();
-        const newReports: any[] = [];
-
-        try {
-            await this.login(page, username, password);
-
-            // Get List including rowIndex
-            await page.waitForSelector('table.dataTable', { timeout: 30000 });
-
-            // If we have a patientName, type it into the DataTables search box first to filter serverside
-            if (patientName) {
-                console.log(`Filtering DataTable for name: ${patientName}`);
-                try {
-                    await page.waitForSelector('input[type="search"]', { timeout: 5000 });
-                    await page.type('input[type="search"]', patientName, { delay: 50 });
-                    await new Promise(r => setTimeout(r, 2000)); // wait for ajax reload
-                } catch (e) {
-                    console.log("Could not find search input or filter failed, falling back to full table scan");
-                }
-            }
-
-            const rows = await page.evaluate(() => {
-                const records: any[] = [];
-                Array.from(document.querySelectorAll('table.dataTable tbody tr[role="row"]')).forEach((row, idx) => {
-                    const cells = Array.from(row.querySelectorAll('td'));
-                    if (cells.length < 5) return;
-
-                    const dateStr = cells[1] ? (cells[1] as HTMLElement).innerText.trim() : '';
-                    const barcodeDiv = cells[2] ? cells[2].querySelector('.invoice_samples') : null;
-                    const invoiceId = barcodeDiv ? barcodeDiv.getAttribute('invoice_id') : '';
-                    const accNo = cells[2] ? (cells[2] as HTMLElement).innerText.trim().split('\n')[0] : '';
-
-                    const nameCardHeader = cells[3] ? cells[3].querySelector('.card-title') : null;
-                    const name = nameCardHeader ? (nameCardHeader as HTMLElement).innerText.trim() : '';
-
-                    const testsTable = cells[3] ? cells[3].querySelector('table') : null;
-                    const titles: string[] = [];
-                    if (testsTable) {
-                        const trs = Array.from(testsTable.querySelectorAll('tr'));
-                        for (let tr of trs) {
-                            const td = tr.querySelector('td.text-success, td.text-danger, td.text-warning');
-                            if (td) titles.push((td as HTMLElement).innerText.trim());
-                        }
-                    }
-
-                    let rowMrn = invoiceId;
-                    if (testsTable) {
-                        const infoRows = Array.from(testsTable.querySelectorAll('tr'));
-                        for (let ir of infoRows) {
-                            const th = ir.querySelector('th');
-                            if (th && (th as HTMLElement).innerText.includes('ID NO')) {
-                                const siblingTd = th.nextElementSibling;
-                                if (siblingTd) {
-                                    const potentialMrn = (siblingTd as HTMLElement).innerText.trim();
-                                    if (potentialMrn) rowMrn = potentialMrn;
-                                }
-                            }
-                        }
-                    }
-
-                    if (titles.length > 0) {
-                        titles.forEach((title, sIdx) => {
-                            records.push({
-                                accNo: accNo,
-                                date: dateStr,
-                                mrn: rowMrn,
-                                name: name,
-                                title: title,
-                                invoiceId: invoiceId,
-                                rowIndex: idx,
-                                subIndex: sIdx
-                            });
-                        });
-                    } else {
-                        records.push({
-                            accNo: accNo,
-                            date: dateStr,
-                            mrn: rowMrn,
-                            name: name,
-                            title: 'Lab Report',
-                            invoiceId: invoiceId,
-                            rowIndex: idx,
-                            subIndex: 0
-                        });
-                    }
-                });
-                return records;
-            });
-
-            console.log(`Scraped ${rows.length} rows from the DataTable. First 5 row names:`);
-            rows.slice(0, 5).forEach((r, i) => console.log(`  Row ${i}: name="${r.name}", mrn="${r.mrn}", accNo="${r.accNo}", invoiceId="${r.invoiceId}"`));
-
-            // Flexible name matching: bidirectional includes + word-level partial match
-            const normalize = (s: string) => s.replace(/\s+/g, ' ').trim();
-            const normalizedPatientName = patientName ? normalize(patientName) : '';
-            const patientNameWords = normalizedPatientName ? normalizedPatientName.split(' ').filter(w => w.length > 1) : [];
-
-            let matches = rows.filter(r => {
-                if (!r || !r.name) return false;
-                const rowName = normalize(r.name);
-
-                // Exact match
-                if (patientName && rowName === normalizedPatientName) return true;
-                // Bidirectional includes
-                if (patientName && (rowName.includes(normalizedPatientName) || normalizedPatientName.includes(rowName))) return true;
-                // Word-level: if at least 2 words from patient name appear in the row name
-                if (patientNameWords.length >= 2) {
-                    const matchingWords = patientNameWords.filter(w => rowName.includes(w));
-                    if (matchingWords.length >= 2) return true;
-                }
-                // MRN fallback
-                if (mrn && (r.mrn === mrn || r.name === mrn || r.name.includes(mrn))) return true;
-                return false;
-            });
-
-            console.log(`Name-matched ${matches.length} rows (before dedup) for "${normalizedPatientName || mrn}"`);
-            matches.forEach((m, i) => console.log(`  Match ${i}: name="${m.name}", accNo="${m.accNo}", title="${m.title}"`));
-
-            // Deduplicate early using the existingAccNos set to save API usage
-            matches = matches.filter(r => !existingAccNos.has(r.accNo));
-            console.log(`Found ${matches.length} new/unprocessed matches for MRN/Name ${patientName || mrn}`);
-
-            if (matches.length > 5) {
-                matches = matches.slice(0, 5);
-                console.log(`Limiting to latest 5 matches for auto-sync.`);
-            }
-
-            for (const match of matches) {
-                if (!match || !match.invoiceId) continue;
-                console.log(`Processing report for ${match.accNo} - ${match.title}`);
-
-                try {
-                    // Navigate directly to print page
-                    const printUrl = `https://amrlab.net/referral/invoices/print_medical_report/${match.invoiceId}`;
-
-                    const newPage = await browser.newPage();
-
-                    // The print page requires POST and CSRF. We can't simply goto() a POST.
-                    // Instead, we inject JS into the current dataTable page to trigger form submission
-                    // into a new target/tab.
-                    await page.evaluate((url) => {
-                        const form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = url;
-                        form.target = '_blank'; // open in new tab
-
-                        const existingToken = document.querySelector('input[name="_token"]') as HTMLInputElement;
-                        if (existingToken) {
-                            const tokenInput = document.createElement('input');
-                            tokenInput.type = 'hidden';
-                            tokenInput.name = '_token';
-                            tokenInput.value = existingToken.value;
-                            form.appendChild(tokenInput);
-                        }
-
-                        document.body.appendChild(form);
-                        form.submit();
-                    }, printUrl);
-
-                    const newTarget = await browser.waitForTarget(target => target.opener() === page.target(), { timeout: 15000 }).catch(() => null);
-
-                    if (newTarget) {
-                        const printPage = await newTarget.page();
-                        if (printPage) {
-                            await printPage.waitForNetworkIdle({ timeout: 5000 }).catch(() => { });
-                            await printPage.evaluate(() => { const s = document.createElement('style'); s.textContent = '*,body,html{overflow:visible!important;height:auto!important;max-height:none!important;}'; document.head.appendChild(s); });
-
-                            await printPage.setViewport({ width: 1280, height: 1024 });
-                            // Increase wait time for PDF rendering on production
-                            await new Promise(r => setTimeout(r, 15000));
-
-                            const screenshotPath = `uploads/sync-${match.accNo}-${Date.now()}-${Math.floor(Math.random() * 1000)}.png`;
-                            const absolutePath = require('path').resolve(screenshotPath);
-
-                            try {
-                                await printPage.screenshot({ path: absolutePath, fullPage: true });
-                            } catch (ssErr) {
-                                await printPage.screenshot({ path: absolutePath });
-                            }
-
-                            await printPage.close();
-
-                            newReports.push({
-                                screenshotPath: absolutePath,
-                                ...match
-                            });
-                        }
-                    }
-
-                } catch (err) {
-                    console.error(`Failed to grab report for ${match.accNo}`, err);
-                }
-            }
-        } catch (e) {
-            console.error("Sync failed", e);
-        } finally {
-            await browser.close();
-        }
-
-        return newReports;
-    }
-
-    async syncAndSavePatientLabs(mrn: string, patientId: string, authorId: string, patientName?: string): Promise<any[]> {
+    async syncAndSavePatientLabs(mrn: string, patientId: string, authorId: string, patientName?: string, browserInstance?: any, cachedReports?: any[]): Promise<any[]> {
         const username = 'icu@amrlab.net';
         const password = process.env.LAB_PASSWORD || '1989';
-
-        // Imports moved to top of file for proper module syntax
-        // import { PrismaClient } from '@prisma/client';
-        // import puppeteer, { Page } from 'puppeteer';
-        // import fs from 'fs';
-        // import { notificationEmitter } from '../routes/notifications.routes';
 
         const { PrismaClient } = require('@prisma/client');
         const prisma = new PrismaClient();
         const results = [];
-
-        // Dynamically import notificationEmitter to avoid circular dependencies if this file is imported by notification.routes
         const { notificationEmitter } = await import('../routes/notifications.routes');
 
+        let browser = browserInstance;
+
         try {
-            // Find existing accession numbers for this patient to prevent redundant processing
-            const existingInvestigations = await prisma.investigation.findMany({
-                where: {
-                    patientId: patientId,
-                    externalId: { not: null }
-                },
-                select: { externalId: true }
+            // Check if patient is currently admitted
+            const admission = await prisma.admission.findFirst({
+                where: { patientId, dischargedAt: null }
             });
 
-            const existingAccNos = new Set<string>();
-            existingInvestigations.forEach((inv: any) => existingAccNos.add(inv.externalId));
-            console.log(`Pre-filtering ${existingAccNos.size} existing accession numbers for patient ${patientId}`);
+            if (!admission) {
+                console.log(`Sync skipped for ${patientName || mrn}: Patient is not currently admitted.`);
+                return [];
+            }
 
-            const newReports = await this.syncPatientLabResults(username, password, mrn, existingAccNos, patientName);
+            // Find existing accession numbers
+            const existingInvestigations = await prisma.investigation.findMany({
+                where: { patientId, externalId: { not: null } },
+                select: { externalId: true, title: true }
+            });
 
-            let ocrService = require('./ocrService');
-            if (ocrService.default) ocrService = ocrService.default;
-            if (ocrService.ocrService) ocrService = ocrService.ocrService;
+            const existingAccTitles = new Set<string>();
+            existingInvestigations.forEach((inv: any) => existingAccTitles.add(`${inv.externalId}-${inv.title}`));
 
-            // ANALYZE IN PARALLEL
-            // OCR analysis is independent and cpu/network bound (if using external API).
-            // We can run these in parallel.
+            if (!browser && !cachedReports) browser = await this.launchBrowser();
 
-            for (const report of newReports) {
+            // 1. Use cached reports or fetch new ones
+            const allReports = cachedReports || await this.getPatients(username, password, true, browser);
+
+            const normalize = (s: string) => {
+                if (!s) return '';
+                return s
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .toLowerCase()
+                    .replace(/[أإآ]/g, 'ا')
+                    .replace(/ة/g, 'ه')
+                    .replace(/[ىي]/g, 'ي') // Normalize both to yeh
+                    .replace(/ئ/g, 'ي')
+                    .replace(/ؤ/g, 'و')
+                    .replace(/عبد\s+/g, 'عبد') // Normalize "عبد الله" to "عبدالله"
+                    .replace(/ابو\s+/g, 'ابو')
+                    .replace(/ابا\s+/g, 'ابا')
+                    .replace(/ابي\s+/g, 'ابي');
+            };
+
+            const targetName = normalize(patientName || '');
+
+            console.log(`Sync Matching: TargetName="${targetName}" (MRN matching disabled)`);
+
+            // Better matching logic handling missing middle names
+            const isNameMatch = (target: string, row: string) => {
+                if (!target || !row) return false;
+                if (row === target || row.includes(target) || target.includes(row)) return true;
+
+                // Token-based matching for Arabic names
+                const targetTokens = target.split(/\s+/).filter(t => t.length > 1);
+                const rowTokens = row.split(/\s+/).filter(t => t.length > 1);
+
+                if (targetTokens.length === 0 || rowTokens.length === 0) return false;
+
+                let matchCount = 0;
+                for (const t of targetTokens) {
+                    if (rowTokens.includes(t)) matchCount++;
+                }
+
+                // If they share at least 2 significant words, it's a match.
+                // If one of the names only has 1 word, then 1 match is enough (though rare for full names).
+                const requiredMatches = Math.min(2, targetTokens.length, rowTokens.length);
+                return matchCount >= requiredMatches && matchCount > 0;
+            };
+
+            let patientReports = allReports.filter(r => {
+                const rowName = normalize(r.name);
+                const matchName = isNameMatch(targetName, rowName);
+
+                if (matchName) {
+                    console.log(`   MATCHED: PortalName="${rowName}" PortalMRN="${r.mrn}" InvoiceID="${r.invoiceId}"`);
+                    return true;
+                }
+                return false;
+            });
+
+            // FALLBACK: If no reports found for this specific patient, try an explicit search on the portal
+            if (patientReports.length === 0 && patientName) {
+                console.log(`Sync: No reports found in default list for ${patientName}. Retrying with explicit portal search (by Name)...`);
+
+                // Use original (unnormalized) name for portal search box to avoid literal mismatch
+                const searchQuery = patientName;
+                const searchReports = await this.getPatients(username, password, true, browser, searchQuery);
+
+                patientReports = searchReports.filter(r => {
+                    const rowName = normalize(r.name);
+                    const matchName = isNameMatch(targetName, rowName);
+                    return matchName;
+                });
+
+                // SECOND FALLBACK: If still nothing, try a broader search with just first two words
+                if (patientReports.length === 0) {
+                    const words = patientName.split(/\s+/);
+                    if (words.length > 2) {
+                        const broaderQuery = words.slice(0, 2).join(' ');
+                        console.log(`Sync: Still no reports. Trying broader search for "${broaderQuery}"...`);
+                        const broaderReports = await this.getPatients(username, password, true, browser, broaderQuery);
+
+                        patientReports = broaderReports.filter(r => {
+                            const rowName = normalize(r.name);
+                            const matchName = isNameMatch(targetName, rowName);
+                            return matchName;
+                        });
+                    }
+                }
+            }
+
+            console.log(`Sync: Found ${patientReports.length} reports on portal for ${patientName || mrn}`);
+
+            for (const report of patientReports) {
+                const key = `${report.accNo}-${report.title}`;
+                if (existingAccTitles.has(key)) continue;
+
+                console.log(`Syncing NEW report: ${report.accNo} - ${report.title}`);
+
                 try {
-                    const analysisResults = await ocrService.analyzeImage(report.screenshotPath);
+                    // Use the robust import mechanism
+                    const importResult = await this.importReport(username, password, report, browser);
+
+                    let ocrService = require('./ocrService');
+                    if (ocrService.default) ocrService = ocrService.default;
+                    if (ocrService.ocrService) ocrService = ocrService.ocrService;
+
+                    const analysisResults = await ocrService.analyzeImage(importResult.screenshotPath);
 
                     if (analysisResults && analysisResults.length > 0) {
-                        const createdItems = [];
-
-                        // Process ALL results returned by the AI, not just the first one
                         for (const item of analysisResults) {
-                            const relativePath = '/uploads/' + require('path').basename(report.screenshotPath);
-
-                            // Prioritize AI title
+                            const relativePath = '/uploads/' + require('path').basename(importResult.screenshotPath);
                             const finalTitle = item.title || report.title || 'Lab Report';
 
                             let parsedConductedAt = new Date();
                             if (report.date) {
-                                // Expected format from amrlab: DD-MM-YYYY
                                 const parts = report.date.split('-');
                                 if (parts.length === 3) {
-                                    const day = parseInt(parts[0], 10);
-                                    const month = parseInt(parts[1], 10) - 1; // 0-indexed
-                                    const year = parseInt(parts[2], 10);
-                                    parsedConductedAt = new Date(year, month, day);
+                                    parsedConductedAt = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
                                 }
                             }
 
                             const exists = await prisma.investigation.findFirst({
-                                where: {
-                                    patientId,
-                                    externalId: report.accNo,
-                                    title: finalTitle,
-                                }
+                                where: { patientId, externalId: report.accNo, title: finalTitle }
                             });
 
                             if (!exists) {
                                 const newInv = await prisma.investigation.create({
                                     data: {
                                         patientId,
-                                        authorId: authorId,
+                                        authorId,
                                         type: (item.type || 'LAB') as 'LAB' | 'IMAGING',
                                         category: item.category || 'External',
-                                        title: finalTitle, // Use finalTitle instead of uniqueTitle to keep list clean
+                                        title: finalTitle,
                                         status: 'FINAL',
                                         result: { ...item.results, imageUrl: relativePath },
                                         impression: 'Auto-synced from Lab Results',
@@ -639,36 +478,32 @@ export class LabImportService {
                                         externalId: report.accNo
                                     }
                                 });
-                                createdItems.push(newInv);
+                                results.push(newInv);
 
-                                // Fetch patient name for notification
-                                const patient = await prisma.patient.findUnique({
-                                    where: { id: patientId },
-                                    select: { name: true }
-                                });
-                                const patientName = patient?.name || 'Unknown Patient';
+                                const isAbnormal = item.results && typeof item.results === 'object' &&
+                                    Object.values(item.results).some((v: any) => typeof v === 'object' && v !== null && (v as any).isAbnormal === true);
 
-                                // Emit real-time notification to all connected clients
                                 notificationEmitter.emit('new_investigation', {
-                                    patientId: patientId,
-                                    patientName: patientName,
-                                    title: newInv.title || 'Lab Result',
-                                    timestamp: new Date()
+                                    id: newInv.id,
+                                    type: 'new_investigation',
+                                    patientId,
+                                    patientName,
+                                    title: `New ${newInv.type || 'Lab'} Result: ${newInv.title}`,
+                                    timestamp: new Date(),
+                                    isAbnormal
                                 });
-                            } else {
-                                console.log(`Skipping duplicate: ${report.accNo} - ${finalTitle}`);
                             }
                         }
-                        results.push(...createdItems);
                     }
-                } catch (e) {
-                    console.error(`Failed to process/save ${report.accNo}`, e);
+                } catch (reportErr) {
+                    console.error(`Failed to sync report ${report.accNo}:`, reportErr);
                 }
             }
 
             return results;
         } finally {
             await prisma.$disconnect();
+            if (!browserInstance && browser) await browser.close();
         }
     }
 
@@ -676,46 +511,67 @@ export class LabImportService {
         const { PrismaClient } = require('@prisma/client');
         const prisma = new PrismaClient();
         const results = [];
-        console.log("Starting Auto-Sync for all active patients...");
+        const browser = await this.launchBrowser();
+        const username = 'icu@amrlab.net';
+        const password = process.env.LAB_PASSWORD || '1989';
+
+        let syncLog;
+        try {
+            syncLog = await prisma.syncLog.create({
+                data: { type: 'LAB_SYNC', status: 'RUNNING', startedAt: new Date() }
+            });
+        } catch (e) { console.error(e); }
 
         try {
-            // 1. Get admitted patients
+            // Login once for the whole session
+            const page = await browser.newPage();
+            try {
+                await this.login(page, username, password);
+                await page.close();
+            } catch (loginErr) {
+                console.error("Login failed for sync-all session:", loginErr);
+                throw loginErr;
+            }
+
             const admittedPatients = await prisma.patient.findMany({
                 where: { admissions: { some: { dischargedAt: null } } },
                 select: { id: true, mrn: true, name: true }
             });
 
-            if (admittedPatients.length === 0) {
-                console.log("Auto-Sync: No admitted patients found.");
-                return [];
-            }
+            console.log(`Auto-Sync: Starting sync for ${admittedPatients.length} admitted patients...`);
 
-            console.log(`Auto-Sync: Starting sync for all ${admittedPatients.length} admitted patients...`);
+            // Fetch everything on the portal once at the start
+            const allPortalReports = await this.getPatients(username, password, true, browser);
 
-            // Processing in sequence for now to avoid overloading the lab portal/browser
             for (const patient of admittedPatients) {
-                console.log(`Auto-Sync: Syncing patient ${patient.name} (MRN: ${patient.mrn})`);
                 try {
                     const patientResults = await this.syncAndSavePatientLabs(
-                        patient.mrn,
-                        patient.id,
-                        authorId,
-                        patient.name
+                        patient.mrn, patient.id, authorId, patient.name, browser, allPortalReports
                     );
-                    if (patientResults.length > 0) {
-                        console.log(`Auto-Sync: Imported ${patientResults.length} new reports for ${patient.name}`);
-                        results.push(...patientResults);
-                    }
+                    results.push(...patientResults);
                 } catch (patientErr) {
-                    console.error(`Auto-Sync: Failed to sync patient ${patient.name}:`, patientErr);
+                    console.error(`Failed to sync ${patient.name}:`, patientErr);
                 }
             }
-            console.log(`Auto-Sync: Completed. Imported ${results.length} total new reports.`);
+
+            if (syncLog) {
+                await prisma.syncLog.update({
+                    where: { id: syncLog.id },
+                    data: { status: 'SUCCESS', endedAt: new Date(), resultsCount: results.length }
+                }).catch(console.error);
+            }
             return results;
         } catch (error) {
-            console.error("Auto-Sync Major Failure:", error);
+            console.error("Auto-Sync Failure:", error);
+            if (syncLog) {
+                await prisma.syncLog.update({
+                    where: { id: syncLog.id },
+                    data: { status: 'FAILED', message: String(error), endedAt: new Date(), resultsCount: results.length }
+                }).catch(console.error);
+            }
             return results;
         } finally {
+            await browser.close();
             await prisma.$disconnect();
         }
     }

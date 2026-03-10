@@ -15,6 +15,7 @@ import InterventionsTab from '../features/interventions/InterventionsTab';
 import OverviewTab from '../features/patient/OverviewTab';
 import VentilatorTab from '../features/ventilator/VentilatorTab';
 import ConsultationTab from '../features/patient/ConsultationTab';
+import NursingTab from '../features/nursing/NursingTab';
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiClient } from '../api/client';
@@ -204,6 +205,7 @@ export default function PatientDetails() {
                                 <TabsTrigger value="overview">Overview</TabsTrigger>
                                 <TabsTrigger value="vitals">Vitals</TabsTrigger>
                                 <TabsTrigger value="mar">MAR</TabsTrigger>
+                                <TabsTrigger value="nursing">Nursing</TabsTrigger>
                                 <TabsTrigger value="ventilator">Ventilator</TabsTrigger>
                                 <TabsTrigger value="orders">Orders</TabsTrigger>
                                 <TabsTrigger value="io">I/O</TabsTrigger>
@@ -270,6 +272,10 @@ export default function PatientDetails() {
 
                             <TabsContent value="interventions">
                                 <InterventionsTab patientId={patient.id} diagnosis={patient.diagnosis || undefined} />
+                            </TabsContent>
+
+                            <TabsContent value="nursing">
+                                <NursingTab patientId={patient.id} />
                             </TabsContent>
 
                             <TabsContent value="ventilator">

@@ -52,7 +52,22 @@ public class MedicationsFragment extends Fragment {
 
         RecyclerView recyclerView = view.findViewById(R.id.recyclerViewMedications);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        adapter = new MedicationsAdapter(med -> confirmAdministration(med));
+        adapter = new MedicationsAdapter(new MedicationsAdapter.OnMedicationActionListener() {
+            @Override
+            public void onAdminister(JSONObject med) {
+                confirmAdministration(med);
+            }
+
+            @Override
+            public void onStop(JSONObject med) {
+                confirmDiscontinuation(med);
+            }
+
+            @Override
+            public void onShowHistory(JSONObject med) {
+                showAdminHistory(med);
+            }
+        });
         recyclerView.setAdapter(adapter);
 
         FloatingActionButton fab = view.findViewById(R.id.fabAddMedication);
@@ -164,5 +179,121 @@ public class MedicationsFragment extends Fragment {
         } catch (JSONException e) {
             Toast.makeText(getContext(), "JSON Error", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void confirmDiscontinuation(JSONObject med) {
+        String medName = med.optString("name", "Unknown Medication");
+        new AlertDialog.Builder(getActivity())
+                .setTitle("Stop Medication")
+                .setMessage("Are you sure you want to discontinue " + medName + "?")
+                .setPositiveButton("Stop", (dialog, which) -> stopMedication(med))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void stopMedication(JSONObject med) {
+        SharedPreferences prefs = getActivity().getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
+        String token = prefs.getString("auth_token", null);
+        String medId = med.optString("id", "");
+
+        try {
+            JSONObject body = new JSONObject();
+            body.put("isActive", false);
+
+            ApiClient.put("/medications/" + medId + "/status", body, token, new ApiClient.ApiCallback() {
+                @Override
+                public void onSuccess(String response) {
+                    if (getActivity() != null) {
+                        getActivity().runOnUiThread(() -> {
+                            Toast.makeText(getContext(), "Medication discontinued", Toast.LENGTH_SHORT).show();
+                            loadMedications();
+                        });
+                    }
+                }
+
+                @Override
+                public void onError(Exception error) {
+                    if (getActivity() != null) {
+                        getActivity().runOnUiThread(() -> {
+                            Toast.makeText(getContext(), "Failed to stop: " + error.getMessage(), Toast.LENGTH_SHORT)
+                                    .show();
+                        });
+                    }
+                }
+            });
+        } catch (JSONException ignored) {
+        }
+    }
+
+    private void showAdminHistory(JSONObject med) {
+        String medId = med.optString("id", "");
+        String medName = med.optString("name", "Medication");
+        JSONArray history = med.optJSONArray("Administrations");
+        if (history == null || history.length() == 0) {
+            Toast.makeText(getContext(), "No administration history found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String[] items = new String[history.length()];
+        for (int i = 0; i < history.length(); i++) {
+            JSONObject adm = history.optJSONObject(i);
+            String time = adm.optString("administeredAt", "").split("\\.")[0].replace("T", " ");
+            String dose = adm.optString("dose", "");
+            JSONObject user = adm.optJSONObject("User");
+            String nurse = (user != null) ? user.optString("name", "Nurse") : "Nurse";
+            items[i] = time + " | " + dose + " (" + nurse + ")";
+        }
+
+        new AlertDialog.Builder(getActivity())
+                .setTitle(medName + " History")
+                .setItems(items, (dialog, which) -> {
+                    confirmDeleteAdministration(history.optJSONObject(which));
+                })
+                .setNegativeButton("Close", null)
+                .show();
+    }
+
+    private void confirmDeleteAdministration(JSONObject adm) {
+        SharedPreferences prefs = getActivity().getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
+        String role = prefs.getString("user_role", "");
+
+        if (!"SENIOR".equals(role)) {
+            Toast.makeText(getContext(), "Only seniors can delete administrations", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new AlertDialog.Builder(getActivity())
+                .setTitle("Delete Administration")
+                .setMessage("Are you sure you want to delete this dose record?")
+                .setPositiveButton("Delete", (dialog, which) -> deleteAdministration(adm))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void deleteAdministration(JSONObject adm) {
+        SharedPreferences prefs = getActivity().getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
+        String token = prefs.getString("auth_token", null);
+        String admId = adm.optString("id", "");
+
+        ApiClient.delete("/medications/administration/" + admId, token, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(String response) {
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        Toast.makeText(getContext(), "Record deleted", Toast.LENGTH_SHORT).show();
+                        loadMedications();
+                    });
+                }
+            }
+
+            @Override
+            public void onError(Exception error) {
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        Toast.makeText(getContext(), "Failed: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
+                }
+            }
+        });
     }
 }

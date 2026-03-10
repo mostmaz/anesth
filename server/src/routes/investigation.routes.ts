@@ -4,6 +4,24 @@ import prisma from '../prisma';
 
 const router = Router();
 
+// Get all Investigations (global feed for dashboard)
+router.get('/', async (req, res) => {
+    try {
+        const investigations = await prisma.investigation.findMany({
+            orderBy: { conductedAt: 'desc' },
+            take: 20,
+            include: {
+                patient: { select: { name: true } },
+                author: { select: { name: true, role: true } }
+            }
+        });
+        res.json(investigations);
+    } catch (error) {
+        console.error('Error fetching investigations:', error);
+        res.status(500).json({ error: 'Failed to fetch investigations' });
+    }
+});
+
 // Get Investigations for a Patient
 router.get('/:patientId', async (req, res) => {
     try {

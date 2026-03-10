@@ -35,10 +35,11 @@ public class UploadInvestigationActivity extends AppCompatActivity {
 
     private String patientId;
     private String filterType;
-    private byte[] imageBytes;
-    private String fileName = "upload.jpg";
+    private java.util.List<byte[]> imageBytesList = new java.util.ArrayList<>();
+    private java.util.List<String> fileNames = new java.util.ArrayList<>();
 
     private ImageView imagePreview;
+    private TextView textSelectedCount;
     private Button btnSelectImage;
     private Button btnSubmitUpload;
     private ProgressBar progressUpload;
@@ -60,6 +61,7 @@ public class UploadInvestigationActivity extends AppCompatActivity {
         }
 
         imagePreview = findViewById(R.id.imagePreview);
+        textSelectedCount = findViewById(R.id.textSelectedCount);
         btnSelectImage = findViewById(R.id.btnSelectImage);
         btnSubmitUpload = findViewById(R.id.btnSubmitUpload);
         progressUpload = findViewById(R.id.progressUpload);
@@ -71,6 +73,7 @@ public class UploadInvestigationActivity extends AppCompatActivity {
 
     private void openGallery() {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         startActivityForResult(intent, PICK_IMAGE_REQUEST);
     }
 
@@ -78,26 +81,51 @@ public class UploadInvestigationActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
-            Uri imageUri = data.getData();
-            try {
-                InputStream inputStream = getContentResolver().openInputStream(imageUri);
-                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                imagePreview.setImageBitmap(bitmap);
+        if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null) {
+            imageBytesList.clear();
+            fileNames.clear();
 
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 80, baos);
-                imageBytes = baos.toByteArray();
+            if (data.getClipData() != null) {
+                int count = data.getClipData().getItemCount();
+                if (count > 3)
+                    count = 3; // Limit to 3
 
-                String path = imageUri.getPath();
-                if (path != null) {
-                    fileName = path.substring(path.lastIndexOf("/") + 1) + ".jpg";
+                for (int i = 0; i < count; i++) {
+                    processUri(data.getClipData().getItemAt(i).getUri());
                 }
-
-                btnSubmitUpload.setEnabled(true);
-            } catch (Exception e) {
-                Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+            } else if (data.getData() != null) {
+                processUri(data.getData());
             }
+
+            if (!imageBytesList.isEmpty()) {
+                textSelectedCount.setText(imageBytesList.size() + " images selected");
+                textSelectedCount.setVisibility(View.VISIBLE);
+                btnSubmitUpload.setEnabled(true);
+            }
+        }
+    }
+
+    private void processUri(Uri imageUri) {
+        try {
+            InputStream inputStream = getContentResolver().openInputStream(imageUri);
+            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+            if (imageBytesList.isEmpty()) {
+                imagePreview.setImageBitmap(bitmap); // Preview only the first one
+            }
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, baos);
+            imageBytesList.add(baos.toByteArray());
+
+            String path = imageUri.getPath();
+            String name = "upload_" + System.currentTimeMillis() + ".jpg";
+            if (path != null && path.contains("/")) {
+                name = path.substring(path.lastIndexOf("/") + 1) + ".jpg";
+            }
+            fileNames.add(name);
+
+        } catch (Exception e) {
+            Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -112,25 +140,23 @@ public class UploadInvestigationActivity extends AppCompatActivity {
     }
 
     private void startUploadFlow() {
-        if (imageBytes == null)
+        if (imageBytesList.isEmpty())
             return;
 
         SharedPreferences prefs = getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
         String token = prefs.getString("auth_token", null);
         String userId = prefs.getString("user_id", "");
 
-        setStatus("Uploading Image...", true);
+        setStatus("Uploading " + imageBytesList.size() + " Images...", true);
 
-        // Step 1: Upload multipart file
-        ApiClient.uploadFile("/upload", imageBytes, fileName, token, new ApiClient.ApiCallback() {
+        // Step 1: Upload multipart files (Batch)
+        ApiClient.uploadFiles("/upload", imageBytesList, fileNames, token, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(String response) {
                 try {
                     JSONArray jsonResponse = new JSONArray(response);
                     if (jsonResponse.length() > 0) {
-                        JSONObject fileData = jsonResponse.getJSONObject(0);
-                        String url = fileData.getString("url");
-                        analyzeImageOCR(url, token, userId);
+                        processUploadedFiles(jsonResponse, token, userId, 0);
                     } else {
                         runOnUiThread(() -> {
                             setStatus("Upload returned empty response.", false);
@@ -152,8 +178,30 @@ public class UploadInvestigationActivity extends AppCompatActivity {
         });
     }
 
-    private void analyzeImageOCR(String imageUrl, String token, String userId) {
-        setStatus("Analyzing with AI...", true);
+    private void processUploadedFiles(JSONArray uploadedFiles, String token, String userId, int index) {
+        if (index >= uploadedFiles.length()) {
+            runOnUiThread(() -> {
+                setStatus("Successfully processed all files!", false);
+                Toast.makeText(this, "All Investigations Saved", Toast.LENGTH_SHORT).show();
+                setResult(Activity.RESULT_OK);
+                finish();
+            });
+            return;
+        }
+
+        try {
+            JSONObject fileData = uploadedFiles.getJSONObject(index);
+            String url = fileData.getString("url");
+            String originalName = fileData.optString("originalName", "File " + (index + 1));
+            analyzeImageOCR(uploadedFiles, index, url, originalName, token, userId);
+        } catch (JSONException e) {
+            processUploadedFiles(uploadedFiles, token, userId, index + 1);
+        }
+    }
+
+    private void analyzeImageOCR(JSONArray uploadedFiles, int fileIndex, String imageUrl, String originalName,
+            String token, String userId) {
+        setStatus("Analyzing (" + (fileIndex + 1) + "/" + uploadedFiles.length() + "): " + originalName + "...", true);
 
         try {
             JSONObject body = new JSONObject();
@@ -173,58 +221,58 @@ public class UploadInvestigationActivity extends AppCompatActivity {
                         }
 
                         if (aiResults.length() > 0) {
-                            saveInvestigationDetails(aiResults, imageUrl, token, userId, 0);
+                            saveInvestigationDetails(uploadedFiles, fileIndex, aiResults, imageUrl, originalName, token,
+                                    userId, 0);
                         } else {
-                            // Fallback
-                            saveFallbackInvestigation("AI returned no results", imageUrl, token, userId);
+                            saveFallbackInvestigation(uploadedFiles, fileIndex, "AI returned no results", imageUrl,
+                                    originalName, token, userId);
                         }
                     } catch (JSONException e) {
-                        // Fallback
-                        saveFallbackInvestigation("Failed to parse AI response: " + e.getMessage(), imageUrl, token,
-                                userId);
+                        saveFallbackInvestigation(uploadedFiles, fileIndex, "Failed to parse AI response", imageUrl,
+                                originalName, token, userId);
                     }
                 }
 
                 @Override
                 public void onError(Exception error) {
-                    saveFallbackInvestigation("AI Analysis Failed", imageUrl, token, userId);
+                    saveFallbackInvestigation(uploadedFiles, fileIndex, "AI Analysis Failed", imageUrl, originalName,
+                            token, userId);
                 }
             });
         } catch (JSONException e) {
-            runOnUiThread(() -> setStatus("Error preparing OCR request.", false));
+            processUploadedFiles(uploadedFiles, token, userId, fileIndex + 1);
         }
     }
 
-    private void saveFallbackInvestigation(String fallbackNote, String imageUrl, String token, String userId) {
+    private void saveFallbackInvestigation(JSONArray uploadedFiles, int fileIndex, String fallbackNote,
+            String imageUrl, String originalName, String token, String userId) {
         try {
             JSONArray fallbackArray = new JSONArray();
             JSONObject item = new JSONObject();
             item.put("type", "LAB");
             item.put("category", "External");
-            item.put("title", fileName);
+            item.put("title", originalName);
             JSONObject resultsObj = new JSONObject();
             resultsObj.put("note", fallbackNote);
             item.put("results", resultsObj);
             fallbackArray.put(item);
-            saveInvestigationDetails(fallbackArray, imageUrl, token, userId, 0);
+            saveInvestigationDetails(uploadedFiles, fileIndex, fallbackArray, imageUrl, originalName, token, userId, 0);
         } catch (JSONException ignored) {
+            processUploadedFiles(uploadedFiles, token, userId, fileIndex + 1);
         }
     }
 
-    private void saveInvestigationDetails(JSONArray aiResults, String imageUrl, String token, String userId,
-            int index) {
+    private void saveInvestigationDetails(JSONArray uploadedFiles, int fileIndex, JSONArray aiResults, String imageUrl,
+            String originalName, String token, String userId, int index) {
         if (index >= aiResults.length()) {
-            runOnUiThread(() -> {
-                setStatus("Successfully processed and saved!", false);
-                Toast.makeText(this, "Investigation Saved", Toast.LENGTH_SHORT).show();
-                setResult(Activity.RESULT_OK);
-                finish();
-            });
+            // Finished this file, move to next
+            processUploadedFiles(uploadedFiles, token, userId, fileIndex + 1);
             return;
         }
 
         try {
-            setStatus("Saving result " + (index + 1) + " of " + aiResults.length() + "...", true);
+            setStatus("Saving result " + (index + 1) + "/" + aiResults.length() + " from " + originalName + "...",
+                    true);
             JSONObject item = aiResults.getJSONObject(index);
 
             JSONObject body = new JSONObject();
@@ -232,7 +280,7 @@ public class UploadInvestigationActivity extends AppCompatActivity {
             body.put("authorId", userId);
             body.put("type", item.optString("type", "LAB"));
             body.put("category", item.optString("category", "External"));
-            body.put("title", item.optString("title", fileName));
+            body.put("title", item.optString("title", originalName));
             body.put("status", "FINAL");
             body.put("impression", "");
 
@@ -241,30 +289,25 @@ public class UploadInvestigationActivity extends AppCompatActivity {
             resultData.put("text", resultData.toString());
 
             body.put("result", resultData);
-
-            // Handle date if exists, simple approximation
-            String conductedAt = item.optString("date", "");
-            if (conductedAt.isEmpty()) {
-                // Not standard ISO format maybe, use current as fallback
-                body.put("conductedAt", new java.util.Date().toInstant().toString());
-            } else {
-                body.put("conductedAt", new java.util.Date().toInstant().toString()); // Placeholder to avoid crash
-            }
+            body.put("conductedAt", new java.util.Date().toInstant().toString());
 
             ApiClient.post("/investigations", body, token, new ApiClient.ApiCallback() {
                 @Override
                 public void onSuccess(String response) {
-                    saveInvestigationDetails(aiResults, imageUrl, token, userId, index + 1);
+                    saveInvestigationDetails(uploadedFiles, fileIndex, aiResults, imageUrl, originalName, token, userId,
+                            index + 1);
                 }
 
                 @Override
                 public void onError(Exception error) {
-                    saveInvestigationDetails(aiResults, imageUrl, token, userId, index + 1);
+                    saveInvestigationDetails(uploadedFiles, fileIndex, aiResults, imageUrl, originalName, token, userId,
+                            index + 1);
                 }
             });
 
         } catch (JSONException e) {
-            saveInvestigationDetails(aiResults, imageUrl, token, userId, index + 1);
+            saveInvestigationDetails(uploadedFiles, fileIndex, aiResults, imageUrl, originalName, token, userId,
+                    index + 1);
         }
     }
 }

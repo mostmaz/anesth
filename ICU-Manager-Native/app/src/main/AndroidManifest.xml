@@ -57,6 +57,26 @@
             android:name=".ui.patient.UploadInvestigationActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".ui.patient.AddVentilatorActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.patient.CreateOrderActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.admin.AdminDashboardActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.reports.ShiftHistoryActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.patient.EditPatientActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>

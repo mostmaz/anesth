@@ -45,11 +45,21 @@
                 android:id="@+id/btnSelectImage"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="8dp"
                 android:backgroundTint="#64748B"
-                android:text="Choose from Gallery"
+                android:text="Choose from Gallery (Max 3)"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/textSelectedCount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:text="0 images selected"
+                android:textAlignment="center"
+                android:textColor="#64748B"
+                android:visibility="gone" />
 
             <ImageView
                 android:id="@+id/imagePreview"

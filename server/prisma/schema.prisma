@@ -39,6 +39,7 @@ model User {
   administeredMeds MedicationAdministration[]
   assignments  PatientAssignment[]
   dismissedLabs String[] @default([])
+  skinAssessments SkinAssessment[]
 }
 
 model PatientAssignment {
@@ -93,6 +94,7 @@ model Patient {
   specialistNotes SpecialistNote[]
   ventilatorSettings VentilatorSetting[]
   consultations  Consultation[]
+  skinAssessments SkinAssessment[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -489,3 +491,30 @@ model Consultation {
   order       ClinicalOrder? @relation(fields: [orderId], references: [id])
 }
 
+
+model SyncLog {
+  id        String   @id @default(uuid())
+  type      String   // e.g., "LAB_SYNC"
+  status    String   // "SUCCESS", "FAILED", "RUNNING"
+  message   String?
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+  resultsCount Int @default(0)
+}
+
+model SkinAssessment {
+  id        String   @id @default(uuid())
+  patientId String
+  authorId  String
+  
+  bodyPart  String   // e.g., "Left Shoulder"
+  view      String   // "FRONT" or "BACK"
+  type      String   // "LESION" or "DRESSING"
+  imageUrl  String?
+  notes     String? @db.Text
+  
+  timestamp DateTime @default(now())
+  
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  author    User    @relation(fields: [authorId], references: [id])
+}

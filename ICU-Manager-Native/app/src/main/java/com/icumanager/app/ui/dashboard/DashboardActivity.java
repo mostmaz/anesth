@@ -38,12 +38,15 @@ public class DashboardActivity extends AppCompatActivity {
     private RecyclerView recyclerViewPatients;
     private RecyclerView recyclerViewOrders;
     private RecyclerView recyclerViewReminders;
+    private RecyclerView recyclerViewNotifications;
     private LinearLayout layoutReminders;
+    private LinearLayout layoutNotifications;
     private TextView textNoOrders;
 
     private PatientAdapter patientAdapter;
     private DashboardOrderAdapter orderAdapter;
     private NotificationReminderAdapter reminderAdapter;
+    private com.icumanager.app.ui.main.SystemNotificationAdapter notificationAdapter;
 
     private ProgressBar progressBar;
     private TextView textError;
@@ -53,6 +56,7 @@ public class DashboardActivity extends AppCompatActivity {
     private Button btnStartShift;
     private Button btnEndShift;
     private Button btnShiftHistory;
+    private Button btnAdmin;
 
     // Tab buttons
     private Button btnTabActive;
@@ -96,6 +100,19 @@ public class DashboardActivity extends AppCompatActivity {
         reminderAdapter.setOnMarkDoneListener((orderId, position) -> markOrderDone(orderId, position));
         recyclerViewReminders.setAdapter(reminderAdapter);
 
+        // System Notifications
+        recyclerViewNotifications = findViewById(R.id.recyclerViewNotifications);
+        layoutNotifications = findViewById(R.id.layoutNotifications);
+        recyclerViewNotifications.setLayoutManager(new LinearLayoutManager(this));
+        notificationAdapter = new com.icumanager.app.ui.main.SystemNotificationAdapter();
+        notificationAdapter.setOnNotificationClickListener(patientId -> {
+            Intent intent = new Intent(DashboardActivity.this,
+                    com.icumanager.app.ui.patient.PatientDetailsActivity.class);
+            intent.putExtra("patient_id", patientId);
+            startActivity(intent);
+        });
+        recyclerViewNotifications.setAdapter(notificationAdapter);
+
         // Other views
         progressBar = findViewById(R.id.progressBar);
         textError = findViewById(R.id.textError);
@@ -105,10 +122,18 @@ public class DashboardActivity extends AppCompatActivity {
         btnStartShift = findViewById(R.id.btnStartShift);
         btnEndShift = findViewById(R.id.btnEndShift);
         btnShiftHistory = findViewById(R.id.btnShiftHistory);
+        btnAdmin = findViewById(R.id.btnAdmin);
 
         btnStartShift.setOnClickListener(v -> startShift());
         btnEndShift.setOnClickListener(v -> endShift());
-        btnShiftHistory.setOnClickListener(v -> showShiftHistory());
+        btnShiftHistory.setOnClickListener(v -> {
+            startActivity(new Intent(this, com.icumanager.app.ui.reports.ShiftHistoryActivity.class));
+        });
+        btnAdmin.setOnClickListener(v -> {
+            startActivity(new Intent(this, com.icumanager.app.ui.admin.AdminDashboardActivity.class));
+        });
+
+        checkUserRole();
 
         // Tab buttons
         btnTabActive = findViewById(R.id.btnTabActive);
@@ -132,6 +157,32 @@ public class DashboardActivity extends AppCompatActivity {
 
         fetchDashboardData();
         pollHandler.post(backgroundPoller);
+    }
+
+    private void fetchSystemNotifications(String token) {
+        ApiClient.get("/investigations", token, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(String responseStr) {
+                runOnUiThread(() -> {
+                    try {
+                        JSONArray notifications = new JSONArray(responseStr);
+                        if (notifications.length() > 0) {
+                            notificationAdapter.setNotifications(notifications);
+                            layoutNotifications.setVisibility(View.VISIBLE);
+                        } else {
+                            layoutNotifications.setVisibility(View.GONE);
+                        }
+                    } catch (Exception e) {
+                        layoutNotifications.setVisibility(View.GONE);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(Exception error) {
+                runOnUiThread(() -> layoutNotifications.setVisibility(View.GONE));
+            }
+        });
     }
 
     @Override
@@ -214,6 +265,7 @@ public class DashboardActivity extends AppCompatActivity {
                         fetchActiveOrders(token);
                         fetchRecentOrders(token);
                         fetchCompletedOrders(token);
+                        fetchSystemNotifications(token);
                     } catch (JSONException e) {
                         showError("Failed to parse patient list from server.");
                     }
@@ -362,6 +414,16 @@ public class DashboardActivity extends AppCompatActivity {
     private String getUserId() {
         SharedPreferences prefs = getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
         return prefs.getString("user_id", "");
+    }
+
+    private void checkUserRole() {
+        SharedPreferences prefs = getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
+        String role = prefs.getString("user_role", "");
+        if ("SENIOR".equals(role)) {
+            btnAdmin.setVisibility(View.VISIBLE);
+        } else {
+            btnAdmin.setVisibility(View.GONE);
+        }
     }
 
     // ── Shift Status ───────────────────────────────────────────────────────

@@ -27,6 +27,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.content.Intent;
+import androidx.annotation.Nullable;
+
 public class PatientDetailsActivity extends AppCompatActivity {
 
     private String patientId;
@@ -94,6 +97,79 @@ public class PatientDetailsActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onCreateOptionsMenu(android.view.Menu menu) {
+        getMenuInflater().inflate(R.menu.patient_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(android.view.MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.action_edit_patient) {
+            Intent intent = new Intent(this, EditPatientActivity.class);
+            intent.putExtra("PATIENT_ID", patientId);
+            startActivityForResult(intent, 600);
+            return true;
+        } else if (id == R.id.action_delete_patient) {
+            confirmDeletePatient();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void confirmDeletePatient() {
+        SharedPreferences prefs = getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
+        String role = prefs.getString("user_role", "");
+
+        if (!"SENIOR".equals(role)) {
+            Toast.makeText(this, "Only seniors can delete patients", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Patient")
+                .setMessage("Are you sure you want to delete this patient? This action cannot be undone.")
+                .setPositiveButton("Delete", (dialog, which) -> deletePatient())
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void deletePatient() {
+        SharedPreferences prefs = getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
+        String token = prefs.getString("auth_token", null);
+
+        progressBar.setVisibility(View.VISIBLE);
+        ApiClient.delete("/patients/" + patientId, token, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(String response) {
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    Toast.makeText(PatientDetailsActivity.this, "Patient deleted", Toast.LENGTH_SHORT).show();
+                    setResult(RESULT_OK);
+                    finish();
+                });
+            }
+
+            @Override
+            public void onError(Exception error) {
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    Toast.makeText(PatientDetailsActivity.this, "Deletion failed: " + error.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 600 && resultCode == RESULT_OK) {
+            loadPatientData();
+        }
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         reminderHandler.removeCallbacks(reminderPoller);
@@ -134,6 +210,12 @@ public class PatientDetailsActivity extends AppCompatActivity {
                     break;
                 case 9:
                     tab.setText("Notes");
+                    break;
+                case 10:
+                    tab.setText("Ventilator");
+                    break;
+                case 11:
+                    tab.setText("Orders");
                     break;
             }
         }).attach();
