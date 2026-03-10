@@ -22,15 +22,20 @@ public class AddMedicationActivity extends AppCompatActivity {
 
     private String patientId;
 
-    private TextInputEditText editMedName;
+    private android.widget.AutoCompleteTextView editMedName;
     private TextInputEditText editMedDose;
     private TextInputEditText editMedRoute;
     private TextInputEditText editMedFrequency;
     private TextInputEditText editMedInfusionRate;
+    private TextInputEditText editMedDilution;
+    private TextInputEditText editMedReminder;
     private TextInputEditText editMedInstructions;
 
     private Button btnSubmitMed;
     private ProgressBar progressSubmitMed;
+
+    private android.widget.ArrayAdapter<String> drugAdapter;
+    private java.util.List<String> drugNames = new java.util.ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,12 +62,61 @@ public class AddMedicationActivity extends AppCompatActivity {
         editMedRoute = findViewById(R.id.editMedRoute);
         editMedFrequency = findViewById(R.id.editMedFrequency);
         editMedInfusionRate = findViewById(R.id.editMedInfusionRate);
+        editMedDilution = findViewById(R.id.editMedDilution);
+        editMedReminder = findViewById(R.id.editMedReminder);
         editMedInstructions = findViewById(R.id.editMedInstructions);
 
         btnSubmitMed = findViewById(R.id.btnSubmitMed);
         progressSubmitMed = findViewById(R.id.progressSubmitMed);
 
+        setupDrugAutocomplete();
         btnSubmitMed.setOnClickListener(v -> submitMedication());
+    }
+
+    private void setupDrugAutocomplete() {
+        drugAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, drugNames);
+        editMedName.setAdapter(drugAdapter);
+
+        editMedName.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (s.length() >= 1) {
+                    searchDrugs(s.toString());
+                }
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+            }
+        });
+    }
+
+    private void searchDrugs(String query) {
+        SharedPreferences prefs = getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
+        String token = prefs.getString("auth_token", null);
+
+        ApiClient.get("/medications/search?q=" + query, token, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(String response) {
+                try {
+                    org.json.JSONArray results = new org.json.JSONArray(response);
+                    drugNames.clear();
+                    for (int i = 0; i < results.length(); i++) {
+                        drugNames.add(results.getJSONObject(i).getString("name"));
+                    }
+                    runOnUiThread(() -> drugAdapter.notifyDataSetChanged());
+                } catch (org.json.JSONException ignored) {
+                }
+            }
+
+            @Override
+            public void onError(Exception error) {
+            }
+        });
     }
 
     private void submitMedication() {
@@ -71,6 +125,8 @@ public class AddMedicationActivity extends AppCompatActivity {
         String route = editMedRoute.getText() != null ? editMedRoute.getText().toString().trim() : "";
         String freq = editMedFrequency.getText() != null ? editMedFrequency.getText().toString().trim() : "";
         String infusion = editMedInfusionRate.getText() != null ? editMedInfusionRate.getText().toString().trim() : "";
+        String dilution = editMedDilution.getText() != null ? editMedDilution.getText().toString().trim() : "";
+        String reminder = editMedReminder.getText() != null ? editMedReminder.getText().toString().trim() : "";
         String inst = editMedInstructions.getText() != null ? editMedInstructions.getText().toString().trim() : "";
 
         if (name.isEmpty() || dose.isEmpty() || route.isEmpty()) {
@@ -94,8 +150,14 @@ public class AddMedicationActivity extends AppCompatActivity {
                 body.put("frequency", freq);
             if (!infusion.isEmpty())
                 body.put("infusionRate", infusion);
+            if (!dilution.isEmpty())
+                body.put("dilution", Double.parseDouble(dilution));
+            if (!reminder.isEmpty())
+                body.put("durationReminder", Integer.parseInt(reminder));
             if (!inst.isEmpty())
                 body.put("otherInstructions", inst);
+
+            body.put("startedAt", new java.util.Date().toInstant().toString());
 
             ApiClient.post("/medications/prescribe", body, token, new ApiClient.ApiCallback() {
                 @Override

@@ -1,9 +1,9 @@
 const http = require('http');
 
 const data = JSON.stringify({
-    patientId: '38b62b34-4f1f-496f-974c-fb8fc34d934b',
-    mrn: '102873-0',
-    name: 'حكمت عبدالرزاق عبدالله سليم',
+    patientId: '949d4d05-0ff6-4f4d-824f-33b2b25fa073',
+    mrn: '326146-3',
+    name: 'نوري فيصل حما قاسكي',
     authorId: 'mock-nurse-id'
 });
 
@@ -14,7 +14,7 @@ const options = {
     method: 'POST',
     headers: {
         'Content-Type': 'application/json',
-        'Content-Length': data.length
+        'Content-Length': Buffer.byteLength(data)
     },
     timeout: 120000
 };

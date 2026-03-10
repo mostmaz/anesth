@@ -38,6 +38,10 @@ public class PatientPagerAdapter extends FragmentStateAdapter {
                 return InterventionsFragment.newInstance(patientId);
             case 9:
                 return NotesFragment.newInstance(patientId);
+            case 10:
+                return VentilatorFragment.newInstance(patientId);
+            case 11:
+                return OrdersFragment.newInstance(patientId);
             default:
                 return PlaceholderFragment.newInstance("Unknown");
         }
@@ -45,6 +49,6 @@ public class PatientPagerAdapter extends FragmentStateAdapter {
 
     @Override
     public int getItemCount() {
-        return 10;
+        return 12;
     }
 }

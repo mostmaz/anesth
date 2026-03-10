@@ -13,13 +13,17 @@ import android.widget.Button;
 
 public class MedicationsAdapter extends RecyclerView.Adapter<MedicationsAdapter.ViewHolder> {
     private JSONArray medications = new JSONArray();
-    private final OnMedicationAdministerListener listener;
+    private final OnMedicationActionListener listener;
 
-    public interface OnMedicationAdministerListener {
+    public interface OnMedicationActionListener {
         void onAdminister(JSONObject medication);
+
+        void onStop(JSONObject medication);
+
+        void onShowHistory(JSONObject medication);
     }
 
-    public MedicationsAdapter(OnMedicationAdministerListener listener) {
+    public MedicationsAdapter(OnMedicationActionListener listener) {
         this.listener = listener;
     }
 
@@ -57,32 +61,72 @@ public class MedicationsAdapter extends RecyclerView.Adapter<MedicationsAdapter.
             holder.textDetails.setText(details.toString());
 
             String infusionRate = med.optString("infusionRate", "");
+            String dilution = med.optString("dilution", "");
             String otherInstructions = med.optString("otherInstructions", "");
-            String instructions = "";
+            StringBuilder instructions = new StringBuilder();
 
             if (!infusionRate.isEmpty())
-                instructions += "Rate: " + infusionRate;
+                instructions.append("Rate: ").append(infusionRate);
+            if (!dilution.isEmpty() && !dilution.equals("null")) {
+                if (instructions.length() > 0)
+                    instructions.append(" | ");
+                instructions.append("Dilution: ").append(dilution).append(" ml");
+            }
             if (!otherInstructions.isEmpty()) {
-                if (!instructions.isEmpty())
-                    instructions += "\n";
-                instructions += "Instructions: " + otherInstructions;
+                if (instructions.length() > 0)
+                    instructions.append("\n");
+                instructions.append("Instructions: ").append(otherInstructions);
             }
 
-            if (!instructions.trim().isEmpty()) {
-                holder.textInstructions.setText(instructions);
+            if (instructions.length() > 0) {
+                holder.textInstructions.setText(instructions.toString());
                 holder.textInstructions.setVisibility(View.VISIBLE);
             } else {
                 holder.textInstructions.setVisibility(View.GONE);
             }
 
+            // Meta info (Reminder, Started Date)
+            int reminder = med.optInt("durationReminder", 0);
+            String startedAt = med.optString("startedAt", "");
+            StringBuilder meta = new StringBuilder();
+            if (reminder > 0) {
+                meta.append("Reminder: ").append(reminder).append(" days");
+            }
+            if (!startedAt.isEmpty()) {
+                if (meta.length() > 0)
+                    meta.append(" | ");
+                meta.append("Started: ").append(startedAt.split("T")[0]);
+            }
+
+            if (meta.length() > 0) {
+                holder.textMeta.setText(meta.toString());
+                holder.textMeta.setVisibility(View.VISIBLE);
+            } else {
+                holder.textMeta.setVisibility(View.GONE);
+            }
+
             boolean isActive = med.optBoolean("isActive", true);
             holder.btnRecordDose.setEnabled(isActive);
             holder.btnRecordDose.setAlpha(isActive ? 1.0f : 0.5f);
+            holder.btnStopMed.setVisibility(isActive ? View.VISIBLE : View.GONE);
 
             holder.btnRecordDose.setOnClickListener(v -> {
                 if (listener != null) {
                     listener.onAdminister(med);
                 }
+            });
+
+            holder.btnStopMed.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onStop(med);
+                }
+            });
+
+            holder.itemView.setOnLongClickListener(v -> {
+                if (listener != null) {
+                    listener.onShowHistory(med);
+                }
+                return true;
             });
         }
     }
@@ -93,15 +137,17 @@ public class MedicationsAdapter extends RecyclerView.Adapter<MedicationsAdapter.
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView textName, textDetails, textInstructions;
-        Button btnRecordDose;
+        TextView textName, textDetails, textInstructions, textMeta;
+        Button btnRecordDose, btnStopMed;
 
         ViewHolder(View itemView) {
             super(itemView);
             textName = itemView.findViewById(R.id.textMedName);
             textDetails = itemView.findViewById(R.id.textMedDetails);
             textInstructions = itemView.findViewById(R.id.textMedInstructions);
+            textMeta = itemView.findViewById(R.id.textMedMeta);
             btnRecordDose = itemView.findViewById(R.id.btnRecordDose);
+            btnStopMed = itemView.findViewById(R.id.btnStopMed);
         }
     }
 }
