@@ -1,0 +1,2898 @@
+<!DOCTYPE html><html style="height: auto;"><head>
+  <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>AmrLab |   Invoices
+</title>
+<!-- Favicon -->
+<link rel="icon" type="image/x-icon" href="https://amrlab.net/img/logo.png?v=54">
+<!-- \Favicon -->
+<!-- Animate css -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/animate/animate.min.css?v=9950">
+<!-- Tell the browser to be responsive to screen width -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/fontawesome-free/css/all.min.css?v=9950">
+<!-- Ionicons -->
+<link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+<!-- Calendar -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/calendar/fullcalendar.css?v=9950">
+<!-- Tempusdominus Bbootstrap 4 -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css?v=9950">
+<!-- iCheck -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/icheck-bootstrap/icheck-bootstrap.min.css?v=9950">
+<!-- JQVMap -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/jqvmap/jqvmap.min.css?v=9950">
+<!-- Theme style -->
+<link rel="stylesheet" href="https://amrlab.net/dist/css/adminlte.min.css?v=9950">
+<!-- overlayScrollbars -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/overlayScrollbars/css/OverlayScrollbars.min.css?v=9950">
+<!-- Daterange picker -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/daterangepicker/daterangepicker.css?v=9951">
+<!-- summernote -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/summernote/summernote-bs4.css?v=9950">
+<!-- Google Font: Source Sans Pro -->
+<link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+<!-- Datatables -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css?v=9950">
+<link rel="stylesheet" href="https://amrlab.net/plugins/datatables-responsive/css/responsive.bootstrap4.min.css?v=9950">
+<link rel="stylesheet" href="https://amrlab.net/plugins/datatables-buttons/css/buttons.bootstrap4.min.css?v=9950">
+<link rel="stylesheet" href="https://amrlab.net/plugins/datatables-select/css/select.bootstrap4.min.css?v=9950">
+<link rel="stylesheet" type="text/css" href="https://amrlab.net/plugins/datatables-fixedheader/css/fixedHeader.bootstrap4.min.css?v=9950">
+<link rel="stylesheet" type="text/css" href="https://amrlab.net/plugins/datatables-colreorder/css/colReorder.bootstrap4.min.css?v=9950">
+<!-- toastr css -->
+<link rel="stylesheet" href="https://amrlab.net/css/toastr.min.css?v=9950">
+<!-- select2 css -->
+<link rel="stylesheet" href="https://amrlab.net/css/select2.css?v=9950" type="text/css">
+<link rel="stylesheet" href="https://amrlab.net/plugins/select2/css/select2-bootstrap.min.css?v=9950" type="text/css">
+<!-- jquery ui -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/jquery-ui/jquery-ui.min.css?v=9950">
+<!-- sweetalert -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/sweet-alert/sweetalert.css?v=9950">
+<!-- Flatpickr -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/flatpickr/flatpickr.min.css?v=9950">
+<!-- Timepicker -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/mdtimepicker/mdtimepicker.css?v=9950">
+<!-- Sticky note -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/sticky-note/sticky-note.css?v=9950">
+<link rel="stylesheet" href="https://amrlab.net/plugins/sticky-note/scrollbar.css?v=9950">
+<!-- Colorpicker -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.min.css?v=9950">
+<!-- Switch -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/swtich-netliva/css/netliva_switch.css?v=9950">
+<!-- tooltipster -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/tooltipster/css/tooltipster.bundle.min.css?v=9950">
+<link rel="stylesheet" href="https://amrlab.net/plugins/tooltipster/css/plugins/tooltipster/sideTip/themes/tooltipster-sideTip-punk.min.css?v=9950">
+<!-- Dropdown -->
+<link rel="stylesheet" href="https://amrlab.net/plugins/dropdown/main.css?v=9950">
+
+<!-- Chat -->
+<!-- RTL -->
+ 
+    <link rel="stylesheet" href="https://amrlab.net/dist/css/ltr.css?v=9950">
+<!-- Loader -->
+<link rel="stylesheet" href="https://amrlab.net/css/preloader.css?v=9950">
+<!-- Theme -->
+</head><body class="layout-navbar-fixed show-top-nav layout-fixed text-sm sidebar-collapse sidebar-closed" style="--main-color: #0069aa; height: auto;"><div id="theme">
+             
+            <link rel="stylesheet" href="https://amrlab.net/dist/css/light-theme.css?v=9950">
+            </div>
+
+
+
+ 
+  <div class="preloader" style="display: none;">
+  </div>
+  <img src="https://amrlab.net/img/preloader.jpg?v=54" id="loader_image" class="loader animate__animated animate__pulse animate__fast animate__infinite infinite" alt="" style="display: none;">
+
+  <div class="wrapper">
+
+    <!-- Navbar -->
+    <nav class="main-header navbar-expand-xl navbar-light navbar-white  top-navbar">
+  <div class="container navbar padding-items m-0">
+    <a href="https://amrlab.net/referral" class="brand-section ml-3 tooltipstered">
+      <img src="https://amrlab.net/img/logo.png?v=54" alt="AmrLab" class="brand-image elevation-3" style="opacity: .8" height="35px" id="app_logo_image">
+    </a>
+    <ul class="order-1 order-md-3 navbar-nav navbar-no-expand ml-auto navbar-right">
+      <li class="nav-item dropdown">
+        <button class="navbar-toggler order-1 toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+          <i class="fas fa-bars"></i>
+        </button>
+      </li>
+      
+      
+      
+      
+      <li class="nav-item" id="sidebar-btn">
+        <a class="nav-link top-navbar-item tooltipstered" data-widget="control-sidebar" data-slide="true" href="#" role="button">
+          <i class="fas fa-th-large"></i>
+          <span class="position-absolute top-0 left-0 start-100 translate-middle badge rounded-pill bg-danger navbar_notifications_count animate__animated animate__fadeIn animate__slow animate__infinite infinite"></span>
+        </a>
+      </li>
+      
+            <!--  Profile  -->
+      <li class="nav-item dropdown">
+        <a class="nav-link top-navbar-item profile_menu tooltipstered" data-toggle="dropdown" href="#" aria-expanded="true">
+          <img class="rounded avatar-img" alt="" width="30px" height="30px" src="https://amrlab.net/img/avatar.png">
+                 </a>
+        <div class="dropdown-menu dropdown-menu-md dropdown-menu-right p-0">
+          <a href="https://amrlab.net/referral/profile/edit" class="dropdown-item profile_li tooltipstered">
+            <i class="fas fa-user-circle"></i>
+            Profile
+          </a>
+          <div class="dropdown-divider m-0"></div>
+          <a class="dropdown-item cursor-pointer tooltipstered" id="logout_btn">
+            <i class="fas fa-sign-out-alt"></i>
+            Logout
+          </a>
+          <form id="logout_form" method="POST" action="https://amrlab.net/referral/logout" novalidate="novalidate">
+            <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">          </form>
+        </div>
+      </li>
+      <!--  \Profile  -->
+      
+    </ul>
+  </div>
+  <div class="container padding-items navbar m-0 p-mobile-0">
+    
+    
+    
+
+    <div class="collapse navbar-collapse order-3 navbar-left" id="navbarCollapse">
+    <!-- Left navbar links -->
+    <ul class="navbar-nav top-navbar-list">
+        <li class="nav-item">
+            <a href="https://amrlab.net/referral" class="nav-link top-navbar-item dashboard tooltipstered">
+                <i class="fas fa-th"></i>
+                Dashboard
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a href="https://amrlab.net/referral/invoices" class="nav-link top-navbar-item invoices tooltipstered active">
+                <i class="fas fa-file-invoice-dollar"></i>
+                Results
+            </a>
+        </li>
+
+        
+        
+    </ul>
+</div>
+    <!-- Right navbar links -->
+    
+  </div>
+</nav>
+<nav class="main-header navbar navbar-expand navbar-purple  d-none  default-navbar">
+    <!-- Left navbar links -->
+    <ul class="navbar-nav">
+
+      <li class="nav-item">
+        <a class="nav-link toggler tooltipstered" data-widget="pushmenu" href="#" role="button">
+          <i class="fas fa-bars"></i>
+        </a>
+      </li>
+
+    </ul>
+    <!-- \Left navbar links -->
+
+    <!-- Right navbar links -->
+    <ul class="navbar-nav ml-auto navbar-right">
+
+      
+      <li class="nav-item">
+        <a class="nav-link tooltipstered" data-widget="control-sidebar" data-slide="true" href="#" role="button">
+          <i class="fas fa-th-large"></i>
+          <span class="position-absolute top-0 left-0 start-100 translate-middle badge rounded-pill bg-danger navbar_notifications_count animate__animated animate__fadeIn animate__slow animate__infinite infinite"></span>
+        </a>
+      </li>
+
+      <!--  Profile  -->
+      <li class="nav-item dropdown show">
+        <a class="nav-link profile_menu tooltipstered" data-toggle="dropdown" href="#" aria-expanded="true">
+          <i class="fas fa-user-circle"></i>
+        </a>
+        <div class="dropdown-menu dropdown-menu-md dropdown-menu-right p-0">
+          <a href=" https://amrlab.net/referral/profile/edit" class="dropdown-item profile_li tooltipstered">
+            <i class="fas fa-user-circle"></i>
+            Profile
+          </a>
+          <div class="dropdown-divider m-0"></div>
+          <a class="dropdown-item cursor-pointer tooltipstered" id="logout_btn">
+            <i class="fas fa-sign-out-alt"></i>
+            Logout
+          </a>
+          <form id="logout_form" method="POST" action="https://amrlab.net/referral/logout" novalidate="novalidate">
+            <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">          </form>
+        </div>
+      </li>
+      <!--  \Profile  -->
+
+    </ul>
+    <!-- \Right navbar links -->
+
+  </nav>    <!-- /.navbar -->
+
+    <!-- Main Sidebar Container -->
+    <!-- Sidebar -->
+<aside class="main-sidebar sidebar-dark-primary elevation-4  d-none  side-navbar">
+  <!-- Brand Logo -->
+  <a href="#" class="brand-link tooltipstered">
+    <img src="https://amrlab.net/img/logo.png?v=54" alt="AdminLTE Logo" class="brand-image elevation-3">
+    <span class="brand-text font-weight-light text-black">AmrLab</span>
+  </a>
+  <!-- \Brand Logo -->
+  
+  <div class="sidebar os-host os-theme-light os-host-resize-disabled os-host-scrollbar-horizontal-hidden os-host-scrollbar-vertical-hidden os-host-transition"><div class="os-resize-observer-host observed"><div class="os-resize-observer" style="left: 0px; right: auto;"></div></div><div class="os-size-auto-observer observed" style="height: calc(100% + 1px); float: left;"><div class="os-resize-observer"></div></div><div class="os-content-glue" style="margin: 0px -8px; width: 0px; height: 0px;"></div><div class="os-padding"><div class="os-viewport os-viewport-native-scrollbars-invisible os-viewport-native-scrollbars-overlaid"><div class="os-content" style="padding: 0px 8px; height: 100%; width: 100%;">
+    <!-- Sidebar user panel (optional) -->
+      <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+        <div class="image">
+                  </div>
+        <div class="info">
+          <a href="#" class="d-block tooltipstered">
+            Alhayat Hospital ICU Dpartment - Mosul
+          </a>
+        </div>
+      </div>
+      <!-- Sidebar Menu -->
+        
+      <!-- /.sidebar-menu -->
+  </div></div></div><div class="os-scrollbar os-scrollbar-horizontal os-scrollbar-unusable os-scrollbar-auto-hidden"><div class="os-scrollbar-track"><div class="os-scrollbar-handle" style="transform: translate(0px, 0px);"></div></div></div><div class="os-scrollbar os-scrollbar-vertical os-scrollbar-unusable os-scrollbar-auto-hidden"><div class="os-scrollbar-track"><div class="os-scrollbar-handle" style="transform: translate(0px, 0px);"></div></div></div><div class="os-scrollbar-corner"></div></div>
+</aside>
+<!-- /.sidebar -->
+    <!-- Content Wrapper. Contains page content -->
+    <div class="content-wrapper pl-3 pr-3  pt-6  " style="min-height: 354.656px;">
+      <!-- Content Header (Page header) -->
+        <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1 class="m-0 text-dark">
+            <i class="nav-icon fas fa-file-invoice-dollar"></i>
+            Invoices
+          </h1>
+        </div><!-- /.col -->
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="https://amrlab.net/referral" class="tooltipstered">Home</a></li>
+            <li class="breadcrumb-item active">Invoices</li>
+          </ol>
+        </div><!-- /.col -->
+      </div><!-- /.row -->
+    </div><!-- /.container-fluid -->
+  </div>
+      <!-- /.content-header -->
+
+      <!-- Main content -->
+      <section class="content">
+        <div class="container-fluid">
+          <div class="callout callout-danger d-none" id="error_messages">
+    <h5 class="text-danger">
+        <i class="fa fa-times"></i> Failed
+    </h5>
+    <ul id="errors_list">
+
+    </ul>
+</div>
+
+            <div class="card card-primary card-outline">
+    <div class="card-header">
+      <div class="row">
+        <div class="col-6 p-0">
+          <span class="bulk_action_container">
+                <div class="row" id="bulk_action_section">
+                        <div class="col-lg-12">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-secondary dropdown-toggle bulk_action_dropdown" disabled="" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <i class="fa fa-cog"></i>
+                                    Bulk action
+                                </button>
+                                
+                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                
+                                
+                        <a href="https://amrlab.net/referral/invoices/bulk/print_medical_reports" class="bulk_button dropdown-item" warning_message="Are you sure to print bulk medical reports ?">
+                            <i class="fa fa-print"></i>
+                            Print medical report
+                        </a>
+                    
+                                
+                            </div>
+                        </div>
+                        <form action="" class="d-none" id="bulk_form" method="POST">
+                            <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0">
+                            <div id="ids"></div>
+                        </form></div>
+                    </div>
+                
+            </span>
+        </div>
+              </div>
+    </div>
+    <!-- /.card-header -->
+    <div class="card-body">
+      <div class="row">
+         <div class="col-lg-12">
+            <div id="invoices_table_wrapper" class="dataTables_wrapper dt-bootstrap4 no-footer"><div class="row mb-2"><div class="col-sm-12"><div class="row"><div class="col-12 col-md-2 col-lg-2 mb-2 text-left"><div id="invoices_table_filter" class="dataTables_filter"><label><input type="search" class="form-control form-control-sm" placeholder="Search here ..." aria-controls="invoices_table"></label></div></div><div class="col-12 col-md-8 col-lg-8 mb-2 overflow-x-auto  text-center"><div class="dataTables_paginate paging_simple_numbers" id="invoices_table_paginate"><ul class="pagination"><li class="paginate_button page-item previous disabled" id="invoices_table_previous"><a href="#" aria-controls="invoices_table" data-dt-idx="0" tabindex="0" class="page-link">Previous</a></li><li class="paginate_button page-item active"><a href="#" aria-controls="invoices_table" data-dt-idx="1" tabindex="0" class="page-link">1</a></li><li class="paginate_button page-item next disabled" id="invoices_table_next"><a href="#" aria-controls="invoices_table" data-dt-idx="2" tabindex="0" class="page-link">Next</a></li></ul></div></div><div class="col-12 col-md-2 col-lg-2 mb-2 text-right"><div class="dataTables_length" id="invoices_table_length"><label>Show <select name="invoices_table_length" aria-controls="invoices_table" class="custom-select custom-select-sm form-control form-control-sm"><option value="10">10</option><option value="15">15</option><option value="25">25</option><option value="50">50</option><option value="100">100</option><option value="150">150</option></select> records</label></div></div><div class="col-12 col-md-12 col-lg-12 overflow-x-auto text-center"><div class="dataTables_info" id="invoices_table_info" role="status" aria-live="polite">Showing 1 to 18 of 18 records (filtered from 66 total records)</div></div></div></div></div><div class="row"><div class="col-sm-12 table-responsive"><table id="invoices_table" class="table table-striped table-bordered dataTable no-footer" width="100%" aria-describedby="invoices_table_info" role="grid" style="width: 100%;">
+               <thead>
+                <tr role="row"><th width="10px" class="sorting_disabled" rowspan="1" colspan="1" data-column-index="0" style="width: 13px;" aria-label="
+                    
+                  ">
+                    <input type="checkbox" class="check_all" name="" id="">
+                  </th><th width="10px" class="text-nowrap sorting_desc" tabindex="0" aria-controls="invoices_table" rowspan="1" colspan="1" data-column-index="1" style="width: 81px;" aria-sort="descending" aria-label="Date: activate to sort column ascending">Date</th><th width="10px" class="sorting_disabled" rowspan="1" colspan="1" data-column-index="2" style="width: 70px;" aria-label="Barcode">Barcode</th><th class="sorting_disabled" rowspan="1" colspan="1" data-column-index="3" style="width: 189px;" aria-label="Patient">Patient</th><th class="text-center sorting_disabled" rowspan="1" colspan="1" data-column-index="4" style="width: 53px;" aria-label="Tests">Tests</th><th class="text-center sorting_disabled" rowspan="1" colspan="1" data-column-index="5" style="width: 60px;" aria-label="Approved">Approved</th><th width="10px" class="text-center sorting_disabled" rowspan="1" colspan="1" data-column-index="6" style="width: 71px;" aria-label="Print result">Print result</th><th width="10px" class="text-center sorting_disabled" rowspan="1" colspan="1" data-column-index="7" style="width: 45px;" aria-label="Action">Action</th></tr>
+               </thead>
+               <tbody>
+                 
+               <tr role="row" class="odd"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="5495"></td><td class="text-nowrap sorting_1">2026-03-11 22:00</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="5495" auto_print="">
+    2260311236
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAAeAQMAAAC/hKb5AAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAClJREFUKJFj+Mx/+PBn/vOfbT7YnOc/bMPDb29vw3/mA8Oo+Kj4EBQHAAMST853KgEdAAAAAElFTkSuQmCC" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Sodium, Serum
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/5495" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="even"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="5284"></td><td class="text-nowrap sorting_1">2026-03-11 09:44</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="5284" auto_print="">
+    226031125
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMoAAAAeAQMAAABXBBPSAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAC1JREFUKJFj+Mx/+PBn/vOfbT7YnOc/bH/+vD2P/WGDD/bGBxhGpUalRqVgUgCHxp6OKdQvagAAAABJRU5ErkJggg==" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    CBC
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Urea, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Creatinine, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Potassium, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Sodium, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Chloride, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    CRP, Serum
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/5284" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="odd"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="5249"></td><td class="text-nowrap sorting_1">2026-03-10 22:32</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="5249" auto_print="">
+    2260310217
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAAeAQMAAAC/hKb5AAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAChJREFUKJFj+Mx/+PBn/vOfbT7YfPgA5Jy357HhP/OBYVR8VHwIigMAvhWUXEMBzKQAAAAASUVORK5CYII=" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Sodium, Serum
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/5249" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="even"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="5220"></td><td class="text-nowrap sorting_1">2026-03-10 19:27</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="5220" auto_print="">
+    2260310188
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAAeAQMAAAC/hKb5AAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAClJREFUKJFj+Mx/+PBn/vOfbT7YfPh8+I/BmcMHbPjPfGAYFR8VH4LiACWhvdhE4zYRAAAAAElFTkSuQmCC" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Sodium, 24 Hours, Urine
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/5220" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="odd"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="5138"></td><td class="text-nowrap sorting_1">2026-03-10 15:09</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="5138" auto_print="">
+    2260310106
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAAeAQMAAAC/hKb5AAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAClJREFUKJFj+Mx/+PBn/vOfbT7YfPh8mJ+Hx/iADf+ZDwyj4qPiQ1AcAP2HdnpOqVuHAAAAAElFTkSuQmCC" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Sodium, Serum
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/5138" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="even"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="5047"></td><td class="text-nowrap sorting_1">2026-03-10 09:56</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="5047" auto_print="">
+    226031038
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMoAAAAeAQMAAABXBBPSAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAC1JREFUKJFj+Mx/+PBn/vOfbT7YHOZntj9//oyN8WGGD/bGBxhGpUalRqVgUgB4L5XE91KjrwAAAABJRU5ErkJggg==" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Sodium, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Chloride, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Potassium, Serum
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/5047" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="odd"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="4930"></td><td class="text-nowrap sorting_1">2026-03-09 16:33</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="4930" auto_print="">
+    2260309149
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAAeAQMAAAC/hKb5AAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAClJREFUKJFj+Mx/+PBn/vOfbT4f+G/z+Qz/eZ4/NvxnPjCMio+KD0FxAAVnqAyInPTbAAAAAElFTkSuQmCC" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Osmolality, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Osmolality, Random, Urine
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Uric acid, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Sodium, Serum
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/4930" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="even"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="4809"></td><td class="text-nowrap sorting_1">2026-03-09 09:27</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="4809" auto_print="">
+    226030928
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMoAAAAeAQMAAABXBBPSAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAC1JREFUKJFj+Mx/+PBn/vOfbT4fOPOf2f78+TM2NgYGH+yNDzCMSo1KjUrBpAB/ALg4KeUXwwAAAABJRU5ErkJggg==" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    CBC
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Urea, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Creatinine, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Sodium, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Potassium, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Chloride, Serum
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/4809" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="odd"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="4781"></td><td class="text-nowrap sorting_1">2026-03-08 23:58</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="4781" auto_print="">
+    2260308238
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAAeAQMAAAC/hKb5AAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAClJREFUKJFj+Mx/+PBn/vOfbT4fOMz/mfnAeRt+G/4zHxhGxUfFh6A4ADRdgsgICHXtAAAAAElFTkSuQmCC" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Sodium, Serum
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/4781" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="even"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="4567"></td><td class="text-nowrap sorting_1">2026-03-08 10:01</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="4567" auto_print="">
+    226030841
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMoAAAAeAQMAAABXBBPSAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAC5JREFUKJFj+Mx/+PBn/vOfbT4fOPznsP35M/b8NgcOfLA3PsAwKjUqNSoFkwIAiSzY6uxno3AAAAAASUVORK5CYII=" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    CBC
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Creatinine, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Urea, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Sodium, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Potassium, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Chloride, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    CRP, Serum
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/4567" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="odd"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="4354"></td><td class="text-nowrap sorting_1">2026-03-07 14:43</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="4354" auto_print="">
+    2260307132
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAAeAQMAAAC/hKb5AAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAChJREFUKJFj+Mx/+PBn/vOfbT4fOHyG+cDn80Am/5kPDKPio+JDUBwA0M7E4Io5Oq4AAAAASUVORK5CYII=" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    CBC
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Urea, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Creatinine, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Sodium, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Potassium, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Chloride, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    CRP, Serum
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/4354" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="even"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="4231"></td><td class="text-nowrap sorting_1">2026-03-07 01:53</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="4231" auto_print="">
+    22603079
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJ4AAAAeAQMAAADn+zXgAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAACZJREFUKJFj+Mx/+PBn/vOfbT4fOPDfmJn5PPNnG4ZRwVFBWgoCAPnAUCh8Ys0uAAAAAElFTkSuQmCC" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success ">
+                                                    Pus Culture &amp; Sensitivity (VITEK)
+                                            </td>
+                </tr>
+                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/4231" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="odd"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="4120"></td><td class="text-nowrap sorting_1">2026-03-06 10:02</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="4120" auto_print="">
+    226030624
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMoAAAAeAQMAAABXBBPSAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAC1JREFUKJFj+Mx/+PBn/vOfbT4f+M9sbH/+PI+9wQeeD/bGBxhGpUalRqVgUgCmhaEE6I9+2QAAAABJRU5ErkJggg==" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    CBC
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Urea, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Creatinine, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Sodium, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Potassium, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Chloride, Serum
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/4120" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="even"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="3912"></td><td class="text-nowrap sorting_1">2026-03-05 09:17</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="3912" auto_print="">
+    226030531
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMoAAAAeAQMAAABXBBPSAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAC1JREFUKJFj+Mx/+PBn/vOfbT4f+Pz5s/35M/b8NvY8H+yNDzCMSo1KjUrBpACIRr7m/DXZpQAAAABJRU5ErkJggg==" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    CBC
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Sodium, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Potassium, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Chloride, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Urea, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Creatinine, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    APTT
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/3912" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="odd"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="3833"></td><td class="text-nowrap sorting_1">2026-03-04 19:06</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="3833" auto_print="">
+    2260304189
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAAeAQMAAAC/hKb5AAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAClJREFUKJFj+Mx/+PBn/vOfbT4f+GBgfN7+PM8fG/4zHxhGxUfFh6A4AGsdlFzDhXpqAAAAAElFTkSuQmCC" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    APTT
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/3833" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="even"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="3682"></td><td class="text-nowrap sorting_1">2026-03-04 10:14</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="3682" auto_print="">
+    226030438
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMoAAAAeAQMAAABXBBPSAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAC5JREFUKJFj+Mx/+PBn/vOfbT4fOM/82f78+TM2NgZ/PtgbH2AYlRqVGpWCSQEAwG7PEm2+vFwAAAAASUVORK5CYII=" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    CBC
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Urea, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Creatinine, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Sodium, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Potassium, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Chloride, Serum
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Prothrombin Time (PT)
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    APTT
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/3682" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="odd"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="3469"></td><td class="text-nowrap sorting_1">2026-03-03 13:13</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="3469" auto_print="">
+    226030388
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMoAAAAeAQMAAABXBBPSAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAAC5JREFUKJFj+Mx/+PBn/vOfbT4fOPDB2P78+TM2Nh8+fLA3PsAwKjUqNSoFkwIAKzfnrspubocAAAAASUVORK5CYII=" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    Blood film
+                                            </td>                    
+                </tr>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    ESR
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/3469" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr><tr role="row" class="even"><td><input type="checkbox" name="" class="bulk_checkbox" id="" value="3400"></td><td class="text-nowrap sorting_1">2026-03-03 05:11</td><td><div class="text-center invoice_samples cursor-pointer" invoice_id="3400" auto_print="">
+    226030319
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMoAAAAeAQMAAABXBBPSAAAABlBMVEX///8AAABVwtN+AAAAAXRSTlMAQObYZgAAAAlwSFlzAAAOxAAADsQBlSsOGwAAACxJREFUKJFj+Mx/+PBn/vOfbT4fAEL78+cP2xic//DB3vgAw6jUqNSoFEwKAHaG+DR0E4hRAAAAAElFTkSuQmCC" alt="barcode" width="100%" style="padding: 0px;margin:0px;">
+</div></td><td><div class="card card-default card-colorfull collapsed-card m-0" data-card-widget="collapse">
+    <div class="card-header colorless p-2 cursor-pointer">
+        <h3 class="card-title text-center text-nowrap" style="float: unset">
+                        هاشم ياسين خليل يونس
+                </h3>
+    </div>
+    <div class="card-body p-0">
+        <div class="row">
+            <div class="col-lg-12">
+                <table class="table table-bordered table-striped m-0">
+                    <tbody>
+                                                                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Name
+                            </th>
+                            <td nowrap="nowrap">
+                                                                     هاشم ياسين خليل يونس
+                                                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                ID NO.
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Gender
+                            </th>
+                            <td nowrap="nowrap">
+                                Male
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Date of birth
+                            </th>
+                            <td nowrap="nowrap">
+                                1977-02-25
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Age
+                            </th>
+                            <td nowrap="nowrap">
+                                 49 Years                             </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Phone
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                <a class="btn btn-sm btn-primary direction-ltr copy_to_clipboard" title="Click to copy" href="tel:07703790584"><i class="fa fa-phone-alt"></i> +07703790584</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Email
+                            </th>
+                            <td nowrap="nowrap" class="direction-ltr">
+                                
+                            </td>
+                        </tr>
+                        <tr>
+                            <th width="10px" nowrap="nowrap">
+                                Address
+                            </th>
+                            <td nowrap="nowrap">
+                                
+                            </td>
+                        </tr>
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div></td><td><div class="card  card-success  collapsed-card card-colorfull cursor-pointer m-0" data-card-widget="collapse">
+    <div class="card-header p-2">
+        <h6 class="card-title text-center" style="float:unset!important">
+                           <i class="fa fa-check-circle"></i> Done
+                    </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-striped">
+            <tbody>
+                                <tr>
+                    <td class="direction-ltr align-left text-nowrap  text-success " nowrap="nowrap">
+                                                    APTT
+                                            </td>                    
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+</div></td><td><div class="text-center">
+        <i class="fa fa-lg fa-check-circle text-success"></i>
+    </div>
+</td><td><div class="text-center">
+                        <form action="https://amrlab.net/referral/invoices/print_medical_report/3400" method="POST" class="d-inline ignore_preloader" target="_blank">
+                <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fa fa-lg fa-print" aria-hidden="true"></i>
+                </button>
+            </form>
+            </div></td><td><div class="dropdown">
+    <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <i class="fa fa-cog"></i>
+    </button>
+    
+    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+ </div></td></tr></tbody>
+             </table><div id="invoices_table_processing" class="dataTables_processing card" style="display: none;">Processing...</div></div></div><div class="row mt-2"><div class="col-sm-12"><div class="row"><div class="col-12 col-md-2 col-lg-2 mb-2 text-left"><div class="dataTables_filter"><label><input type="search" class="form-control form-control-sm" placeholder="Search here ..." aria-controls="invoices_table"></label></div></div><div class="col-12 col-md-8 col-lg-8 mb-2 overflow-x-auto  text-center"><div class="dataTables_paginate paging_simple_numbers"><ul class="pagination"><li class="paginate_button page-item previous disabled"><a href="#" aria-controls="invoices_table" data-dt-idx="0" tabindex="0" class="page-link">Previous</a></li><li class="paginate_button page-item active"><a href="#" aria-controls="invoices_table" data-dt-idx="1" tabindex="0" class="page-link">1</a></li><li class="paginate_button page-item next disabled"><a href="#" aria-controls="invoices_table" data-dt-idx="2" tabindex="0" class="page-link">Next</a></li></ul></div></div><div class="col-12 col-md-2 col-lg-2 mb-2 text-right"><div class="dataTables_length"><label>Show <select name="invoices_table_length" aria-controls="invoices_table" class="custom-select custom-select-sm form-control form-control-sm"><option value="10">10</option><option value="15">15</option><option value="25">25</option><option value="50">50</option><option value="100">100</option><option value="150">150</option></select> records</label></div></div><div class="col-12 col-md-12 col-lg-12 overflow-x-auto text-center"><div class="dataTables_info">Showing 1 to 18 of 18 records (filtered from 66 total records)</div></div></div></div></div></div>
+         </div>
+      </div>
+    </div>
+    <!-- /.card-body -->
+  </div>
+  <div class="modal fade" id="samples_modal" aria-hidden="true">
+    <div class="modal-dialog modal-xxl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">Samples</h4>
+          <button type="button" class="btn btn-sm btn-secondary" data-dismiss="modal" aria-label="Close">
+            <i class="fa fa-times-circle"></i>
+          </button>
+        </div>
+        <div class="modal-header patient_info" style="padding: 0px!important">
+          <table class="mb-2 mt-2 ml-2 mr-2 w-100">
+            <tbody><tr>
+              <td width="10px" class="h6 p-1 text-nowrap text-bold">Barcode :</td>
+              <td class="h6 p-1" id="barcode"></td>
+            </tr>
+            <tr>
+              <td width="10px" class="h6 p-1 text-nowrap text-bold">Patient name :</td>
+              <td class="h6 p-1" id="patient_name"></td>
+            </tr>
+          </tbody></table>
+        </div>
+        <form action="https://amrlab.net/referral/invoices/print_barcode" method="POST" id="samples_form" target="_blank" novalidate="novalidate">
+            <div class="modal-header pt-1 pb-1" style="display: block!important">
+                          </div>
+            <input type="hidden" name="_token" value="m5cGPnzfR50UXLgkxYUSd6ZOT9ZS0LVfuW4SeRy0" autocomplete="off">            <div class="modal-body p-0">
+              <div class="row">
+                <div class="col-lg-12 table-responsive">
+                  <table class="table table-bordered table-striped m-0" id="samples_table">
+                    <thead>
+                      <tr>
+                        <th width="10px">
+                          <input type="checkbox" name="" id="select_all_samples">
+                        </th>
+                        <th width="10px" class="text-center">Sample ID</th>
+                        <th width="100px">Sample type</th>
+                        <th width="20%">Tests</th>
+                        <th class="text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+    
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer justify-content-between pt-1 pb-1">
+                            <button type="button" class="btn btn-xs btn-secondary" data-dismiss="modal">
+                <i class="fa fa-times-circle"></i>
+                Close
+              </button>
+            </div>
+        </form>
+      </div>
+      <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+  </div>          <input type="hidden" id="system_currency" value="IQD">
+          <input type="hidden" id="system_timezone" value="Asia/Baghdad">
+          <input type="hidden" id="system_lang" value="en">
+          <input type="hidden" id="system_date" value="2026-03-11">
+          <input type="hidden" id="system_datetime" value="2026-03-11 23:33">
+          <input type="hidden" id="system_country_code" value="iq">
+          <input type="hidden" id="system_country_phone_code" value="964">
+          <input type="hidden" id="system_country_id" value="104">
+        </div><!-- /.container-fluid -->
+      </section>
+      <!-- /.content -->
+
+      
+    </div>
+    <!-- /.content-wrapper -->
+    
+    <!-- Footer -->
+    <footer class="main-footer text-center">
+        <div class="row mt-5">
+      <div class="col-lg-12">
+          <h6 class="text-center mb-3">- Follow Us -</h6>
+      </div>
+    <div class="col-lg-12">
+      <ul class="social text-center">
+                                    <li class="d-inline">
+                <a href="https://www.facebook.com/AmrLab.Duhok" class="tooltipstered">
+                  <img src="https://amrlab.net/img/facebook.png" width="40px">
+                </a>
+              </li>
+                                                                                            <li class="d-inline">
+                <a href="https://www.instagram.com/amrlab_duhok" class="tooltipstered">
+                  <img src="https://amrlab.net/img/instagram.png" width="40px">
+                </a>
+              </li>
+                                                                      <li class="d-inline">
+                <a href="https://wa.me/+9647503713637" class="tooltipstered">
+                  <img src="https://amrlab.net/img/whatsapp.png" width="40px">
+                </a>
+              </li>
+                            </ul>
+    </div>
+  </div>
+        <strong>All rights are reserved @ Almukhtabarat</strong>
+    </footer>
+    <!-- /.Footer -->
+
+    <!-- Control Sidebar -->
+    <aside class="control-sidebar control-sidebar-dark notification_bar os-host os-theme-dark os-host-resize-disabled os-host-scrollbar-horizontal-hidden os-host-scrollbar-vertical-hidden os-host-transition" style="display: none;" id="notification_bar"><div class="os-resize-observer-host observed"><div class="os-resize-observer" style="left: 0px; right: auto;"></div></div><div class="os-size-auto-observer observed" style="height: calc(100% + 1px); float: left;"><div class="os-resize-observer"></div></div><div class="os-content-glue" style="margin: 0px; width: 0px; height: 0px;"></div><div class="os-padding"><div class="os-viewport os-viewport-native-scrollbars-invisible os-viewport-native-scrollbars-overlaid"><div class="os-content" style="padding: 0px; height: 100%; width: 100%;">
+    <!-- Control sidebar content goes here -->
+    <div class="aside-content">
+                <div class="card card-secondary card-colorfull card-colorfull mb-0 mt-1">
+            <div class="card-header cursor-pointer p-2" data-card-widget="collapse">
+                <h5 class="card-title">
+                    <i class="fas fa-palette"></i>
+                    Appearance
+                </h5>
+            </div>
+            <div class="card-body p-2">
+                <table width="100%">
+                    <tbody>
+                                                <tr>
+                            <td>
+                                <label for="" class="cursor-pointer">Change language</label>
+                            </td>
+                            <td width="30px">
+                                                                    <a href="https://amrlab.net/change_locale/ar" class="nav-link text-white h5 p-0 tooltipstered">
+                                        العربية
+                                    </a>
+                                                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+  
+            </div>
+  </div></div></div><div class="os-scrollbar os-scrollbar-horizontal os-scrollbar-unusable"><div class="os-scrollbar-track os-scrollbar-track-off"><div class="os-scrollbar-handle" style="transform: translate(0px, 0px);"></div></div></div><div class="os-scrollbar os-scrollbar-vertical os-scrollbar-unusable"><div class="os-scrollbar-track os-scrollbar-track-off"><div class="os-scrollbar-handle" style="transform: translate(0px, 0px);"></div></div></div><div class="os-scrollbar-corner"></div></aside>    <!-- /.control-sidebar -->
+
+  <div id="sidebar-overlay"></div></div>
+  <!-- ./wrapper -->
+
+  <!-- jQuery -->
+<script src="https://amrlab.net/plugins/jquery/jquery.min.js?v=9950"></script>
+<!-- jQuery UI 1.11.4 -->
+<script src="https://amrlab.net/plugins/jquery-ui/jquery-ui.min.js?v=9950"></script>
+<!-- Bootstrap 4 -->
+<script src="https://amrlab.net/plugins/bootstrap/js/bootstrap.bundle.min.js?v=9950"></script>
+<!-- Moment -->
+<script src="https://amrlab.net/plugins/moment/moment.min.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/moment/moment-timezone.js?v=9950"></script>
+<!-- ChartJS -->
+<script src="https://amrlab.net/plugins/chart.js/Chartjs-new.min.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/chart.js/datalabels.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/chart.js/chartjs-plugin-annotation.min.js?v=9950"></script>
+<!-- chartjs-adapter-moment -->
+<script src="https://amrlab.net/plugins/chart.js/chartjs-plugin-moment.js?v=9950"></script>
+<!-- Sparkline -->
+<script src="https://amrlab.net/plugins/sparklines/sparkline.js?v=9950"></script>
+<!-- jQuery Knob Chart -->
+<script src="https://amrlab.net/plugins/jquery-knob/jquery.knob.min.js?v=9950"></script>
+<!-- Calendar -->
+<script src="https://amrlab.net/plugins/calendar/fullcalendar.min.js?v=9950"></script>
+<!-- daterangepicker -->
+<script src="https://amrlab.net/plugins/daterangepicker/daterangepicker.js?v=9950"></script>
+<!-- Tempusdominus Bootstrap 4 -->
+<script src="https://amrlab.net/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js?v=9950"></script>
+<!-- Summernote -->
+<script src="https://amrlab.net/plugins/summernote/summernote-bs4.min.js?v=9950"></script>
+<!-- overlayScrollbars -->
+<script src="https://amrlab.net/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js?v=9950"></script>
+<!-- AdminLTE App -->
+<script src="https://amrlab.net/dist/js/adminlte.js?v=9950"></script>
+<!-- DataTables -->
+<script src="https://amrlab.net/plugins/datatables/jquery.dataTables.min.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/datatables-responsive/js/dataTables.responsive.min.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/datatables-responsive/js/responsive.bootstrap4.min.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/datatables-buttons/js/dataTables.buttons.min.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/datatables-buttons/js/buttons.bootstrap4.min.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/jszip/jszip.min.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/pdfmake/pdfmake.min.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/pdfmake/vfs_fonts.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/datatables-buttons/js/buttons.html5.min.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/datatables-buttons/js/buttons.print.min.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/datatables-buttons/js/buttons.colVis.min.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/datatables-colreorder/js/dataTables.colReorder.min.js?v=9950"></script>
+<!-- Toastr-->
+<script src="https://amrlab.net/js/toastr.min.js?v=9950"></script>
+<!-- Validate -->
+<script src="https://amrlab.net/plugins/jquery-validation/jquery.validate.min.js?v=9950"></script>
+<!-- Select 2 -->
+<script src="https://amrlab.net/js/select2.js?v=9950"></script>
+<!-- Sweetalert -->
+<script src="https://amrlab.net/plugins/sweet-alert/sweetalert.min.js?v=9950"></script>
+<!-- Flatpickr -->
+<script src="https://amrlab.net/plugins/flatpickr/flatpickr.min.js?v=9950"></script>
+<!-- Lightbox -->
+<script src="https://amrlab.net/plugins/ekko-lightbox/ekko-lightbox.js?v=9950"></script>
+<!-- Colorpicker -->
+<script src="https://amrlab.net/plugins/bootstrap-colorpicker/js/bootstrap-colorpicker.min.js?v=9950"></script>
+<!-- Switch -->
+<script src="https://amrlab.net/plugins/swtich-netliva/js/netliva_switch.js?v=9950"></script>
+<!-- Timepicker -->
+<script src="https://amrlab.net/plugins/mdtimepicker/mdtimepicker.js?v=9950"></script>
+<!-- Sticky note -->
+<script src="https://amrlab.net/plugins/sticky-note/sticky-note.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/sticky-note/scrollbar.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/sticky-note/roundSlider.js?v=9950"></script>
+<script type="module" src="https://amrlab.net/js/admin/firebase.js?v=9950"></script>
+<!-- Tooltipster -->
+<script src="https://amrlab.net/plugins/tooltipster/js/tooltipster.bundle.min.js?v=9950"></script>
+<!-- decimal -->
+<script src="https://amrlab.net/plugins/decimal/decimal.js?v=9950"></script>
+<!-- PrintJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.5.141/pdf.min.js"></script>
+<script src="https://amrlab.net/plugins/print/jQuery.print.min.js?v=9950"></script>
+<script src="https://amrlab.net/plugins/print/print.min.js?v=9950"></script>
+<!-- Dropdown -->
+<script src="https://amrlab.net/plugins/dropdown/main.js?v=9950"></script>
+<!-- QC tray -->
+
+<!-- QC tray -->
+
+<!-- Locale -->
+
+<!-- Barcode -->
+<script src="https://amrlab.net/plugins/barcode-printer/websocket-printer.js?v=9950"></script>
+
+
+<!-- Scripts Translation -->
+<script>
+  var translations=`{"Login Patient":"Login Patient","Patient Code":"Patient Code","Remember Me":"Remember Me","Forgot Code ?":"Forgot Code ?","Login":"Login","New Patient ?":"New Patient ?","Follow Us":"Follow Us","New Patient":"New Patient","Name":"Name","Gender":"Gender","Male":"Male","Female":"Female","Phone":"Phone","Email":"Email","Date Of Birth":"Date Of Birth","Address":"Address","Signup":"Signup","Send Patient Code":"Send Patient Code","Send":"Send","Email Or Phone":"Email Or Phone","Login Admin":"Login Admin","Password":"Password","Forgot Password?":"Forgot Password?","Send Ressetting Mail":"Send Ressetting Mail","Resetting Admin Password":"Resetting Admin Password","New Password":"New Password","New Password Confirmation":"New Password Confirmation","Reset Password":"Reset Password","Dashboard":"Dashboard","Total Reports":"Total Reports","Pending Reports":"Pending Reports","Completed Reports":"Completed Reports","Code":"Code","Profile":"Profile","Reports":"Reports","Tests Library":"Tests Library","Home Visit":"Home Visit","Home Visits":"Home Visits","Our Branches":"Our Branches","Email Address":"Email Address","Select Gender":"Select Gender","Date":"Date","Total":"Total","Paid":"Paid","Due":"Due","Done":"Done","Action":"Action","Reports list":"Reports list","Shortcut":"Shortcut","Sample Type":"Sample Type","precautions":"precautions","Tests":"Tests","Cultures":"Cultures","Request a home visit":"Request a home visit","New patient":"New patient","Location On Map":"Location On Map","Attachment":"Attachment","Attachment Image":"Attachment Image","Browse":"Browse","optional":"optional","View On Map":"View On Map","Are you sure to delete branch ?":"Are you sure to delete branch ?","Cancel":"Cancel","Delete":"Delete","Copy":"Copy","Excel":"Excel","CVS":"CVS","PDF":"PDF","Processing...":"Processing...","No data available in table":"No data available in table","Showing":"Showing","to":"to","of":"of","from":"from","filtered":"filtered","Show":"Show","Search":"Search","No matching records found":"No matching records found","First":"First","Last":"Last","Next":"Next","Previous":"Previous","records":"records","Are you sure to delete component ?":"Are you sure to delete component ?","Please select at least one test component":"Please select at least one test component","No new messages":"No new messages","No new visits":"No new visits","Are you sure to delete antibiotic ?":"Are you sure to delete antibiotic ?","Are you sure to delete backup ?":"Are you sure to delete backup ?","Are you sure to delete contract ?":"Are you sure to delete contract ?","Are you sure to delete culture option ?":"Are you sure to delete culture option ?","Are you sure to delete option ?":"Are you sure to delete option ?","Are you sure to delete culture ?":"Are you sure to delete culture ?","No users online":"No users online","Are you sure to delete referral ?":"Are you sure to delete referral ?","Select expense category":"Select expense category","Category added successfully":"Category added successfully","Success":"Success","Something went wrong":"Something went wrong","Are you sure to delete expense ?":"Are you sure to delete expense ?","Select contract":"Select contract","Patient Name":"Patient Name","Patient saved successfully":"Patient saved successfully","Are you sure to delete group ?":"Are you sure to delete group ?","Please select at least one test":"Please select at least one test","Are you sure to delete group test ?":"Are you sure to delete group test ?","Are you sure to delete patient ?":"Are you sure to delete patient ?","Password confirmation does not match password":"Password confirmation does not match password","Select antibiotic":"Select antibiotic","Select sensitivity":"Select sensitivity","Please select at least one antibiotic":"Please select at least one antibiotic","Select Sensitivity":"Select Sensitivity","High":"High","Moderate":"Moderate","Resident":"Resident","Are you sure to delete role ?":"Are you sure to delete role ?","Are you sure to delete test ?":"Are you sure to delete test ?","Are you sure to delete user ?":"Are you sure to delete user ?","Are you sure to delete visit ?":"Are you sure to delete visit ?","Failed":"Failed","Edit Profile":"Edit Profile","Filters":"Filters","Status":"Status","All":"All","Pending":"Pending","Current patient":"Current patient","Save":"Save","New here ?":"New here ?","Create Account":"Create Account","Submit":"Submit","Wrong email or password":"Wrong email or password","Please check your email to complete resetting your password":"Please check your email to complete resetting your password","Email not found":"Email not found","Password reset successfully":"Password reset successfully","Patient registered successfully":"Patient registered successfully","Login success":"Login success","Wrong patient code":"Wrong patient code","we sent you the patient code,Please check your mail or phone for the patient code message":"we sent you the patient code,Please check your mail or phone for the patient code message","Wrong patient email or phone":"Wrong patient email or phone","Home":"Home","Filter":"Filter","Activity log cleared successfully":"Activity log cleared successfully","Antibiotic saved successfully":"Antibiotic saved successfully","Antibiotic updated successfully":"Antibiotic updated successfully","Antibiotic deleted successfully":"Antibiotic deleted successfully","Database backup created successfully":"Database backup created successfully","Backup deleted successfully":"Backup deleted successfully","Branch created successfully":"Branch created successfully","Branch updated successfully":"Branch updated successfully","Branch deleted successfully":"Branch deleted successfully","Test created successfully":"Test created successfully","Test updated successfully":"Test updated successfully","Test deleted successfully":"Test deleted successfully","Culture created successfully":"Culture created successfully","Culture updated successfully":"Culture updated successfully","Culture deleted successfully":"Culture deleted successfully","Contract created successfully":"Contract created successfully","Contract updated successfully":"Contract updated successfully","Contract deleted successfully":"Contract deleted successfully","Culture option created successfully":"Culture option created successfully","Culture option updated successfully":"Culture option updated successfully","Culture option deleted successfully":"Culture option deleted successfully","Referral created successfully":"Referral created successfully","Referral updated successfully":"Referral updated successfully","Referral deleted successfully":"Referral deleted successfully","Expense category created successfully":"Expense category created successfully","Expense category updated successfully":"Expense category updated successfully","Expense category deleted successfully":"Expense category deleted successfully","Expense created successfully":"Expense created successfully","Expense updated successfully":"Expense updated successfully","Expense deleted successfully":"Expense deleted successfully","Group created successfully":"Group created successfully","Group updated successfully":"Group updated successfully","Group deleted successfully":"Group deleted successfully","User created successfully":"User created successfully","User updated successfully":"User updated successfully","User deleted successfully":"User deleted successfully","Role created successfully":"Role created successfully","Role updated successfully":"Role updated successfully","Role deleted successfully":"Role deleted successfully","Patient created successfully":"Patient created successfully","Patient updated successfully":"Patient updated successfully","Patient deleted successfully":"Patient deleted successfully","Visit created successfully":"Visit created successfully","Visit updated successfully":"Visit updated successfully","Visit deleted successfully":"Visit deleted successfully","Tests prices updated successfully":"Tests prices updated successfully","Cultures prices updated successfully":"Cultures prices updated successfully","Profile updated successfully":"Profile updated successfully","Test result saved successfully":"Test result saved successfully","Culture result saved successfully":"Culture result saved successfully","Your home visit request sent successfully , please be patient till our representative contact you":"Your home visit request sent successfully , please be patient till our representative contact you","Password Confirmation":"Password Confirmation","Price":"Price","Precautions":"Precautions","Test Components":"Test Components","Component":"Component","Title":"Title","Unit":"Unit","Reference Range":"Reference Range","Separated":"Separated","status":"status","Text":"Text","Select":"Select","Option":"Option","Create Test":"Create Test","Create":"Create","Edit":"Edit","Edit Test":"Edit Test","Tests Table":"Tests Table","Category":"Category","Expense category name":"Expense category name","Create Expense Category":"Create Expense Category","Expense Categories":"Expense Categories","Edit Expense Category":"Edit Expense Category","Not Listed ?":"Not Listed ?","Amount":"Amount","Notes":"Notes","New Expense Category":"New Expense Category","Category name":"Category name","Close":"Close","Create Expense":"Create Expense","Expenses":"Expenses","Edit Expense":"Edit Expense","Expenses Table":"Expenses Table","Date range":"Date range","Referral":"Referral","Test":"Test","Culture":"Culture","Show Details":"Show Details","Show Group tests":"Show Group tests","Show Expenses":"Show Expenses","Show Profit":"Show Profit","Accounting":"Accounting","Accounting Report":"Accounting Report","Group Tests":"Group Tests","Profit":"Profit","Activity Logs":"Activity Logs","Activity Logs Table":"Activity Logs Table","Clear":"Clear","User":"User","Time":"Time","Commercial Name":"Commercial Name","Create Antibiotic":"Create Antibiotic","Antibiotics":"Antibiotics","Create antibiotic":"Create antibiotic","Edit Antibiotic":"Edit Antibiotic","Antibiotics Table":"Antibiotics Table","Backups":"Backups","Database Backups":"Database Backups","Backups Table":"Backups Table","Create Database Backup":"Create Database Backup","Backup":"Backup","Branch name":"Branch name","Phone number":"Phone number","Location on map":"Location on map","Create Branch":"Create Branch","Branches":"Branches","Edit Branch":"Edit Branch","Branches Table":"Branches Table","Chat":"Chat","Online":"Online","Offline":"Offline","Discount":"Discount","Description":"Description","Create Contract":"Create Contract","Contracts":"Contracts","Edit Contract":"Edit Contract","Contracts Table":"Contracts Table","Options":"Options","Create culture option":"Create culture option","Culture options":"Culture options","Edit culture option":"Edit culture option","Create Culture":"Create Culture","Edit Culture":"Edit Culture","Cultures Table":"Cultures Table","Create referral":"Create referral","Edit referral":"Edit referral","Referrals":"Referrals","Referrals Table":"Referrals Table","Show Receipt":"Show Receipt","Select branch":"Select branch","Select tests branch":"Select tests branch","Patient Info":"Patient Info","Date of birth":"Date of birth","Test Name":"Test Name","Culture Name":"Culture Name","Receipt":"Receipt","Subtotal":"Subtotal","Contract":"Contract","Create Group":"Create Group","Groups":"Groups","Edit Group":"Edit Group","Age":"Age","Due Date":"Due Date","Print":"Print","Patients":"Patients","Create Patient":"Create Patient","Edit patient":"Edit patient","Patients Table":"Patients Table","Price List":"Price List","Cultures Price List":"Cultures Price List","Tests Price List":"Tests Price List","Edit Report":"Edit Report","Send Report":"Send Report","Print Report":"Print Report","No data available":"No data available","Reports Table":"Reports Table","Select tests and cultures to be printed in the report":"Select tests and cultures to be printed in the report","Deselect all":"Deselect all","Select all":"Select all","Role Name":"Role Name","Permissions":"Permissions","Create Role":"Create Role","Roles":"Roles","Edit Role":"Edit Role","Roles Table":"Roles Table","Create User":"Create User","Edit User":"Edit User","Users":"Users","Users Table":"Users Table","Create group tests":"Create group tests","Select Patient":"Select Patient","Visit Date":"Visit Date","Choose file":"Choose file","Create home visit":"Create home visit","Home visits":"Home visits","Edit home visit":"Edit home visit","Home visits table":"Home visits table","Completed":"Completed","Viewed":"Viewed","Show home visit":"Show home visit","Home visit details":"Home visit details","More info":"More info","Today income amount":"Today income amount","Today expense amount":"Today expense amount","Today profit amount":"Today profit amount","Pending tests":"Pending tests","Completed tests":"Completed tests","Total cultures":"Total cultures","Pending cultures":"Pending cultures","Completed cultures":"Completed cultures","Online users":"Online users","Today scheduled home visits":"Today scheduled home visits","New home visits":"New home visits","New messages":"New messages","Settings":"Settings","General":"General","Emails":"Emails","SMS":"SMS","Whatsapp":"Whatsapp","General Settings":"General Settings","Footer":"Footer","Choose Report Logo":"Choose Report Logo","Choose Logo":"Choose Logo","Email Settings":"Email Settings","Host":"Host","Port":"Port","Username":"Username","Encryption":"Encryption","From Address":"From Address","From Name":"From Name","Header background color":"Header background color","Footer background color":"Footer background color","Resetting Password":"Resetting Password","Tests Notification":"Tests Notification","Do not change variables":"Do not change variables","Active":"Active","Deactive":"Deactive","subject":"subject","Body":"Body","Reports Settings":"Reports Settings","Show Header":"Show Header","Show Footer":"Show Footer","Margin top":"Margin top","Margin left":"Margin left","Margin right":"Margin right","Margin bottom":"Margin bottom","SMS Settings":"SMS Settings","Message":"Message","Whatsapp Settings":"Whatsapp Settings","Receipt link":"Receipt link","Report link":"Report link","Social":"Social","Logos \/ Banner":"Logos \/ Banner","Accounting Report Summary":"Accounting Report Summary","From Date":"From Date","To Date":"To Date","Load More":"Load More","Click User To Chat":"Click User To Chat","Roles And Users":"Roles And Users","Translations":"Translations","Translation":"Translation","Edit Translation":"Edit Translation","lang status changed":"lang status changed","Translation updated successfully":"Translation updated successfully","Culture options Table":"Culture options Table","Option name":"Option name","Contract title":"Contract title","Contract discount":"Contract discount","Group Tests Table":"Group Tests Table","Expense Categories Table":"Expense Categories Table","Language status updated successfully":"Language status updated successfully","Language":"Language","Key Word":"Key Word","Print barcode":"Print barcode","Number of samples":"Number of samples","Referral report":"Referral report","Payments":"Payments","Show Payments":"Show Payments","Download template":"Download template","Export":"Export","Export \/ Import":"Export \/ Import","Import":"Import","Enter results":"Enter results","Today":"Today","Yesterday":"Yesterday","Last 7 Days":"Last 7 Days","Last 30 Days":"Last 30 Days","This Month":"This Month","Last Month":"Last Month","This Year":"This Year","Last Year":"Last Year","Signature":"Signature","Choose your signature":"Choose your signature","Sign Report":"Sign Report","Font type":"Font type","Font size":"Font size","Select font type":"Select font type","Signed":"Signed","Barcode":"Barcode","Result":"Result","Normal":"Normal","Select status":"Select status","Commission":"Commission","Import tests":"Import tests","Import cultures":"Import cultures","From":"From","To":"To","Content margin bottom":"Content margin bottom","Content margin top":"Content margin top","Show signature":"Show signature","Api Keys Settings":"Api Keys Settings","Mail sent successfully":"Mail sent successfully","Send Receipt":"Send Receipt","Branch info":"Branch info","Patient title":"Patient title","Patient data":"Patient data","Test title":"Test title","Test name":"Test name","Test head":"Test head","Test unit":"Test unit","Test reference range":"Test reference range","Test status":"Test status","Test comment":"Test comment","Report signature":"Report signature","Antibiotic name":"Antibiotic name","Antibiotic sensitivity":"Antibiotic sensitivity","Antibiotic commercial name":"Antibiotic commercial name","Report":"Report","Print receipt":"Print receipt","male":"Male","female":"Female","Patient info":"Patient info","Years":"Years","Months":"Months","Days":"Days","Low":"Low","Invoices":"Invoices","Create invoice":"Create invoice","Edit invoice":"Edit invoice","Invoice":"Invoice","Comment":"Comment","Branch changed successfully":"Branch changed successfully","You aren't authorized to browse this branch":"You aren't authorized to browse this branch","No other branches":"No other branches","Branch doesn't exist":"Branch doesn't exist","You can't delete the only existing branch":"You can't delete the only existing branch","You can't delete super admin user":"You can't delete super admin user","year":"Year","month":"Month","day":"Day","both":"Both ( Male \/ Female )","Categories":"Categories","Create category":"Create category","Edit category":"Edit category","Category created successfully":"Category created successfully","Category updated successfully":"Category updated successfully","Category deleted successfully":"Category deleted successfully","Age unit":"Age unit","From age":"From age","To age":"To age","Value from":"Value from","Value to":"Value to","Both":"Both","Discount should be less than subtotal":"Discount should be less than subtotal","On date":"On date","Payment methods":"Payment methods","Payment methods table":"Payment methods table","Create payment method":"Create payment method","Edit payment method":"Edit payment method","Payment method created successfully":"Payment method created successfully","Payment method updated successfully":"Payment method updated successfully","Payment method deleted successfully":"Payment method deleted successfully","Select payment method":"Select payment method","Are you sure to delete payment method ?":"Are you sure to delete payment method ?","Income":"Income","Login banner":"Login banner","Packages":"Packages","Create package":"Create package","Edit package":"Edit package","Are you sure to delete package ?":"Are you sure to delete package ?","Package created successfully":"Package created successfully","Package updated successfully":"Package updated successfully","Package deleted successfully":"Package created successfully","Packages Table":"Packages Table","Please select your signature first":"Please select your signature first","Please select home visit location on map":"Please select home visit location on map","Package name":"Package name","Invoices Table":"Invoices Table","Payment method":"Payment method","Api Keys":"Api Keys","Groups tests":"Invoices","View":"View","Generate":"Generate","View tests prices":"View tests prices","Update tests prices":"Update tests prices","View cultures prices":"View cultures prices","Update cultures prices":"Update cultures prices","View packages prices":"View packages prices","Update packages prices":"Update packages prices","Actvity logs":"Actvity logs","Setting":"Setting","Accounting reports":"Accounting reports","Contract discount in percentage":"Contract discount in percentage","Tests reports":"Tests reports","Price list":"Price list","Sign":"Sign","Expense categories":"Expense categories","Update":"Update","Critical low":"Critical low","Critical high":"Critical high","Print uploaded report":"Print uploaded report","Upload report":"Upload report","Report updated successfully":"Report updated successfully","You can upload a pdf file as the report":"You can upload a pdf file as the report","Upload":"Upload","Normal Range":"Normal Range","Import \/ Export":"Import \/ Export","Payment amount should be less than total price":"Payment amount should be less than total price","Warning":"Warning","This patient doesn't have a contract":"This patient doesn't have a contract","Online admins":"Online admins","Online patients":"Online patients","Best income packages":"Best income packages","Best income tests":"Best income tests","Best income cultures":"Best income cultures","Purchases":"Purchases","Medical reports":"Medical reports","Medical reports table":"Medical reports table","Sample collection date":"Sample collection date","Apply":"Apply","Edit medical report":"Edit medical report","Show medical report":"Show medical report","Categories table":"Categories table","Inventory":"Inventory","Suppliers":"Suppliers","Supplier created successfully":"Supplier created successfully","Supplier updated successfully":"Supplier updated successfully","Supplier deleted successfully":"Supplier deleted successfully","Products":"Products","Product created successfully":"Product created successfully","Product updated successfully":"Product updated successfully","Product deleted successfully":"Product deleted successfully","Adjustments":"Adjustments","Adjustment created successfully":"Adjustment created successfully","Adjustment updated successfully":"Adjustment updated successfully","Adjustment deleted successfully":"Adjustment deleted successfully","Transfers":"Transfers","Transfer created successfully":"Transfer created successfully","Transfer updated successfully":"Transfer updated successfully","Transfer deleted successfully":"Transfer deleted successfully","Accounting report":"Accounting report","Supplier report":"Supplier report","Purchases report":"Purchases report","Purchase created successfully":"Purchase created successfully","Purchase updated successfully":"Purchase updated successfully","Purchase deleted successfully":"Purchase deleted successfully","Inventory report":"Inventory report","Product report":"Product report","Package":"Package","Branch":"Branch","All branches":"All branches","Purchase payments":"Purchase payments","Purchase":"Purchase","Supplier":"Supplier","Consumptions":"Consumptions","Product":"Product","Quantity":"Quantity","Unit price":"Unit price","From branch":"From branch","To branch":"To branch","Type":"Type","Total price":"Total price","Suppliers table":"Suppliers table","Create supplier":"Create supplier","Edit supplier":"Edit supplier","Products table":"Products table","Create product":"Create product","Edit product":"Edit product","Initial":"Initial","In":"In","Out":"Out","Consumption":"Consumption","Stock":"Stock","Initial quantity":"Initial quantity","Stock alert":"Stock alert","Purchases table":"Purchases table","Create purchase":"Create purchase","Edit purchase":"Edit purchase","Adjustments table":"Adjustments table","Create adjustment":"Create adjustment","Edit adjustment":"Edit adjustment","Note":"Note","Select product":"Select product","Transfers table":"Transfers table","Create transfer":"Create transfer","Edit transfer":"Edit transfer","note":"note","No patients online":"No patients online","No admins online":"No admins online","Products report":"Products report","Select comment":"Select comment","Income statistics":"Income statistics","Stock alerts":"Stock alerts","No stock alerts":"No stock alerts","Test consumptions":"Test consumptions","Add":"Add","Color":"Color","Align":"Align","Center":"Center","Left":"Left","Right":"Right","Google maps":"Google maps","Google map key":"Google map key","Avatar":"Avatar","Choose avatar":"Choose avatar","Passport No.":"ID NO.","Nationality":"Nationality","National ID":"National ID","Registration Date":"Registration Date","Sample collection":"Sample collection date","Summary":"Summary","Working paper":"Working paper","Show receipt":"Show receipt","Send receipt":"Send receipt","Enter report":"Enter report","Bulk action":"Bulk action","Created By":"Created By","Signed By":"Signed By","Print medical report":"Print medical report","Visit details":"Visit details","Visit address":"Visit address","Select tests":"Select tests","Select cultures":"Select cultures","Select packages":"Select packages","Search for address":"Search for address","Images":"Images","Preloader":"Preloader","Show QR Code":"Show QR Code","Show patient avatar":"Show patient avatar","Qrcode dimension":"Qrcode dimension","Background color":"Background color","Border width":"Border width","Border color":"Border color","Header":"Header","Watermark":"Watermark","Upload report header":"Upload report header","Upload watermark":"Upload watermark","Upload report footer":"Upload report footer","Maximum":"Maximum","Extensions":"Extensions","Branches report":"Branches report","Width":"Width","Height":"Height","Active Gateway":"Active Gateway","You should select at least on row for bulk action":"You should select at least on row for bulk action","Print working paper":"Print working paper","Send report":"Send report","Print report":"Print report","Sign report":"Sign report","Discount type":"Discount type","Percentage":"Percentage","Custom price":"Custom price","Select nationality":"Select nationality","Passport no":"ID NO.","Passport NO":"ID NO.","Select age unit":"Select age unit","Payment":"Payment","Balance":"Balance","Are you sure to print bulk barcodes ?":"Are you sure to print bulk barcodes ?","Confirm":"Confirm","Are you sure to print bulk receipts ?":"Are you sure to print bulk receipts ?","Are you sure to print bulk working paper ?":"Are you sure to print bulk working paper ?","Are you sure to send bulk receipts ?":"Are you sure to send bulk receipts ?","Are you sure to delete bulk ?":"Are you sure to delete bulk ?","Are you sure to sign bulk reports ?":"Are you sure to sign bulk reports ?","Are you sure to print bulk reports ?":"Are you sure to print bulk reports ?","Are you sure to send bulk reports ?":"Are you sure to send bulk reports ?","Order id":"Order id","Employee name":"Employee name","Employee id":"Employee id","Invoice number":"Invoice number","Employee number":"Employee number","Summary of sales invoices":"Summary of sales invoices","Summary of purchase invoices":"Summary of purchase invoices","Sales invoices":"Sales invoices","Purchase invoices":"Purchase invoices","Incoming payments":"Incoming payments","Outgoing payments":"Outgoing payments","Laboratory balance":"Laboratory balance","means laboratory owe to you":"means laboratory owe to you","means you owe to laboratory":"means you owe to laboratory","Total cost":"Total cost","Laboratory report":"Laboratory report","Laboratories":"Laboratories","Create laboratory":"Create laboratory","Edit laboratory":"Edit laboratory","Laboratories table":"Laboratories table","Selling price list":"Selling price list","Purchase price list":"Purchase price list","Finantial settings":"Finantial settings","Medical components":"Medical components","Configurations":"Configurations","Registration date":"Registration date","Best income products":"Best income products","Best income contracts":"Best income contracts","Best income referrals":"Best income referrals","DOB":"DOB","Result date":"Result date","Required tests":"Required tests","Content margin left":"Content margin left","Content margin right":"Content margin right","Patient info header":"Patient info header","Medical report settings":"Medical report settings","Receipt settings":"Receipt settings","Contract alerts":"Contract alerts","exceeded his credit limit of":"exceeded his credit limit of","by reaching to":"by reaching to","Download report":"Download report","Medical report":"Medical report","Report details":"Report details","Child":"Child","Mr":"Mr","Ms":"Ms","Select title":"Select title","This field is required":"This field is required","Prescription":"Prescription","Create booking":"Create booking","Booking details":"Booking details","Sample collection fees":"Sample collection fees","Booking type":"Booking type","Bookings":"Bookings","Booking saved successfully":"Booking saved successfully","Booking updated successfully":"Booking updated successfully","Booking deleted successfully":"Booking deleted successfully","Bulk deleted successfully":"Bulk deleted successfully","Please create invoice first":"Please create invoice first","Booking status updated successfully":"Booking status updated successfully","Booking date":"Booking date","Sample collector":"Sample collector","Home visit order":"Home visit order","Lab visit":"Lab visit","Home visit":"Home visit","Are you sure to delete booking ?":"Are you sure to delete booking ?","Sample collectors":"Sample collectors","Sample collector saved successfully":"Sample collector saved successfully","Sample collector updated successfully":"Sample collector updated successfully","Sample collector deleted successfully":"Sample collector deleted successfully","Create sample collector":"Create sample collector","Edit sample collector":"Edit sample collector","Are you sure to delete sample collector ?":"Are you sure to delete sample collector ?","Bookings table":"Bookings table","Created at":"Created at","Sample collected":"Sample collected","Scheduled":"Scheduled","Report in processing":"Report in processing","Report ready":"Report ready","Canceled":"Canceled","Sample collectors table":"Sample collectors table","Welcome":"Welcome","Your patient code":"Your patient code","Pin Code":"Pin Code","Login sample collector":"Login sample collector","Send resetting mail":"Send resetting mail","Pending reports":"Pending reports","Completed reports":"Completed reports","Home visit address":"Home visit address","Contract payment":"Contract payment","No contract alerts":"No contract alerts","Invoice details":"Invoice details","From laboratory":"From laboratory","To lab":"To lab","Print invoice":"Print invoice","Contract paid":"Contract paid","Patient paid":"Patient paid","Contract report":"Contract report","Created by":"Created by","Select laboratory":"Select laboratory","Select prescription":"Select prescription","Current location":"Current location","Please enter valid phone number":"Please enter valid phone number","Show status":"Show status","Show tests":"Show tests","Unsign Report":"Unsign Report","Edit payments":"Edit payments","Tests precautions":"Tests precautions","Are you sure to delete precaution ?":"Are you sure to delete precaution ?","Precaution saved successfully":"Precaution saved successfully","Order":"Order","Show more":"Show more","Tests results":"Tests results","Tests results list":"Tests results list","Ready":"Ready","Bookings list":"Bookings list","Ready reports":"Ready reports","Commercial name":"Commercial name","Manual result":"Manual result","Show invoice":"Show invoice","This action is unautorized":"This action is unautorized","Assign tests to users":"Assign tests to users","Printed at":"Printed at","From lab":"From lab","Booking":"Booking","Employee":"Employee","Patient":"Patient","Customize":"Customize","Bulk":"Bulk","Edit result":"Edit result","Print working sheet":"Print working sheet","Assigned tests":"Assigned tests","Edit assigned test":"Edit assigned test","Show history":"Show history","No cultures available":"No cultures available","No tests available":"No tests available","Patient details":"Patient details","Edit booking status":"Edit booking status","Patient name":"Patient name","Create patient":"Create patient","Edit booking":"Edit booking","Sample types":"Sample types","Create sample type":"Create sample type","Sample type":"Sample type","Edit sample type":"Edit sample type","Number":"Number","General reference range":"General reference range","Result comments":"Result comments","Tests price list":"Tests price list","Cultures price list":"Cultures price list","Packages price list":"Packages price list","Bulk payments":"Bulk payments","Create bulk payment":"Create bulk payment","Paid by":"Paid by","Edit bulk payment":"Edit bulk payment","Pay all":"Pay all","Unpaid invoices":"Unpaid invoices","Laboratory":"Laboratory","Selling prices":"Selling prices","Purchase prices":"Purchase prices","Import prices":"Import prices","Select Excel":"Select Excel","Payment percentage":"Payment percentage","Maximum payment":"Maximum payment","Credit limit":"Credit limit","Create contract":"Create contract","Edit contract":"Edit contract","Custom prices":"Custom prices","Pricing type":"Pricing type","Create role":"Create role","Edit role":"Edit role","Send mail":"Send mail","Send whatsapp":"Send whatsapp","Delete tests from invoice":"Delete tests from invoice","View accounting report":"View accounting report","View contract report":"View contract report","View referral report":"View referral report","View laboratory report":"View laboratory report","View supplier report":"View supplier report","View purchases report":"View purchases report","View inventory report":"View inventory report","View product report":"View product report","Personal titles":"Personal titles","Create personal title":"Create personal title","Edit personal title":"Edit personal title","Work hours":"Work hours","Working sheet":"Working sheet","Page width":"Page width","Page height":"Page height","Barcode image height":"Barcode image height","Barcode number":"Barcode number","Notifications":"Notifications","Upload receipt header":"Upload receipt header","Upload receipt footer":"Upload receipt footer","Show Logo":"Show Logo","Create branch":"Create branch","Edit branch":"Edit branch","Activity logs":"Activity logs","Activity":"Activity","Details":"Details","Clear all":"Clear all","Last activity":"Last activity","Appearance":"Appearance","Dark mode":"Dark mode","Top navigation":"Top navigation","Fixed footer":"Fixed footer","Switch branch":"Switch branch","There are no new notifications":"There are no new notifications","Read":"Read","General statistics":"General statistics","No online patients":"No online patients","No online users":"No online users","Logout":"Logout","Change language":"Change language","Login laboratory":"Login laboratory","Login contract":"Login contract","Login referral":"Login referral","Show passport no":"Show ID number","Did Cancel":"Canceled"}`;
+  function trans(key)
+  {
+    var trans=JSON.parse(translations);
+    return (trans[key]!=null?trans[key]:key);
+  }
+</script>
+<!-- \Scripts Translation -->
+
+<!-- Main dashboard -->
+<script src="https://amrlab.net/js/default.js?v=9930"></script>
+
+    <script src="https://amrlab.net/js/referral/main.js?v=9977"></script>
+<!-- \Main dashboard -->
+
+<!-- Flash messages -->
+<script>
+  document.body.style.setProperty('--main-color',"#0069aa");
+
+    </script>
+<!-- \Flash messages -->
+
+  <script>
+    var can_print_medical_report=true  ;
+  </script>
+  <script src="https://amrlab.net/js/referral/invoices.js?v=9950"></script>
+
+<!-- Bulk actions -->
+  <script src="https://amrlab.net/js/referral/bulk_action.js?v=9952"></script>
+<!-- \Bulk actions -->
+
+
+
+</body></html>

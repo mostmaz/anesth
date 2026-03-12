@@ -34,8 +34,16 @@ export default function CreateNoteDialog({ patientId, onNoteCreated }: CreateNot
     const [content, setContent] = useState(TEMPLATES['PROGRESS']);
 
     useEffect(() => {
-        setContent(TEMPLATES[type] || "");
-    }, [type]);
+        if (open) {
+            setContent(TEMPLATES[type] || "");
+            setTitle("");
+        }
+    }, [open]);
+
+    const handleTypeChange = (v: NoteType) => {
+        setType(v);
+        setContent(TEMPLATES[v] || "");
+    };
 
     const handleSubmit = async () => {
         if (!user) return;
@@ -78,7 +86,7 @@ export default function CreateNoteDialog({ patientId, onNoteCreated }: CreateNot
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Type</Label>
-                            <Select value={type} onValueChange={(v) => setType(v as NoteType)}>
+                            <Select value={type} onValueChange={handleTypeChange}>
                                 <SelectTrigger>
                                     <SelectValue />
                                 </SelectTrigger>

@@ -1,0 +1,80 @@
+Sync: No reports found in default list for علي عبدالله. Retrying with explicit portal search (by Name)...
+Starting Lab Import Service (Fetching List, Search="علي عبدالله")...
+Searching for "علي عبدالله" on portal...
+Scraping patient list...
+[REQ] 2026-03-12T10:38:56.259Z - GET /api/orders/c545e12f-9e2d-485c-90f4-43a2b7203391
+Wait for dataTable timeout
+Found 0 patient records (tests).
+Sync: Found 0 reports on portal for علي عبدالله
+[REQ] 2026-03-12T10:39:56.269Z - GET /api/orders/c545e12f-9e2d-485c-90f4-43a2b7203391
+[REQ] 2026-03-12T10:40:56.266Z - GET /api/orders/c545e12f-9e2d-485c-90f4-43a2b7203391
+[REQ] 2026-03-12T10:41:56.263Z - GET /api/orders/c545e12f-9e2d-485c-90f4-43a2b7203391
+[REQ] 2026-03-12T10:42:56.265Z - GET /api/orders/c545e12f-9e2d-485c-90f4-43a2b7203391
+[REQ] 2026-03-12T10:43:57.228Z - GET /api/orders/c545e12f-9e2d-485c-90f4-43a2b7203391
+[REQ] 2026-03-12T10:44:59.269Z - GET /api/orders/c545e12f-9e2d-485c-90f4-43a2b7203391
+[REQ] 2026-03-12T10:45:59.354Z - GET /api/orders/c545e12f-9e2d-485c-90f4-43a2b7203391
+[REQ] 2026-03-12T10:46:59.321Z - GET /api/orders/c545e12f-9e2d-485c-90f4-43a2b7203391
+[REQ] 2026-03-12T10:47:32.393Z - POST /api/lab/sync
+Puppeteer: Launching browser...
+Puppeteer default executable path: /usr/bin/chromium
+Puppeteer: Using executablePath: /usr/bin/chromium
+Puppeteer: Browser launched successfully.
+Starting Lab Import Service (Fetching List, Search="")...
+Scraping patient list...
+[REQ] 2026-03-12T10:47:52.547Z - GET /api/shifts/active/mock-senior-id
+[REQ] 2026-03-12T10:47:53.038Z - GET /api/notifications/stream
+[REQ] 2026-03-12T10:47:53.040Z - GET /api/orders/active
+[REQ] 2026-03-12T10:47:53.042Z - GET /api/patients
+[REQ] 2026-03-12T10:47:53.043Z - GET /api/orders/recent
+[REQ] 2026-03-12T10:47:53.050Z - GET /api/assignments/active
+[REQ] 2026-03-12T10:47:53.792Z - GET /api/shifts/staff-on-duty
+[REQ] 2026-03-12T10:47:53.823Z - GET /api/assignments/pending
+[REQ] 2026-03-12T10:47:53.912Z - GET /api/investigations
+[REQ] 2026-03-12T10:47:53.915Z - GET /api/users/mock-senior-id/preferences
+[REQ] 2026-03-12T10:47:54.413Z - GET /api/lab/last-sync
+[REQ] 2026-03-12T10:47:54.474Z - GET /api/orders/due-reminders
+[REQ] 2026-03-12T10:47:54.641Z - GET /api/notifications/stream
+[REQ] 2026-03-12T10:47:54.658Z - GET /api/shifts/active/mock-senior-id
+[REQ] 2026-03-12T10:47:55.018Z - GET /api/orders/active
+[REQ] 2026-03-12T10:47:57.071Z - GET /api/orders/c545e12f-9e2d-485c-90f4-43a2b7203391
+Wait for dataTable timeout
+Found 0 patient records (tests).
+Sync Matching: TargetName="علي عبدالله" (MRN matching disabled)
+Sync: No reports found in default list for علي عبدالله. Retrying with explicit portal search (by Name)...
+Starting Lab Import Service (Fetching List, Search="علي عبدالله")...
+Searching for "علي عبدالله" on portal...
+Scraping patient list...
+Wait for dataTable timeout
+Found 0 patient records (tests).
+Sync: Found 0 reports on portal for علي عبدالله
+[REQ] 2026-03-12T10:48:57.101Z - GET /api/orders/c545e12f-9e2d-485c-90f4-43a2b7203391
+[REQ] 2026-03-12T10:49:56.908Z - GET /api/orders/c545e12f-9e2d-485c-90f4-43a2b7203391
+[REQ] 2026-03-12T10:50:59.298Z - GET /api/orders/c545e12f-9e2d-485c-90f4-43a2b7203391
+[REQ] 2026-03-12T10:51:35.637Z - GET /api/lab/patients
+Returning cached patient list.
+[REQ] 2026-03-12T10:51:59.380Z - GET /api/orders/c545e12f-9e2d-485c-90f4-43a2b7203391
+[REQ] 2026-03-12T10:52:11.013Z - POST /api/lab/sync
+Puppeteer: Launching browser...
+Puppeteer default executable path: /usr/bin/chromium
+Puppeteer: Using executablePath: /usr/bin/chromium
+Puppeteer: Browser launched successfully.
+Starting Lab Import Service (Fetching List, Search="")...
+Scraping patient list...
+Wait for dataTable timeout
+Found 0 patient records (tests).
+Sync Matching: TargetName="يثرب سعد حمودي" (MRN matching disabled)
+Sync: No reports found in default list for يثرب سعد حمودي. Retrying with explicit portal search (by Name)...
+Starting Lab Import Service (Fetching List, Search="يثرب سعد حمودي")...
+Searching for "يثرب سعد حمودي" on portal...
+[REQ] 2026-03-12T10:52:59.115Z - GET /api/orders/c545e12f-9e2d-485c-90f4-43a2b7203391
+Scraping patient list...
+Wait for dataTable timeout
+Found 0 patient records (tests).
+Sync: Still no reports. Trying broader search for "يثرب سعد"...
+Starting Lab Import Service (Fetching List, Search="يثرب سعد")...
+Searching for "يثرب سعد" on portal...
+Scraping patient list...
+[REQ] 2026-03-12T10:53:57.444Z - GET /api/orders/c545e12f-9e2d-485c-90f4-43a2b7203391
+Wait for dataTable timeout
+Found 0 patient records (tests).
+Sync: Found 0 reports on portal for يثرب سعد حمودي

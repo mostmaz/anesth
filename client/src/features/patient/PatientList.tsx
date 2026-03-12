@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { type Patient } from '../../types';
 import { calculateAge } from '../../lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Archive, Users } from 'lucide-react';
 
 export default function PatientList() {
     const navigate = useNavigate();
-    const [patients, setPatients] = useState<Patient[]>([]);
+    const [allPatients, setAllPatients] = useState<Patient[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -14,13 +16,7 @@ export default function PatientList() {
         const fetchPatients = async () => {
             try {
                 const data = await apiClient.get<any[]>('/patients'); // Cast to any to access admissions
-                // Filter out fully discharged patients
-                const active = data.filter((p: any) => {
-                    const hasAdmissions = p.admissions && p.admissions.length > 0;
-                    if (!hasAdmissions) return true; // Keep new patients
-                    return p.admissions.some((a: any) => !a.dischargedAt);
-                });
-                setPatients(active);
+                setAllPatients(data);
             } catch (err: any) {
                 setError(err.message);
             } finally {
@@ -34,7 +30,20 @@ export default function PatientList() {
     if (loading) return <div className="p-4">Loading patients...</div>;
     if (error) return <div className="p-4 text-red-500">Error: {error}</div>;
 
-    return (
+    const activePatients = allPatients.filter((p: any) => {
+        const hasAdmissions = p.admissions && p.admissions.length > 0;
+        if (!hasAdmissions) return true; // Keep new patients
+        return p.admissions.some((a: any) => !a.dischargedAt);
+    });
+
+    const archivedPatients = allPatients.filter((p: any) => {
+        const hasAdmissions = p.admissions && p.admissions.length > 0;
+        if (!hasAdmissions) return false; // New patients are not archived
+        // They are archived only if ALL admissions have dischargedAt
+        return p.admissions.every((a: any) => a.dischargedAt !== null && a.dischargedAt !== undefined);
+    });
+
+    const renderTable = (patients: Patient[]) => (
         <div className="bg-white rounded-lg shadow overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -60,8 +69,34 @@ export default function PatientList() {
                             </td>
                         </tr>
                     ))}
+                    {patients.length === 0 && (
+                        <tr>
+                            <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500 italic">No patients found.</td>
+                        </tr>
+                    )}
                 </tbody>
             </table>
+        </div>
+    );
+
+    return (
+        <div className="space-y-4">
+            <Tabs defaultValue="active" className="w-full">
+                <TabsList className="grid w-full max-w-[400px] grid-cols-2">
+                    <TabsTrigger value="active" className="flex items-center gap-2">
+                        <Users className="w-4 h-4" /> Active Patients
+                    </TabsTrigger>
+                    <TabsTrigger value="archived" className="flex items-center gap-2">
+                        <Archive className="w-4 h-4" /> Archived
+                    </TabsTrigger>
+                </TabsList>
+                <TabsContent value="active" className="mt-4">
+                    {renderTable(activePatients)}
+                </TabsContent>
+                <TabsContent value="archived" className="mt-4 opacity-75">
+                    {renderTable(archivedPatients)}
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

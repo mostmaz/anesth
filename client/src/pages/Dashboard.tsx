@@ -55,7 +55,8 @@ export default function Dashboard() {
     const navigate = useNavigate();
     const { user, logout } = useAuthStore();
     const { activeShift, loadingShift, startShift, endShift, checkActiveShift } = useShiftStore();
-    const [patients, setPatients] = useState<Patient[]>([]);
+    const [allPatients, setAllPatients] = useState<Patient[]>([]);
+    const [patientTab, setPatientTab] = useState<'active' | 'archived'>('active');
     const [isAddPatientOpen, setIsAddPatientOpen] = useState(false);
     const [assignments, setAssignments] = useState<any[]>([]);
     const [pendingAssignments, setPendingAssignments] = useState<Assignment[]>([]);
@@ -159,13 +160,7 @@ export default function Dashboard() {
                 });
             }
 
-            setPatients(pts.filter((p: any) => {
-                const hasAdmissions = p.admissions && p.admissions.length > 0;
-                if (!hasAdmissions) return true; // Show if no admission records to be safe
-                // Only hide if ALL admissions have dischargedAt set
-                const allDischarged = p.admissions.every((a: any) => a.dischargedAt !== null && a.dischargedAt !== undefined);
-                return !allDischarged;
-            }));
+            setAllPatients(pts);
 
             setAssignments(activeAssignments);
 
@@ -227,6 +222,21 @@ export default function Dashboard() {
             if (reminderPollRef.current) clearInterval(reminderPollRef.current);
         };
     }, []);
+
+    const activePatients = allPatients.filter((p: any) => {
+        const hasAdmissions = p.admissions && p.admissions.length > 0;
+        if (!hasAdmissions) return true;
+        return !p.admissions.every((a: any) => a.dischargedAt !== null && a.dischargedAt !== undefined);
+    });
+
+    const archivedPatients = allPatients.filter((p: any) => {
+        const hasAdmissions = p.admissions && p.admissions.length > 0;
+        if (!hasAdmissions) return false;
+        return p.admissions.every((a: any) => a.dischargedAt !== null && a.dischargedAt !== undefined);
+    });
+
+    const displayedPatients = patientTab === 'active' ? activePatients : archivedPatients;
+    const patients = activePatients; // For mandatory dialog and other counts
 
     // ── Mandatory Nurse Workflow Management ──
     useEffect(() => {
@@ -874,20 +884,27 @@ export default function Dashboard() {
 
                     {/* Patient List */}
                     <Card>
-                        <CardHeader>
-                            <div className="flex justify-between items-center">
-                                <CardTitle>Active Patients</CardTitle>
-                                <Button size="sm" onClick={() => setIsAddPatientOpen(true)}>
-                                    + Admit Patient
-                                </Button>
-                            </div>
+                        <CardHeader className="pb-3 border-b border-slate-100 flex-row items-center justify-between">
+                            <Tabs value={patientTab} onValueChange={(v: any) => setPatientTab(v)} className="w-[300px]">
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="active" className="flex items-center justify-center gap-2">
+                                        <Users className="w-4 h-4" /> Active
+                                    </TabsTrigger>
+                                    <TabsTrigger value="archived" className="flex items-center justify-center gap-2">
+                                        <ArchiveX className="w-4 h-4" /> Archived
+                                    </TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                            <Button size="sm" onClick={() => setIsAddPatientOpen(true)}>
+                                + Admit Patient
+                            </Button>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="pt-6">
                             <div className="space-y-4">
-                                {patients.length === 0 ? (
-                                    <div className="text-center p-8 text-muted-foreground">No patients currently admitted.</div>
+                                {displayedPatients.length === 0 ? (
+                                    <div className="text-center p-8 text-muted-foreground border-2 border-dashed rounded-lg bg-slate-50">No {patientTab} patients.</div>
                                 ) : (
-                                    patients.map(patient => (
+                                    displayedPatients.map(patient => (
                                         <div
                                             key={patient.id}
                                             onClick={() => handlePatientClick(patient.id)}

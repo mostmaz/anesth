@@ -1,4 +1,3 @@
-
 const { NodeSSH } = require('node-ssh');
 
 (async () => {
@@ -11,9 +10,12 @@ const { NodeSSH } = require('node-ssh');
             readyTimeout: 30000
         });
 
-        console.log('\n--- Fetching production logs (icu_server_prod) ---');
-        const r = await ssh.execCommand('docker logs icu_server_prod --tail 100');
-        console.log(r.stdout || r.stderr);
+        console.log(`Grepping docker logs for Sync...`);
+
+        // Get logs matching Sync
+        const r = await ssh.execCommand('docker logs icu_server_prod 2>&1 | grep -E "Sync|Fetching List|Searching for" | tail -n 50');
+        console.log('========== STDOUT ==========');
+        console.log(r.stdout);
 
         ssh.dispose();
     } catch (e) {

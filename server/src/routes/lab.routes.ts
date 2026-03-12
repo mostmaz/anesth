@@ -47,13 +47,13 @@ router.post('/import', async (req, res) => {
         const username = 'icu@amrlab.net';
         const password = process.env.LAB_PASSWORD || '1989';
 
-        // 1. Get Screenshot
-        const { screenshotPath } = await labService.importReport(username, password, patient);
+        // 1. Get Screenshot/File
+        const { absolutePath, imageUrl } = await labService.importReport(username, password, patient);
 
         // 2. Analyze with AI
-        const analysisResults = await ocrService.analyzeImage(screenshotPath);
+        const analysisResults = await ocrService.analyzeImage(absolutePath);
 
-        res.json({ success: true, data: analysisResults, screenshotPath });
+        res.json({ success: true, data: analysisResults, imageUrl });
 
     } catch (error) {
         console.error("Import Error:", error);
@@ -78,7 +78,7 @@ router.post('/sync', async (req, res) => {
 
 router.get('/last-sync', async (req, res) => {
     try {
-        const lastSync = await prisma.syncLog.findFirst({
+        const lastSync = await (prisma as any).syncLog.findFirst({
             where: { type: 'LAB_SYNC' },
             orderBy: { startedAt: 'desc' }
         });

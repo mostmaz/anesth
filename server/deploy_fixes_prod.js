@@ -32,8 +32,15 @@ const path = require('path');
         const filesToPush = [
             { local: 'c:/Users/Administrator/Documents/d/ICU-Manager/server/src/routes/lab.routes.ts', remote: '/app/src/routes/lab.routes.ts' },
             { local: 'c:/Users/Administrator/Documents/d/ICU-Manager/server/src/services/labImportService.ts', remote: '/app/src/services/labImportService.ts' },
+            { local: 'c:/Users/Administrator/Documents/d/ICU-Manager/server/src/services/ocrService.ts', remote: '/app/src/services/ocrService.ts' },
             { local: 'c:/Users/Administrator/Documents/d/ICU-Manager/server/src/routes/skin.routes.ts', remote: '/app/src/routes/skin.routes.ts' },
-            { local: 'c:/Users/Administrator/Documents/d/ICU-Manager/server/src/routes/index.ts', remote: '/app/src/routes/index.ts' }
+            { local: 'c:/Users/Administrator/Documents/d/ICU-Manager/server/src/routes/index.ts', remote: '/app/src/routes/index.ts' },
+            // Compiled JS files
+            { local: 'c:/Users/Administrator/Documents/d/ICU-Manager/server/dist/routes/lab.routes.js', remote: '/app/dist/routes/lab.routes.js' },
+            { local: 'c:/Users/Administrator/Documents/d/ICU-Manager/server/dist/services/labImportService.js', remote: '/app/dist/services/labImportService.js' },
+            { local: 'c:/Users/Administrator/Documents/d/ICU-Manager/server/dist/services/ocrService.js', remote: '/app/dist/services/ocrService.js' },
+            { local: 'c:/Users/Administrator/Documents/d/ICU-Manager/server/dist/routes/skin.routes.js', remote: '/app/dist/routes/skin.routes.js' },
+            { local: 'c:/Users/Administrator/Documents/d/ICU-Manager/server/dist/routes/index.js', remote: '/app/dist/routes/index.js' }
         ];
 
         for (const file of filesToPush) {

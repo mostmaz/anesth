@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { Patient } from '../../types';
 import { Button } from '../../components/ui/button';
@@ -9,12 +9,13 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 
 import { toast } from 'sonner';
-import { Printer, Save } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { notesApi } from '../../api/notesApi';
 import { useAuthStore } from '../../stores/authStore';
 
 export default function DischargeSummary() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const { user } = useAuthStore();
     const [patient, setPatient] = useState<Patient | null>(null);
     const [loading, setLoading] = useState(true);
@@ -67,9 +68,6 @@ export default function DischargeSummary() {
             <div className="flex justify-between items-center mb-8 print:hidden">
                 <h1 className="text-2xl font-bold">Prepare Discharge Summary</h1>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleSave}>
-                        <Save className="w-4 h-4 mr-2" /> Save to Notes
-                    </Button>
                     <Button onClick={() => window.print()}>
                         <Printer className="w-4 h-4 mr-2" /> Print / PDF
                     </Button>
@@ -142,25 +140,19 @@ export default function DischargeSummary() {
                     onClick={async () => {
                         console.log("Initiating discharge for patient ID:", id);
                         try {
+                            // 1. Auto-save the discharge note first
+                            await handleSave();
+
+                            // 2. Complete the discharge process
                             await apiClient.patch(`/patients/${id}/discharge`, {
                                 dischargedAt: new Date().toISOString()
                             });
                             toast.success("Patient discharged successfully");
 
+                            // 3. Navigate straight back to the dashboard seamlessly
                             setTimeout(() => {
-                                // Attempt window close (may be blocked by browser)
-                                try {
-                                    if (window.opener) {
-                                        window.opener.location.reload();
-                                    }
-                                    window.close();
-                                } catch (e) {
-                                    console.error("Window close blocked", e);
-                                }
-
-                                // Fallback redirect if window is still open
-                                window.location.hash = '#/dashboard';
-                            }, 1500);
+                                navigate('/');
+                            }, 500);
 
                         } catch (error) {
                             console.error("Discharge failed:", error);

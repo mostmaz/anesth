@@ -1,0 +1,173 @@
+<!DOCTYPE html><html lang="en"><head>
+	<title>AmrLab |     Referral
+ |     Login
+</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="https://amrlab.net/assets/vendor/bootstrap/css/bootstrap.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" href="https://amrlab.net/plugins/fontawesome-free/css/all.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="https://amrlab.net/assets/vendor/animate/animate.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="https://amrlab.net/assets/vendor/select2/select2.min.css">
+<!--===============================================================================================-->	
+	<link rel="stylesheet" type="text/css" href="https://amrlab.net/assets/vendor/daterangepicker/daterangepicker.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" type="text/css" href="https://amrlab.net/assets/css/util.css">
+	<link rel="stylesheet" type="text/css" href="https://amrlab.net/assets/css/main.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" href="https://amrlab.net/css/toastr.min.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" href="https://amrlab.net/css/preloader.css">
+<!--===============================================================================================-->
+	<link rel="stylesheet" href="https://amrlab.net/plugins/animate/animate.min.css">
+<!--===============================================================================================-->
+	<!--===============================================================================================-->
+	<link rel="stylesheet" href="https://amrlab.net/plugins/jquery-ui/jquery-ui.min.css">
+<!-- Favicon -->
+	<link rel="icon" type="image/x-icon" href="https://amrlab.net/img/logo.png?v=54">
+<!-- \Favicon -->
+</head>
+<body style="--main-color: #0069aa; --input-background-color: rgba(0,105,170,0.08);">
+
+	<div class="preloader" style="display: none;">
+	</div>
+	<img src="https://amrlab.net/img/preloader.jpg?v=54" class="loader animate__animated animate__pulse animate__fast animate__infinite infinite" alt="" style="display: none;">
+
+	<div class="limiter">
+		<div class="container-login100">
+			<div class="wrap-login100">
+				<div class="login100-more" style="background-image: url('https://amrlab.net/assets/images/banner.jpg?v=54');">
+				</div>
+
+				<div class="login100-form p-1 pt-30 mt-3">
+					<div class="container-login100-form-btn mb-4">
+													<span class="login100-form-title p-b-10">
+								<h6 class="m-0 arabic">
+									تغيير اللغه				
+								</h6>
+								<a href="https://amrlab.net/change_locale/ar" class="pt-3">
+								    <h3 class="text-dark mb-0 mt-3">
+    									العربية
+									</h3>
+								</a>
+							</span>
+											</div>
+
+					<span class="login100-form-title p-b-30">
+						<img src="https://amrlab.net/img/logo.png?v=54" height="100">
+					</span>
+
+					<div class="callout callout-danger d-none" id="error_messages">
+    <h5 class="text-danger">
+        <i class="fa fa-times"></i> Failed
+    </h5>
+    <ul id="errors_list">
+
+    </ul>
+</div>
+
+	
+					<div class="card">
+						<div class="card-header">
+							<h4 class="text-center">
+								    Referral
+							</h4>
+						</div>
+						<div class="card-body">
+							    <form action="https://amrlab.net/referral/auth/login" method="post" class="validate-form">
+
+        <span class="login100-form-title p-b-43 p-t-20">
+            Login
+        </span>
+        
+        <div class="wrap-input100 validate-input ">
+            <input class="input100" type="email" name="email" id="email" value="" required="">
+            <span class="focus-input100"></span>
+            <span class="label-input100">Email</span>
+        </div>
+        
+        
+        <div class="wrap-input100 validate-input ">
+            <input class="input100" type="password" name="password" id="password" required="">
+            <span class="focus-input100"></span>
+            <span class="label-input100">Password</span>
+        </div>
+
+        <div class="flex-sb-m w-full p-t-3 p-b-32">
+            <div>
+                <input class="d-inline" id="remember" type="checkbox" name="remember">
+                <label class="d-inline" for="remember">
+                    Remember Me
+                </label>
+            </div>
+        </div>
+
+        <div class="container-login100-form-btn">
+            <button class="login100-form-btn" type="submit">
+                Login
+            </button>
+        </div>
+    </form>
+
+    <span class="login100-form-title mt-5 mb-3">
+        <a href="https://amrlab.net/referral/reset/mail"> 
+            <h5 class="h5 d-inline text-danger">
+                Did you forget password ?
+            </h5>
+        </a>
+    </span>
+						</div>
+					</div>
+
+					<div class="container-login100-form-btn mb-3">
+						<div class="row mt-5">
+      <div class="col-lg-12">
+          <h6 class="text-center mb-3">- Follow Us -</h6>
+      </div>
+    <div class="col-lg-12">
+      <ul class="social text-center">
+                                    <li class="d-inline">
+                <a href="https://www.facebook.com/AmrLab.Duhok">
+                  <img src="https://amrlab.net/img/facebook.png" width="40px">
+                </a>
+              </li>
+                                                                                            <li class="d-inline">
+                <a href="https://www.instagram.com/amrlab_duhok">
+                  <img src="https://amrlab.net/img/instagram.png" width="40px">
+                </a>
+              </li>
+                                                                      <li class="d-inline">
+                <a href="https://wa.me/+9647503713637">
+                  <img src="https://amrlab.net/img/whatsapp.png" width="40px">
+                </a>
+              </li>
+                            </ul>
+    </div>
+  </div>
+					</div>
+
+				</div>
+
+			</div>
+		</div>
+	</div>
+	
+	<!-- jQuery -->
+    <script src="https://amrlab.net/plugins/jquery/jquery.min.js?v=9950"></script>
+    <!-- jQuery UI 1.11.4 -->
+	<script src="https://amrlab.net/plugins/jquery-ui/jquery-ui.min.js?v=9950"></script>
+	<script src="https://amrlab.net/assets/vendor/bootstrap/js/popper.min.js?v=9950"></script>
+	<script src="https://amrlab.net/assets/vendor/bootstrap/js/bootstrap.min.js?v=9950"></script>
+	<script src="https://amrlab.net/plugins/moment/moment.min.js?v=9950"></script>
+	<script src="https://amrlab.net/js/main.js?v=9950"></script>
+	<script>
+		document.body.style.setProperty('--main-color',"#0069aa");
+		document.body.style.setProperty('--input-background-color',convertHexToRGBA("#0069aa",.08));
+	</script>
+
+		
+
+</body></html>
