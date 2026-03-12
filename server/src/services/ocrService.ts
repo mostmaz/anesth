@@ -80,7 +80,7 @@ export const ocrService = {
             const mimeType = extension === 'pdf' ? 'application/pdf' : (extension === 'png' ? 'image/png' : 'image/jpeg');
 
             // Model fallback chain for handling free tier quota limits
-            const modelNames = ['gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-2.0-flash'];
+            const modelNames = ['gemini-2.0-flash', 'gemini-flash-latest'];
             let lastError: any = null;
 
             for (const modelName of modelNames) {
@@ -119,13 +119,14 @@ export const ocrService = {
                         }
                         // Programmatic merge for CBC and Differential, just in case AI fails to follow instructions
                         if (Array.isArray(parsed)) {
-                            let cbcIndex = parsed.findIndex(p => p.title && (p.title.toUpperCase().includes('CBC') || p.title.toUpperCase().includes('COMPLETE BLOOD')));
-                            let diffIndex = parsed.findIndex(p => p.title && p.title.toUpperCase().includes('DIFFERENTIAL'));
+                            let cbcIndex = parsed.findIndex(p => p && p.title && (p.title.toUpperCase().includes('CBC') || p.title.toUpperCase().includes('COMPLETE BLOOD')));
+                            let diffIndex = parsed.findIndex(p => p && p.title && p.title.toUpperCase().includes('DIFFERENTIAL'));
 
                             if (cbcIndex !== -1 && diffIndex !== -1 && cbcIndex !== diffIndex) {
                                 console.log("ocrService: Programmatically merging Differential into CBC");
                                 parsed[cbcIndex].results = { ...parsed[cbcIndex].results, ...parsed[diffIndex].results };
                                 parsed[cbcIndex].title = "CBC";
+                                // Remove carefully
                                 parsed.splice(diffIndex, 1);
                             } else if (cbcIndex !== -1) {
                                 parsed[cbcIndex].title = "CBC"; // Normalize title
@@ -133,16 +134,19 @@ export const ocrService = {
 
                             // Programmatic merge for Coagulation parameters (PT, PTT, INR)
                             const coagTitles = ["COAGULATION", "PROTHROMBIN TIME", "PARTIAL THROMBOPLASTIN TIME", "IN VITRO B", "PT", "PTT", "INR"];
-                            let coagGroups = parsed.filter(p => p.title && coagTitles.some(t => p.title.toUpperCase().includes(t)));
+                            let coagGroups = parsed.filter(p => p && p.title && coagTitles.some(t => p.title.toUpperCase().includes(t)));
                             if (coagGroups.length > 1) {
                                 console.log("ocrService: Programmatically merging scattered Coagulation tests");
                                 let primary = coagGroups[0];
                                 for (let i = 1; i < coagGroups.length; i++) {
                                     primary.results = { ...primary.results, ...coagGroups[i].results };
-                                    // Remove the merged piece from original array
-                                    parsed.splice(parsed.indexOf(coagGroups[i]), 1);
+                                    // Remove correctly
+                                    const indexToRemove = parsed.indexOf(coagGroups[i]);
+                                    if (indexToRemove !== -1) {
+                                        parsed.splice(indexToRemove, 1);
+                                    }
                                 }
-                                primary.title = "Coagulation";
+                                if (primary) primary.title = "Coagulation";
                             } else if (coagGroups.length === 1) {
                                 coagGroups[0].title = "Coagulation"; // Normalize title
                             }

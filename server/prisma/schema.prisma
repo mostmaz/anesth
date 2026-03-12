@@ -338,6 +338,7 @@ model ClinicalOrder {
 
 enum InvestigationStatus {
   PRELIMINARY
+  PROCESSING
   FINAL
   AMENDED
 }
@@ -449,6 +450,7 @@ model Investigation {
   createdAt   DateTime @default(now()) // When it was entered in system
   
   externalId  String?   // Lab Accession Number (Not unique, can have multiple reports per AccNo)
+  pdfFilename String?   // Unique identifier from portal PDF filename
 
   patient   Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
   order     ClinicalOrder? @relation(fields: [orderId], references: [id])

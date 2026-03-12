@@ -58,6 +58,8 @@ public class DashboardActivity extends AppCompatActivity {
     private Button btnShiftHistory;
     private Button btnAdmin;
 
+    private androidx.appcompat.app.ActionBarDrawerToggle toggle;
+
     // Tab buttons
     private Button btnTabActive;
     private Button btnTabRecent;
@@ -83,7 +85,7 @@ public class DashboardActivity extends AppCompatActivity {
         androidx.drawerlayout.widget.DrawerLayout drawerLayout = findViewById(R.id.drawerLayout);
         androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        androidx.appcompat.app.ActionBarDrawerToggle toggle = new androidx.appcompat.app.ActionBarDrawerToggle(
+        toggle = new androidx.appcompat.app.ActionBarDrawerToggle(
                 this, drawerLayout, toolbar, 0, 0);
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
@@ -586,5 +588,23 @@ public class DashboardActivity extends AppCompatActivity {
         textError.setText(message);
         textError.setVisibility(View.VISIBLE);
         recyclerViewPatients.setVisibility(View.GONE);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(android.view.Menu menu) {
+        getMenuInflater().inflate(R.menu.dashboard_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(android.view.MenuItem item) {
+        if (toggle.onOptionsItemSelected(item)) {
+            return true;
+        }
+        if (item.getItemId() == R.id.action_notifications) {
+            startActivity(new Intent(this, com.icumanager.app.ui.main.NotificationsActivity.class));
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }

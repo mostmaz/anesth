@@ -128,6 +128,13 @@ router.patch('/:id/end', async (req, res) => {
                 isActive: false
             }
         });
+
+        // Auto-unassign patient when shift ends
+        await prisma.patientAssignment.updateMany({
+            where: { userId: shift.userId, isActive: true },
+            data: { isActive: false }
+        });
+
         res.json(shift);
     } catch (error) {
         res.status(500).json({ error: 'Failed to end shift' });
