@@ -215,7 +215,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                         </Label>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    {!isFluid && (
                         <div className="space-y-2">
                             <Label htmlFor="freq">Frequency (Times per day)</Label>
                             <Select value={frequency} onValueChange={setFrequency}>
@@ -233,10 +233,11 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="rate">Infusion Rate (Optional)</Label>
-                            <Input id="rate" value={infusionRate} onChange={e => setInfusionRate(e.target.value)} placeholder="e.g. 5ml/hr" />
-                        </div>
+                    )}
+
+                    <div className="space-y-2">
+                        <Label htmlFor="rate">Infusion Rate (Optional)</Label>
+                        <Input id="rate" value={infusionRate} onChange={e => setInfusionRate(e.target.value)} placeholder="e.g. 5ml/hr" />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
