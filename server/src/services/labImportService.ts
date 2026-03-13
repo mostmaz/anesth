@@ -2,6 +2,7 @@ import puppeteer, { Page } from 'puppeteer';
 import { PrismaClient, InvestigationStatus } from '@prisma/client';
 import path from 'path';
 import fs from 'fs';
+import { broadcastNotification } from '../routes/notifications.routes';
 
 export class LabImportService {
     private static BASE_URL = 'https://amrlab.net/referral/auth/login';
@@ -228,6 +229,7 @@ export class LabImportService {
                     const safePath = path.join(uploadDir, customName);
                     fs.writeFileSync(safePath, screenshotBuffer);
 
+                    const isNew = !existing;
                     const inv = await this.prisma.investigation.upsert({
                         where: { id: existing?.id || 'new' },
                         create: {
@@ -244,6 +246,18 @@ export class LabImportService {
                             impression: null
                         } as any
                     });
+
+                    // Broadcast SSE notification for new or newly finalized investigations
+                    if (isNew || (existing && (existing.status as any) === 'PROCESSING')) {
+                        broadcastNotification('new_investigation', {
+                            type: 'new_investigation',
+                            patientName,
+                            patientId,
+                            title: report.title,
+                            investigationId: inv.id
+                        });
+                    }
+
                     results.push(inv);
 
                     if (!browserInstance) await browser.close();
@@ -326,6 +340,37 @@ export class LabImportService {
     }
 
     private parseDate(s: string): Date {
+        if (!s) return new Date();
+        // Handle DD/MM/YYYY format (Arabic portal format)
+        if (s.includes('/')) {
+            const parts = s.trim().split('/');
+            if (parts.length === 3) {
+                const [a, b, c] = parts;
+                // If first part > 12, it must be a day (DD/MM/YYYY)
+                if (parseInt(a, 10) > 12) {
+                    const iso = `${c}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
+                    const d = new Date(iso);
+                    if (!isNaN(d.getTime())) return d;
+                }
+                // Try MM/DD/YYYY
+                const d = new Date(s);
+                if (!isNaN(d.getTime())) return d;
+                // Fallback: assume DD/MM/YYYY
+                const iso = `${c}-${b.padStart(2,'0')}-${a.padStart(2,'0')}`;
+                const d2 = new Date(iso);
+                if (!isNaN(d2.getTime())) return d2;
+            }
+        }
+        // Handle DD-MM-YYYY
+        if (s.includes('-')) {
+            const parts = s.trim().split('-');
+            if (parts.length === 3 && parts[0].length <= 2) {
+                const [d, m, y] = parts;
+                const iso = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+                const date = new Date(iso);
+                if (!isNaN(date.getTime())) return date;
+            }
+        }
         const d = new Date(s);
         return isNaN(d.getTime()) ? new Date() : d;
     }

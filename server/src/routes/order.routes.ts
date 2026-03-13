@@ -1,6 +1,7 @@
 
 import { Router } from 'express';
 import prisma from '../prisma';
+import { broadcastNotification } from './notifications.routes';
 
 const router = Router();
 
@@ -161,6 +162,15 @@ router.post('/', async (req, res) => {
                 approver: { select: { name: true } }
             }
         });
+        broadcastNotification('new_order', {
+            orderId: order.id,
+            patientId: order.patientId,
+            type: order.type,
+            title: order.title,
+            priority: order.priority,
+            message: `New ${order.type} order: ${order.title}`
+        });
+
         res.status(201).json(order);
     } catch (error) {
         console.error('Error creating order:', error);
