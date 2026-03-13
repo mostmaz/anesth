@@ -224,7 +224,7 @@ export default function PatientDetails() {
                             </TabsList>
 
                             <TabsContent value="overview" className="space-y-6">
-                                <OverviewTab patientId={patient.id} />
+                                <OverviewTab patientId={patient.id} patient={patient} />
                             </TabsContent>
 
                             <TabsContent value="vitals">

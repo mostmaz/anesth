@@ -10,6 +10,7 @@ import {
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Checkbox } from '../../components/ui/checkbox';
 import { marApi } from '../../api/marApi';
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
@@ -46,6 +47,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
     const [name, setName] = useState('');
     const [dose, setDose] = useState('');
     const [route, setRoute] = useState('IV');
+    const [isFluid, setIsFluid] = useState(false);
     const [frequency, setFrequency] = useState('1'); // Default to 1 (OD)
     const [infusionRate, setInfusionRate] = useState('');
     const [dilution, setDilution] = useState('');
@@ -119,6 +121,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
             // Reset
             setName('');
             setDose('');
+            setIsFluid(false);
             setInfusionRate('');
             setDilution('');
             setDurationReminder('');
@@ -175,11 +178,13 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="dose">Dose</Label>
-                            <Input id="dose" required value={dose} onChange={e => setDose(e.target.value)} placeholder="e.g. 1g, 500mg" />
-                        </div>
-                        <div className="space-y-2">
+                        {!isFluid && (
+                            <div className="space-y-2">
+                                <Label htmlFor="dose">Dose</Label>
+                                <Input id="dose" required={!isFluid} value={dose} onChange={e => setDose(e.target.value)} placeholder="e.g. 1g, 500mg" />
+                            </div>
+                        )}
+                        <div className={isFluid ? "col-span-2 space-y-2" : "space-y-2"}>
                             <Label htmlFor="route">Route</Label>
                             <Select value={route} onValueChange={setRoute}>
                                 <SelectTrigger>
@@ -187,6 +192,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="IV">IV (Intravenous)</SelectItem>
+                                    <SelectItem value="Infusion">Infusion</SelectItem>
                                     <SelectItem value="PO">PO (Oral)</SelectItem>
                                     <SelectItem value="IM">IM (Intramuscular)</SelectItem>
                                     <SelectItem value="SC">SC (Subcutaneous)</SelectItem>
@@ -196,6 +202,17 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                                 </SelectContent>
                             </Select>
                         </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <Checkbox
+                            id="isFluid"
+                            checked={isFluid}
+                            onCheckedChange={(checked) => setIsFluid(!!checked)}
+                        />
+                        <Label htmlFor="isFluid" className="cursor-pointer text-sm font-medium">
+                            This is a fluid (no dose required)
+                        </Label>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
