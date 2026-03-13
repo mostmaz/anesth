@@ -15,7 +15,8 @@ import {
     Zap,
     Microscope,
     CheckCircle2,
-    AlertTriangle
+    AlertTriangle,
+    Stethoscope
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '../../components/ui/button';
@@ -24,12 +25,14 @@ import { marApi, type Medication } from '../../api/marApi';
 import { patientApi, type TimelineEvent } from '../../api/patientApi';
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import type { Patient } from '../../types';
 
 interface OverviewTabProps {
     patientId: string;
+    patient?: Patient;
 }
 
-export default function OverviewTab({ patientId }: OverviewTabProps) {
+export default function OverviewTab({ patientId, patient }: OverviewTabProps) {
     const [lastVitals, setLastVitals] = useState<VitalSign | null>(null);
     const [ioHistory, setIoHistory] = useState<IOEntry[]>([]);
     const [latestOrders, setLatestOrders] = useState<ClinicalOrder[]>([]);
@@ -152,6 +155,19 @@ export default function OverviewTab({ patientId }: OverviewTabProps) {
                         </AlertDescription>
                     </div>
                 </Alert>
+            )}
+
+            {/* Comorbidities */}
+            {patient?.comorbidities && patient.comorbidities.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5">
+                    <Stethoscope className="w-4 h-4 text-slate-500 shrink-0" />
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide shrink-0">PMH:</span>
+                    {patient.comorbidities.map((c, i) => (
+                        <Badge key={i} variant="secondary" className="text-xs bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-100">
+                            {c}
+                        </Badge>
+                    ))}
+                </div>
             )}
 
             {/* --- TOP ROW: VITALS & BALANCE --- */}
