@@ -123,7 +123,6 @@ export function UploadVitalsDialog({ onVitalsExtracted }: UploadVitalsDialogProp
                                 id="vitals-file"
                                 type="file"
                                 accept="image/*"
-                                required
                                 onChange={(e) => {
                                     if (e.target.files && e.target.files.length > 0) {
                                         setSelectedFile(e.target.files[0]);
