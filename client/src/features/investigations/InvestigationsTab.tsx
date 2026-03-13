@@ -7,27 +7,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Input } from '../../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { investigationsApi, Investigation } from '../../api/investigationsApi';
-import { FileText, Microscope, Search, Filter, Trash2, RefreshCw } from 'lucide-react';
+import { FileText, Microscope, Search, Filter, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { UploadExternalResultDialog } from './components/UploadExternalResultDialog';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Eye } from 'lucide-react';
 import { InvestigationDetailDialog } from './components/InvestigationDetailDialog';
-import { LabImportDialog } from './components/LabImportDialog';
 
-import { useAuthStore } from '../../stores/authStore';
-import { toast } from 'sonner';
 
 interface InvestigationsTabProps {
     patientId: string;
-    patientMrn?: string;
-    patientName?: string;
     defaultTab?: 'labs' | 'imaging' | 'cardiology';
 }
 
-export default function InvestigationsTab({ patientId, patientMrn, patientName, defaultTab }: InvestigationsTabProps) {
-    const user = useAuthStore(state => state.user);
+export default function InvestigationsTab({ patientId, defaultTab }: InvestigationsTabProps) {
     const [investigations, setInvestigations] = useState<Investigation[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -35,8 +29,6 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [selectedInvestigation, setSelectedInvestigation] = useState<Investigation | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
-    const [isLabImportOpen, setIsLabImportOpen] = useState(false);
-    const [isSyncing, setIsSyncing] = useState(false);
     const [isDeletingAll, setIsDeletingAll] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<string>(defaultTab || 'labs');
@@ -50,38 +42,6 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
             console.error("Failed to load investigations", error);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const syncLabs = async () => {
-        if (!patientMrn || !patientName || isSyncing) return;
-
-        setIsSyncing(true);
-        try {
-            toast.info("Syncing reports from lab portal...");
-            const { syncPatientLabs } = await import('@/api/labApi');
-            const result = await syncPatientLabs({
-                patientId,
-                mrn: patientMrn,
-                name: patientName,
-                authorId: user?.id || 'manual-sync'
-            });
-
-            if (result.success) {
-                if (result.count > 0) {
-                    toast.success(`Successfully synced ${result.count} new reports`);
-                    fetchInvestigations();
-                } else {
-                    toast.info("No new reports found to sync");
-                }
-            } else {
-                toast.error(result.message || "Sync failed");
-            }
-        } catch (error: any) {
-            console.error("Manual sync failed", error);
-            toast.error(error.message || "Sync failed");
-        } finally {
-            setIsSyncing(false);
         }
     };
 
@@ -120,7 +80,7 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
 
     useEffect(() => {
         fetchInvestigations();
-    }, [patientId, patientMrn]);
+    }, [patientId]);
 
     // Helper to normalize test names
     const normalizeTestName = (name: string) => {
@@ -172,24 +132,6 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                         defaultTab === 'cardiology' ? 'Cardiology' : 'Radiology'}
                 </h3>
                 <div className="flex gap-2">
-                    {defaultTab === 'labs' && (
-                        <>
-                            <Button
-                                variant="default" // Primary action
-                                size="sm"
-                                onClick={syncLabs}
-                                disabled={isSyncing || isDeletingAll}
-                                className="bg-blue-600 hover:bg-blue-700"
-                            >
-                                <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-                                {isSyncing ? 'Syncing...' : 'Sync Reports'}
-                            </Button>
-                            <Button variant="outline" onClick={() => setIsLabImportOpen(true)} disabled={isDeletingAll}>
-                                <Microscope className="w-4 h-4 mr-2" />
-                                Import Lab
-                            </Button>
-                        </>
-                    )}
                     <UploadExternalResultDialog patientId={patientId} onSuccess={fetchInvestigations} activeTab={activeTab} />
                     {investigations.length > 0 && (
                         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -544,118 +486,6 @@ export default function InvestigationsTab({ patientId, patientMrn, patientName, 
                 patientId={patientId}
             />
 
-            <LabImportDialog
-                open={isLabImportOpen}
-                onOpenChange={setIsLabImportOpen}
-                onImport={async (patient: any) => {
-                    console.log('Selected patient for import:', patient);
-                    try {
-                        const { importLabReport } = await import('../../api/labApi');
-                        const result = await importLabReport(patient);
-
-                        if (result.success && result.data) {
-                            let newItems = 0;
-                            const analysisResults = Array.isArray(result.data) ? result.data : [result.data];
-
-                            for (const item of analysisResults) {
-                                // Deduplication Check: Same Title + Same Date
-                                const isDuplicate = investigations.some(exist =>
-                                    normalizeTestName(exist.title) === normalizeTestName(item.title || '') &&
-                                    (exist.conductedAt.startsWith(item.date || ''))
-                                );
-
-                                if (isDuplicate) {
-                                    console.log(`Skipping duplicate: ${item.title} on ${item.date}`);
-                                    continue;
-                                }
-
-                                // Create Investigation
-                                const resultData = {
-                                    ...item.results,
-                                    imageUrl: result.screenshotPath ? result.screenshotPath.replace(/\\/g, '/').split('server')[1] || result.screenshotPath : '',
-                                    // Fix path to be relative to server root if needed. 
-                                    // Actually screenshot returned is absolute. We need to make it relative for serving.
-                                    // But for now let's assume valid URL or fix in backend.
-                                    // Actually backend returns 'screenshotPath'. server serves 'uploads'.
-                                    // If absolute path C:\...\uploads\file.png -> /uploads/file.png
-                                };
-
-                                // Normalized Path Fix
-                                // If path contains 'uploads', start from there
-                                let relativePath = item.imageUrl || ''; // If AI returned an image URL use it? No, AI returns data.
-                                // We use the screenshot path from the import result
-                                if (result.screenshotPath) {
-                                    const parts = result.screenshotPath.split('uploads');
-                                    if (parts.length > 1) {
-                                        relativePath = '/uploads' + parts[1].replace(/\\/g, '/');
-                                    }
-                                }
-
-                                let parsedDate = new Date();
-                                if (item.date) {
-                                    if (item.date.includes('/')) {
-                                        const [d, m, y] = item.date.split('/');
-                                        parsedDate = new Date(`${y}-${m}-${d}`);
-                                    } else if (item.date.includes('-')) {
-                                        const parts = item.date.split('-');
-                                        if (parts[0].length === 4) {
-                                            parsedDate = new Date(item.date);
-                                        } else {
-                                            parsedDate = new Date(parts.reverse().join('-'));
-                                        }
-                                    } else {
-                                        parsedDate = new Date(item.date);
-                                    }
-                                }
-                                if (isNaN(parsedDate.getTime())) parsedDate = new Date();
-
-                                if (item.time) {
-                                    const timeStr = item.time.toString().trim();
-                                    const timeMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM|a\.m\.|p\.m\.|a|p)?/i);
-                                    if (timeMatch) {
-                                        let hours = parseInt(timeMatch[1], 10);
-                                        const mins = parseInt(timeMatch[2], 10);
-                                        const amorpm = timeMatch[3];
-                                        if (amorpm) {
-                                            if (amorpm.toUpperCase().startsWith('P') && hours < 12) hours += 12;
-                                            if (amorpm.toUpperCase().startsWith('A') && hours === 12) hours = 0;
-                                        }
-                                        parsedDate.setHours(hours, mins, 0, 0);
-                                    }
-                                }
-
-                                const investigationData = {
-                                    patientId,
-                                    authorId: user?.id || 'mock-nurse-id',
-                                    type: (item.type || 'LAB') as 'LAB' | 'IMAGING',
-                                    category: item.category || 'External',
-                                    title: item.title || patient.name + ' Report',
-                                    status: 'FINAL' as const,
-                                    result: { ...resultData, imageUrl: relativePath },
-                                    impression: 'Imported from Lab Results',
-                                    conductedAt: parsedDate.toISOString(),
-                                };
-
-                                console.log("Creating new synced investigation:", investigationData);
-
-                                await investigationsApi.create(investigationData);
-                                newItems++;
-                            }
-
-                            if (newItems > 0) {
-                                alert(`Successfully imported ${newItems} new report(s).`);
-                                fetchInvestigations();
-                            } else {
-                                alert("No new reports imported (duplicates skipped).");
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Import process failed', error);
-                        alert('Failed to import lab report');
-                    }
-                    setIsLabImportOpen(false);
-                }}
-            />
         </div>
     );
 }
