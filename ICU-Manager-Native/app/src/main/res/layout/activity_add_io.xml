@@ -32,6 +32,7 @@
             android:orientation="vertical"
             android:padding="24dp">
 
+            <!-- Type -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -64,9 +65,49 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Output"
-                    android:buttonTint="#3B82F6"
+                    android:buttonTint="#F59E0B"
                     android:textColor="#0F172A" />
             </RadioGroup>
+
+            <!-- Category -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="Category"
+                android:textColor="#334155"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <Spinner
+                android:id="@+id/spinnerCategory"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/edit_text_bg"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp" />
+
+            <!-- Fluid / Source -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="Fluid / Source"
+                android:textColor="#334155"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/editFluidType"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/edit_text_bg"
+                android:hint="e.g. Normal Saline, Urine, Blood"
+                android:inputType="text"
+                android:paddingHorizontal="16dp"
+                android:textColor="#0F172A" />
 
             <!-- Amount -->
             <TextView
@@ -89,31 +130,49 @@
                 android:paddingHorizontal="16dp"
                 android:textColor="#0F172A" />
 
-            <!-- Fluid Type -->
+            <!-- Rate (optional, for continuous infusions) -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
-                android:text="Fluid / Source"
+                android:text="Rate (mL/hr) — optional"
                 android:textColor="#334155"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
             <EditText
-                android:id="@+id/editFluidType"
+                android:id="@+id/editRate"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:layout_marginBottom="24dp"
+                android:layout_marginBottom="16dp"
                 android:background="@drawable/edit_text_bg"
-                android:hint="e.g. Normal Saline, Urine"
-                android:inputType="text"
+                android:hint="e.g. 50"
+                android:inputType="numberDecimal"
                 android:paddingHorizontal="16dp"
                 android:textColor="#0F172A" />
 
-            <View
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
+            <!-- Notes -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="Notes — optional"
+                android:textColor="#334155"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/editIoNotes"
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                android:layout_marginBottom="24dp"
+                android:background="@drawable/edit_text_bg"
+                android:gravity="top|start"
+                android:hint="Additional notes..."
+                android:inputType="textMultiLine"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="12dp"
+                android:textColor="#0F172A" />
 
             <ProgressBar
                 android:id="@+id/progressSubmitIo"
@@ -126,7 +185,7 @@
                 android:id="@+id/btnSubmitIo"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="8dp"
                 android:backgroundTint="#3B82F6"
                 android:text="Save Record"
                 android:textColor="#FFFFFF"

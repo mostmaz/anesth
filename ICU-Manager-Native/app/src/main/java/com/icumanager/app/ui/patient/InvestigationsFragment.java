@@ -101,34 +101,47 @@ public class InvestigationsFragment extends Fragment {
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         try {
-                            JSONArray investigations = new JSONArray(responseStr);
-                            JSONArray filtered = new JSONArray();
+                            // Server may return a plain array OR wrap it in {"data": [...]}
+                            JSONArray investigations;
+                            try {
+                                investigations = new JSONArray(responseStr);
+                            } catch (Exception e) {
+                                JSONObject wrapper = new JSONObject(responseStr);
+                                if (wrapper.has("data")) {
+                                    investigations = wrapper.getJSONArray("data");
+                                } else {
+                                    // Try first array-valued key
+                                    String firstKey = wrapper.keys().next();
+                                    investigations = wrapper.getJSONArray(firstKey);
+                                }
+                            }
 
+                            JSONArray filtered = new JSONArray();
                             for (int i = 0; i < investigations.length(); i++) {
                                 JSONObject inv = investigations.optJSONObject(i);
                                 if (inv != null) {
-                                    String type = inv.optString("type", "");
+                                    // Case-insensitive comparisons so "lab" == "LAB" etc.
+                                    String type     = inv.optString("type", "").toUpperCase();
                                     String category = inv.optString("category", "").toLowerCase();
-                                    String title = inv.optString("title", "").toLowerCase();
+                                    String title    = inv.optString("title", "").toLowerCase();
 
-                                    boolean isCardio = title.contains("ecg") || title.contains("echo")
-                                            || category.equals("cardiology");
+                                    boolean isCardio = title.contains("ecg")
+                                            || title.contains("echo")
+                                            || category.contains("cardio");
 
                                     if ("CARDIOLOGY".equals(filterType)) {
-                                        if (isCardio)
-                                            filtered.put(inv);
+                                        if (isCardio) filtered.put(inv);
                                     } else if ("IMAGING".equals(filterType)) {
-                                        if ("IMAGING".equals(type) && !isCardio)
-                                            filtered.put(inv);
+                                        if ("IMAGING".equals(type) && !isCardio) filtered.put(inv);
                                     } else { // LAB
-                                        if ("LAB".equals(type) && !isCardio)
-                                            filtered.put(inv);
+                                        if ("LAB".equals(type) && !isCardio) filtered.put(inv);
                                     }
                                 }
                             }
                             adapter.setInvestigations(filtered);
                         } catch (Exception e) {
-                            Toast.makeText(getContext(), "Failed to parse Investigations", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getContext(), "Failed to parse Investigations: " + e.getMessage(),
+                                    Toast.LENGTH_SHORT).show();
                         }
                     });
                 }

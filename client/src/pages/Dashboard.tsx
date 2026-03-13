@@ -821,13 +821,13 @@ export default function Dashboard() {
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <p className={cn(
+                                                        <div className={cn(
                                                             "text-sm font-medium",
                                                             lab.isAbnormal ? "text-rose-900" : "text-slate-900"
                                                         )}>
                                                             <span className="font-bold">{lab.patientName}</span> — {lab.title}
                                                             {lab.isAbnormal && <Badge variant="destructive" className="ml-2 text-[8px] h-3 px-1 uppercase tracking-tighter">Abnormal</Badge>}
-                                                        </p>
+                                                        </div>
                                                         {lab.type === 'intervention_reminder' && (
                                                             <p className="text-xs text-amber-700 font-medium mt-0.5">⏰ Intervention Reminder</p>
                                                         )}
