@@ -246,8 +246,6 @@ export default function PatientDetails() {
                             <TabsContent value="investigations">
                                 <InvestigationsTab
                                     patientId={patient.id}
-                                    patientMrn={patient.mrn}
-                                    patientName={patient.name}
                                     defaultTab="labs"
                                 />
                             </TabsContent>
@@ -255,8 +253,6 @@ export default function PatientDetails() {
                             <TabsContent value="radiology">
                                 <InvestigationsTab
                                     patientId={patient.id}
-                                    patientMrn={patient.mrn}
-                                    patientName={patient.name}
                                     defaultTab="imaging"
                                 />
                             </TabsContent>
@@ -264,8 +260,6 @@ export default function PatientDetails() {
                             <TabsContent value="cardiology">
                                 <InvestigationsTab
                                     patientId={patient.id}
-                                    patientMrn={patient.mrn}
-                                    patientName={patient.name}
                                     defaultTab="cardiology"
                                 />
                             </TabsContent>
