@@ -4,12 +4,13 @@ plugins {
 
 android {
     namespace = "com.icumanager.app"
-    compileSdk = 34
+    compileSdk = 23
+    buildToolsVersion = "29.0.3"
 
     defaultConfig {
         applicationId = "com.icumanager.app"
-        minSdk = 24
-        targetSdk = 34
+        minSdk = 21
+        targetSdk = 23
         versionCode = 1
         versionName = "1.0"
     }
