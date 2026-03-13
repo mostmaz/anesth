@@ -18,11 +18,13 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.icumanager.app.R;
 import com.icumanager.app.network.ApiClient;
+import com.icumanager.app.service.NotificationService;
 import com.icumanager.app.ui.auth.LoginActivity;
 import com.icumanager.app.ui.main.DashboardOrderAdapter;
 import com.icumanager.app.ui.main.NotificationReminderAdapter;
 
 import android.app.AlertDialog;
+import android.os.Build;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -35,6 +37,7 @@ import java.util.Locale;
 public class DashboardActivity extends AppCompatActivity {
 
     // ── Views ──────────────────────────────────────────────────────────────
+    private boolean notificationsExpanded = true;
     private RecyclerView recyclerViewPatients;
     private RecyclerView recyclerViewOrders;
     private RecyclerView recyclerViewReminders;
@@ -111,15 +114,22 @@ public class DashboardActivity extends AppCompatActivity {
         reminderAdapter.setOnMarkDoneListener((orderId, position) -> markOrderDone(orderId, position));
         recyclerViewReminders.setAdapter(reminderAdapter);
 
-        // System Notifications
+        // System Notifications (collapsible)
         recyclerViewNotifications = findViewById(R.id.recyclerViewNotifications);
         layoutNotifications = findViewById(R.id.layoutNotifications);
+        LinearLayout layoutNotificationsHeader = findViewById(R.id.layoutNotificationsHeader);
+        TextView textNotificationsToggle = findViewById(R.id.textNotificationsToggle);
+        layoutNotificationsHeader.setOnClickListener(v -> {
+            notificationsExpanded = !notificationsExpanded;
+            recyclerViewNotifications.setVisibility(notificationsExpanded ? View.VISIBLE : View.GONE);
+            textNotificationsToggle.setText(notificationsExpanded ? "▼" : "▶");
+        });
         recyclerViewNotifications.setLayoutManager(new LinearLayoutManager(this));
         notificationAdapter = new com.icumanager.app.ui.main.SystemNotificationAdapter();
         notificationAdapter.setOnNotificationClickListener(patientId -> {
             Intent intent = new Intent(DashboardActivity.this,
                     com.icumanager.app.ui.patient.PatientDetailsActivity.class);
-            intent.putExtra("patient_id", patientId);
+            intent.putExtra("PATIENT_ID", patientId); // must match PatientDetailsActivity key
             startActivity(intent);
         });
         recyclerViewNotifications.setAdapter(notificationAdapter);
@@ -168,6 +178,26 @@ public class DashboardActivity extends AppCompatActivity {
 
         fetchDashboardData();
         pollHandler.post(backgroundPoller);
+
+        // Start foreground notification service (SSE-based push notifications)
+        startNotificationService();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Refresh data every time the user returns to the dashboard
+        // (e.g. after adding a patient, creating an order, or returning from patient details)
+        fetchDashboardData();
+    }
+
+    private void startNotificationService() {
+        Intent serviceIntent = new Intent(this, NotificationService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent);
+        } else {
+            startService(serviceIntent);
+        }
     }
 
     private void fetchSystemNotifications(String token) {
@@ -200,6 +230,7 @@ public class DashboardActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         pollHandler.removeCallbacks(backgroundPoller);
+        stopService(new Intent(this, NotificationService.class));
     }
 
     // ── Token ──────────────────────────────────────────────────────────────
@@ -270,8 +301,18 @@ public class DashboardActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     setLoading(false);
                     try {
-                        JSONArray patients = new JSONArray(responseStr);
-                        patientAdapter.setPatients(patients);
+                        JSONArray allPatients = new JSONArray(responseStr);
+                        JSONArray admittedPatients = new JSONArray();
+                        for (int i = 0; i < allPatients.length(); i++) {
+                            JSONObject p = allPatients.optJSONObject(i);
+                            if (p != null) {
+                                String status = p.optString("status", "ADMITTED");
+                                if (!"DISCHARGED".equalsIgnoreCase(status)) {
+                                    admittedPatients.put(p);
+                                }
+                            }
+                        }
+                        patientAdapter.setPatients(admittedPatients);
                         checkActiveShift(token);
                         fetchActiveOrders(token);
                         fetchRecentOrders(token);

@@ -10,6 +10,7 @@ import com.icumanager.app.R;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import android.widget.Button;
+import android.util.Log;
 
 public class MedicationsAdapter extends RecyclerView.Adapter<MedicationsAdapter.ViewHolder> {
     private JSONArray medications = new JSONArray();
@@ -105,6 +106,40 @@ public class MedicationsAdapter extends RecyclerView.Adapter<MedicationsAdapter.
                 holder.textMeta.setVisibility(View.GONE);
             }
 
+            // Last administration info
+            JSONArray administrations = med.optJSONArray("Administrations");
+            if (administrations != null && administrations.length() > 0) {
+                JSONObject lastAdm = null;
+                String lastTime = "";
+                for (int i = 0; i < administrations.length(); i++) {
+                    JSONObject adm = administrations.optJSONObject(i);
+                    if (adm != null) {
+                        String t = adm.optString("administeredAt", "");
+                        if (t.compareTo(lastTime) > 0) {
+                            lastTime = t;
+                            lastAdm = adm;
+                        }
+                    }
+                }
+                if (lastAdm != null) {
+                    String timeStr = lastTime.length() >= 16
+                            ? lastTime.substring(0, 16).replace("T", " ")
+                            : lastTime;
+                    String dose = lastAdm.optString("dose", "");
+                    JSONObject user = lastAdm.optJSONObject("User");
+                    String nurse = (user != null) ? user.optString("name", "") : "";
+                    StringBuilder sb = new StringBuilder("Last given: ").append(timeStr);
+                    if (!dose.isEmpty()) sb.append(" · ").append(dose);
+                    if (!nurse.isEmpty()) sb.append(" (").append(nurse).append(")");
+                    holder.textLastAdmin.setText(sb.toString());
+                    holder.textLastAdmin.setVisibility(View.VISIBLE);
+                } else {
+                    holder.textLastAdmin.setVisibility(View.GONE);
+                }
+            } else {
+                holder.textLastAdmin.setVisibility(View.GONE);
+            }
+
             boolean isActive = med.optBoolean("isActive", true);
             holder.btnRecordDose.setEnabled(isActive);
             holder.btnRecordDose.setAlpha(isActive ? 1.0f : 0.5f);
@@ -137,7 +172,7 @@ public class MedicationsAdapter extends RecyclerView.Adapter<MedicationsAdapter.
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView textName, textDetails, textInstructions, textMeta;
+        TextView textName, textDetails, textInstructions, textMeta, textLastAdmin;
         Button btnRecordDose, btnStopMed;
 
         ViewHolder(View itemView) {
@@ -146,6 +181,7 @@ public class MedicationsAdapter extends RecyclerView.Adapter<MedicationsAdapter.
             textDetails = itemView.findViewById(R.id.textMedDetails);
             textInstructions = itemView.findViewById(R.id.textMedInstructions);
             textMeta = itemView.findViewById(R.id.textMedMeta);
+            textLastAdmin = itemView.findViewById(R.id.textLastAdmin);
             btnRecordDose = itemView.findViewById(R.id.btnRecordDose);
             btnStopMed = itemView.findViewById(R.id.btnStopMed);
         }

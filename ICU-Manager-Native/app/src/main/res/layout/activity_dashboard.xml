@@ -151,11 +151,14 @@
                 android:padding="4dp">
 
                 <LinearLayout
+                    android:id="@+id/layoutNotificationsHeader"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:padding="8dp">
+                    android:padding="8dp"
+                    android:clickable="true"
+                    android:focusable="true">
 
                     <ImageView
                         android:layout_width="18dp"
@@ -166,12 +169,22 @@
                         android:layout_marginEnd="8dp" />
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="System Notifications &amp; Updates"
                         android:textColor="#F1F5F9"
                         android:textStyle="bold"
                         android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/textNotificationsToggle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="▼"
+                        android:textColor="#94A3B8"
+                        android:textSize="12sp"
+                        android:paddingStart="8dp" />
                 </LinearLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
