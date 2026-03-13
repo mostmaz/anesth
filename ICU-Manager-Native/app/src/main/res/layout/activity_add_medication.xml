@@ -30,127 +30,203 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="16dp">
 
-            <com.google.android.material.textfield.TextInputLayout
+            <!-- Medication Name with autocomplete -->
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="Medication Name *">
-                <AutoCompleteTextView
-                    android:id="@+id/editMedName"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/edit_text_bg"
-                    android:textColor="#0F172A"
-                    android:padding="16dp"
-                    android:completionThreshold="1"/>
-            </com.google.android.material.textfield.TextInputLayout>
+                android:text="Medication Name *"
+                android:textColor="#475569"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp"/>
 
-            <com.google.android.material.textfield.TextInputLayout
+            <AutoCompleteTextView
+                android:id="@+id/editMedName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="Dose (e.g., 500mg) *">
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editMedDose"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/edit_text_bg"
-                    android:textColor="#0F172A"
-                    android:padding="16dp"/>
-            </com.google.android.material.textfield.TextInputLayout>
+                android:background="@drawable/edit_text_bg"
+                android:textColor="#0F172A"
+                android:textColorHint="#94A3B8"
+                android:hint="Type or select common drug..."
+                android:padding="14dp"
+                android:textSize="15sp"
+                android:completionThreshold="1"
+                android:layout_marginBottom="4dp"/>
 
-            <com.google.android.material.textfield.TextInputLayout
+            <!-- Drug suggestions list (shown programmatically) -->
+            <ListView
+                android:id="@+id/listDrugSuggestions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="Route (e.g., PO, IV) *">
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editMedRoute"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/edit_text_bg"
-                    android:textColor="#0F172A"
-                    android:padding="16dp"/>
-            </com.google.android.material.textfield.TextInputLayout>
+                android:background="#FFFFFF"
+                android:elevation="4dp"
+                android:visibility="gone"
+                android:layout_marginBottom="12dp"/>
 
-            <com.google.android.material.textfield.TextInputLayout
+            <!-- Dose -->
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="Frequency (e.g., BID, PRN)">
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editMedFrequency"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/edit_text_bg"
-                    android:textColor="#0F172A"
-                    android:padding="16dp"/>
-            </com.google.android.material.textfield.TextInputLayout>
+                android:text="Dose *"
+                android:textColor="#475569"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp"/>
 
-            <com.google.android.material.textfield.TextInputLayout
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editMedDose"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="Infusion Rate (Optional)">
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editMedInfusionRate"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/edit_text_bg"
-                    android:textColor="#0F172A"
-                    android:padding="16dp"/>
-            </com.google.android.material.textfield.TextInputLayout>
+                android:background="@drawable/edit_text_bg"
+                android:textColor="#0F172A"
+                android:textColorHint="#94A3B8"
+                android:hint="e.g. 1g, 500mg"
+                android:padding="14dp"
+                android:textSize="15sp"
+                android:layout_marginBottom="12dp"/>
 
-            <com.google.android.material.textfield.TextInputLayout
+            <!-- Route Spinner -->
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="Dilution (ml, Optional)">
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editMedDilution"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/edit_text_bg"
-                    android:textColor="#0F172A"
-                    android:padding="16dp"
-                    android:inputType="numberDecimal"/>
-            </com.google.android.material.textfield.TextInputLayout>
+                android:text="Route *"
+                android:textColor="#475569"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp"/>
 
-            <com.google.android.material.textfield.TextInputLayout
+            <Spinner
+                android:id="@+id/spinnerRoute"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:background="@drawable/edit_text_bg"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:layout_marginBottom="12dp"/>
+
+            <!-- Frequency Spinner -->
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="Duration Reminder (Days, Optional)">
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editMedReminder"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/edit_text_bg"
-                    android:textColor="#0F172A"
-                    android:padding="16dp"
-                    android:inputType="number"/>
-            </com.google.android.material.textfield.TextInputLayout>
+                android:text="Frequency *"
+                android:textColor="#475569"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp"/>
 
-            <com.google.android.material.textfield.TextInputLayout
+            <Spinner
+                android:id="@+id/spinnerFrequency"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:background="@drawable/edit_text_bg"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:layout_marginBottom="12dp"/>
+
+            <!-- Start Date -->
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:hint="Other Instructions (Optional)">
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/editMedInstructions"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/edit_text_bg"
-                    android:textColor="#0F172A"
-                    android:padding="16dp"/>
-            </com.google.android.material.textfield.TextInputLayout>
+                android:text="Start Date *"
+                android:textColor="#475569"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp"/>
 
-            <View
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
+            <Button
+                android:id="@+id/btnStartDate"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:backgroundTint="#F1F5F9"
+                android:textColor="#0F172A"
+                android:textSize="14sp"
+                android:gravity="start|center_vertical"
+                android:paddingStart="14dp"
+                android:layout_marginBottom="12dp"
+                android:text="Select date"/>
+
+            <!-- Infusion Rate -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Infusion Rate (Optional)"
+                android:textColor="#475569"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp"/>
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editMedInfusionRate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/edit_text_bg"
+                android:textColor="#0F172A"
+                android:textColorHint="#94A3B8"
+                android:hint="e.g. 5ml/hr"
+                android:padding="14dp"
+                android:textSize="15sp"
+                android:layout_marginBottom="12dp"/>
+
+            <!-- Dilution -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Dilution – Total Volume (mL, Optional)"
+                android:textColor="#475569"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp"/>
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editMedDilution"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/edit_text_bg"
+                android:textColor="#0F172A"
+                android:textColorHint="#94A3B8"
+                android:hint="e.g. 50 (for mg/50cc)"
+                android:padding="14dp"
+                android:textSize="15sp"
+                android:inputType="numberDecimal"
+                android:layout_marginBottom="12dp"/>
+
+            <!-- Duration Reminder -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Duration Reminder (Days, Optional)"
+                android:textColor="#475569"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp"/>
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editMedReminder"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/edit_text_bg"
+                android:textColor="#0F172A"
+                android:textColorHint="#94A3B8"
+                android:hint="e.g. 3"
+                android:padding="14dp"
+                android:textSize="15sp"
+                android:inputType="number"
+                android:layout_marginBottom="12dp"/>
+
+            <!-- Other Instructions -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Other Instructions (Optional)"
+                android:textColor="#475569"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp"/>
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/editMedInstructions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/edit_text_bg"
+                android:textColor="#0F172A"
+                android:textColorHint="#94A3B8"
+                android:hint="Optional details..."
+                android:padding="14dp"
+                android:textSize="15sp"
+                android:layout_marginBottom="16dp"/>
 
             <ProgressBar
                 android:id="@+id/progressSubmitMed"
@@ -163,12 +239,13 @@
                 android:id="@+id/btnSubmitMed"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="4dp"
                 android:backgroundTint="#3B82F6"
                 android:text="Prescribe"
                 android:textColor="#FFFFFF"
                 android:textSize="16sp"
                 android:textStyle="bold" />
+
         </LinearLayout>
     </ScrollView>
 </LinearLayout>
