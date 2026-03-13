@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import prisma from '../prisma';
+import { broadcastNotification } from './notifications.routes';
 
 const router = Router();
 
@@ -157,6 +158,14 @@ router.post('/', async (req, res) => {
                 }
             });
         }
+
+        broadcastNotification('new_admission', {
+            patientId: patient.id,
+            patientName: patient.name,
+            mrn: patient.mrn,
+            diagnosis: patient.diagnosis,
+            message: `New admission: ${patient.name} (MRN: ${patient.mrn})`
+        });
 
         res.status(201).json(patient);
     } catch (error) {
