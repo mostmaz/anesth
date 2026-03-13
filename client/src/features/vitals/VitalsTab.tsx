@@ -299,20 +299,21 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {vitals.map((entry) => (
-                                        <TableRow key={entry.id}>
+                                    {[...vitals].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((entry, index) => (
+                                        <TableRow key={entry.id} className={index === 0 ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''}>
                                             <TableCell>
                                                 <div className="flex flex-col">
-                                                    <span className="font-medium">{new Date(entry.timestamp).toLocaleDateString()}</span>
-                                                    <span className="text-xs text-slate-500">{new Date(entry.timestamp).toLocaleTimeString()}</span>
+                                                    <span className={`font-medium ${index === 0 ? 'text-blue-700' : ''}`}>{new Date(entry.timestamp).toLocaleDateString()}</span>
+                                                    <span className={`text-xs ${index === 0 ? 'text-blue-500 font-semibold' : 'text-slate-500'}`}>{new Date(entry.timestamp).toLocaleTimeString()}</span>
+                                                    {index === 0 && <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wide mt-0.5">Latest</span>}
                                                 </div>
                                             </TableCell>
-                                            <TableCell>{entry.heartRate}</TableCell>
-                                            <TableCell>{entry.bpSys}/{entry.bpDia}</TableCell>
-                                            <TableCell>{entry.spo2}%</TableCell>
-                                            <TableCell>{entry.temp}°C</TableCell>
-                                            <TableCell>{entry.rr}</TableCell>
-                                            <TableCell>{entry.rbs}</TableCell>
+                                            <TableCell className={index === 0 ? 'font-bold text-blue-800' : ''}>{entry.heartRate}</TableCell>
+                                            <TableCell className={index === 0 ? 'font-bold text-blue-800' : ''}>{entry.bpSys}/{entry.bpDia}</TableCell>
+                                            <TableCell className={index === 0 ? 'font-bold text-blue-800' : ''}>{entry.spo2}%</TableCell>
+                                            <TableCell className={index === 0 ? 'font-bold text-blue-800' : ''}>{entry.temp}°C</TableCell>
+                                            <TableCell className={index === 0 ? 'font-bold text-blue-800' : ''}>{entry.rr}</TableCell>
+                                            <TableCell className={index === 0 ? 'font-bold text-blue-800' : ''}>{entry.rbs}</TableCell>
                                             <TableCell>
                                                 {entry.imageUrl && (
                                                     <a href={entry.imageUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800" title="View attached image">
