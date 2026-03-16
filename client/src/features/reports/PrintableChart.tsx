@@ -53,6 +53,8 @@ export default function PrintableChart() {
                 console.error("Failed to load chart data", error);
             } finally {
                 setLoading(false);
+                // Auto-print after a short delay
+                setTimeout(() => window.print(), 1000);
             }
         };
 

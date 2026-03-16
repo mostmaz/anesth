@@ -417,6 +417,7 @@ export class LabImportService {
                                 for (const aiRes of aiResults) {
                                     const testTitle = aiRes.title;
                                     const extractedResult = aiRes.results;
+                                    const aiConductedAt = aiRes.registrationDate ? this.parseDate(aiRes.registrationDate) : this.parseDate(report.date);
 
                                     // Check if this specific test already exists for this invoice
                                     const existingTest = await this.prisma.investigation.findFirst({
@@ -432,7 +433,7 @@ export class LabImportService {
                                         pdfFilename: filename,
                                         result: extractedResult as any,
                                         impression: null,
-                                        conductedAt: this.parseDate(report.date)
+                                        conductedAt: aiConductedAt
                                     };
 
                                     let inv;

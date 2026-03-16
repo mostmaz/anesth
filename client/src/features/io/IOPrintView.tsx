@@ -45,6 +45,8 @@ export default function IOPrintView() {
                 console.error(err);
             } finally {
                 setLoading(false);
+                // Auto-print after a short delay
+                setTimeout(() => window.print(), 500);
             }
         };
         fetchData();
@@ -71,6 +73,14 @@ export default function IOPrintView() {
                     <p className="text-sm font-semibold text-slate-600">
                         Period: {startTime ? new Date(startTime).toLocaleString() : 'N/A'} - {endTime ? new Date(endTime).toLocaleString() : 'Now'}
                     </p>
+                </div>
+                <div className="text-right print:hidden">
+                    <button
+                        onClick={() => window.print()}
+                        className="mt-2 text-xs bg-slate-800 text-white px-3 py-1 rounded hover:bg-slate-700"
+                    >
+                        🖨️ Print Now
+                    </button>
                 </div>
                 <div className="text-right">
                     <div>
