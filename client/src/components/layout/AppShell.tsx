@@ -43,34 +43,77 @@ export default function AppShell() {
 
         const eventSource = new EventSource(`${API_URL}/notifications/stream`);
 
+        const triggerNotification = (title: string, options: { body: string; type: 'info' | 'warning' | 'success' | 'error'; action?: any }) => {
+            // 1. Show in-app Toast
+            if (options.type === 'warning') toast.warning(title, { description: options.body, duration: 10000, action: options.action });
+            else if (options.type === 'error') toast.error(title, { description: options.body, duration: 7000 });
+            else if (options.type === 'success') toast.success(title, { description: options.body, duration: 5000 });
+            else toast.info(title, { description: options.body, duration: 5000 });
+
+            // 2. Show Native Browser Notification
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, {
+                    body: options.body,
+                    icon: "/favicon.ico",
+                    tag: title // Prevent duplicates for same title
+                });
+            }
+        };
+
         eventSource.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
+                const { type, patientName, title, message, patientId } = data;
 
-                // If it's a new investigation event
-                if (data.type === 'new_investigation' || (!data.type && data.patientName && data.title)) {
-                    toast.info(`New Lab Result for ${data.patientName}`, {
-                        description: data.title,
-                        duration: 5000,
-                    });
-                } else if (data.type === 'intervention_reminder') {
-                    // Trigger in-app Toast
-                    toast.warning(`REMINDER: ${data.title}`, {
-                        description: `Patient: ${data.patientName}`,
-                        duration: 10000, // Show longer
-                        action: {
-                            label: 'View',
-                            onClick: () => navigate(`/patients/${data.patientId}`)
-                        }
-                    });
-
-                    // Trigger Native Browser Push Notification
-                    if ("Notification" in window && Notification.permission === "granted") {
-                        new Notification("ICU Intervention Reminder", {
-                            body: data.message,
-                            icon: "/favicon.ico" // Optional icon if present
+                switch (type) {
+                    case 'new_investigation':
+                        triggerNotification(`New Lab Result for ${patientName}`, {
+                            body: title,
+                            type: 'info'
                         });
-                    }
+                        break;
+
+                    case 'intervention_reminder':
+                        triggerNotification(`Intervention Reminder`, {
+                            body: `${patientName}: ${title}`,
+                            type: 'warning',
+                            action: {
+                                label: 'View',
+                                onClick: () => navigate(`/patients/${patientId}`)
+                            }
+                        });
+                        break;
+
+                    case 'new_order':
+                        triggerNotification(`New Clinical Order`, {
+                            body: `${patientName}: ${title}`,
+                            type: 'info'
+                        });
+                        break;
+
+                    case 'new_admission':
+                        triggerNotification(`New Patient Admission`, {
+                            body: `${patientName} has been admitted.`,
+                            type: 'success'
+                        });
+                        break;
+
+                    case 'system_update':
+                        triggerNotification(`System Update`, {
+                            body: message || "New updates are available.",
+                            type: 'info'
+                        });
+                        break;
+
+                    default:
+                        // Fallback for legacy or untyped messages
+                        if (patientName && title) {
+                            triggerNotification(`Notification: ${patientName}`, {
+                                body: title,
+                                type: 'info'
+                            });
+                        }
+                        break;
                 }
             } catch (err) {
                 console.error("Failed to parse SSE notification:", err);
