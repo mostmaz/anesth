@@ -65,28 +65,32 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Route (e.g., PO, IV) *">
-                <com.google.android.material.textfield.TextInputEditText
+                android:hint="Route (e.g., PO, IV) *"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+                <AutoCompleteTextView
                     android:id="@+id/editMedRoute"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/edit_text_bg"
+                    android:background="@null"
                     android:textColor="#0F172A"
-                    android:padding="16dp"/>
+                    android:padding="16dp"
+                    android:inputType="none"/>
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Frequency (e.g., BID, PRN)">
-                <com.google.android.material.textfield.TextInputEditText
+                android:hint="Frequency (e.g., BID, PRN)"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+                <AutoCompleteTextView
                     android:id="@+id/editMedFrequency"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/edit_text_bg"
+                    android:background="@null"
                     android:textColor="#0F172A"
-                    android:padding="16dp"/>
+                    android:padding="16dp"
+                    android:inputType="none"/>
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout

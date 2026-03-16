@@ -79,31 +79,33 @@ export default function PatientHeader({ patient, onUpdate }: PatientHeaderProps)
     };
 
     return (
-        <div className="bg-background border-b sticky top-0 z-30 shadow-sm">
-            <div className="max-w-7xl mx-auto px-4 py-3">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-background border-b sticky top-0 z-30 shadow-sm print:hidden">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
 
                     {/* Patient Identity */}
-                    <div className="flex items-center space-x-4">
-                        <Avatar className="h-12 w-12 border-2 border-muted">
-                            <AvatarFallback className="bg-blue-100 text-blue-700 font-bold">
+                    <div className="flex items-center space-x-3 sm:space-x-4">
+                        <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-muted shrink-0">
+                            <AvatarFallback className="bg-blue-100 text-blue-700 font-bold text-sm sm:text-base">
                                 {patient.name.substring(0, 2).toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
-                        <div>
-                            <div className="flex items-center space-x-2">
-                                <h1 className="text-xl font-bold text-foreground">
+                        <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                <h1 className="text-lg sm:text-xl font-bold text-foreground truncate max-w-[150px] sm:max-w-none">
                                     {patient.name}
                                 </h1>
-                                <Badge variant="outline" className="text-muted-foreground">
-                                    {calculateAge(patient.dob)} / {patient.gender.charAt(0)}
-                                </Badge>
-                                {onUpdate && <EditPatientDialog patient={patient} onUpdate={onUpdate} />}
-                                <Badge className="bg-red-100 text-red-800 hover:bg-red-200 border-red-200">
-                                    {clinicalData.codeStatus}
-                                </Badge>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                    <Badge variant="outline" className="text-muted-foreground text-[10px] sm:text-xs px-1.5 py-0">
+                                        {calculateAge(patient.dob)} / {patient.gender.charAt(0)}
+                                    </Badge>
+                                    {onUpdate && <EditPatientDialog patient={patient} onUpdate={onUpdate} />}
+                                    <Badge className="bg-red-100 text-red-800 hover:bg-red-200 border-red-200 text-[10px] sm:text-xs px-1.5 py-0">
+                                        {clinicalData.codeStatus}
+                                    </Badge>
+                                </div>
                             </div>
-                            <div className="text-sm text-muted-foreground flex items-center space-x-2 mt-1">
+                            <div className="text-[11px] sm:text-sm text-muted-foreground flex items-center space-x-2 mt-0.5">
                                 <span className="font-mono">MRN: {patient.mrn}</span>
                                 <Separator orientation="vertical" className="h-3" />
                                 <span className="flex items-center">
@@ -114,23 +116,24 @@ export default function PatientHeader({ patient, onUpdate }: PatientHeaderProps)
                     </div>
 
                     {/* Clinical Actions */}
-                    <div className="flex items-center gap-4">
-                        <Button variant="outline" className="gap-2" onClick={() => window.open(`/print-chart/${patient.id}`, '_blank')}>
-                            <Printer className="w-4 h-4" />
-                            Print Chart
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 lg:justify-end">
+                        <Button variant="outline" size="sm" className="gap-1.5 sm:gap-2 h-8 sm:h-9 text-[11px] sm:text-xs px-2 sm:px-3" onClick={() => window.open(`/print-chart/${patient.id}`, '_blank')}>
+                            <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            <span className="inline sm:hidden lg:inline">Print</span>
+                            <span className="hidden sm:inline lg:hidden">Print Chart</span>
                         </Button>
-                        <Button variant="outline" className="gap-2" onClick={() => window.open(`#/discharge/${patient.id}`, '_blank')}>
-                            <Activity className="w-4 h-4" />
+                        <Button variant="outline" size="sm" className="gap-1.5 sm:gap-2 h-8 sm:h-9 text-[11px] sm:text-xs px-2 sm:px-3" onClick={() => window.open(`#/discharge/${patient.id}`, '_blank')}>
+                            <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             Discharge
                         </Button>
                         <Dialog open={open} onOpenChange={setOpen}>
                             <DialogTrigger asChild>
-                                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
-                                    <Stethoscope className="w-4 h-4" />
-                                    Nurse Check-in
+                                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 sm:gap-2 h-8 sm:h-9 text-[11px] sm:text-xs px-2 sm:px-3">
+                                    <Stethoscope className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                    Check-in
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="sm:max-w-[425px]">
                                 <DialogHeader>
                                     <DialogTitle>Bedside Check-in</DialogTitle>
                                 </DialogHeader>
@@ -141,7 +144,7 @@ export default function PatientHeader({ patient, onUpdate }: PatientHeaderProps)
                                             checked={checks.airwaySafe}
                                             onCheckedChange={(c: boolean) => setChecks(prev => ({ ...prev, airwaySafe: c }))}
                                         />
-                                        <Label htmlFor="airway">Airway Safe / Paten</Label>
+                                        <Label htmlFor="airway" className="text-sm">Airway Safe / Patent</Label>
                                     </div>
                                     <div className="flex items-center space-x-2">
                                         <Checkbox
@@ -149,7 +152,7 @@ export default function PatientHeader({ patient, onUpdate }: PatientHeaderProps)
                                             checked={checks.breathingOk}
                                             onCheckedChange={(c: boolean) => setChecks(prev => ({ ...prev, breathingOk: c }))}
                                         />
-                                        <Label htmlFor="breathing">Breathing / Vent OK</Label>
+                                        <Label htmlFor="breathing" className="text-sm">Breathing / Vent OK</Label>
                                     </div>
                                     <div className="flex items-center space-x-2">
                                         <Checkbox
@@ -157,26 +160,28 @@ export default function PatientHeader({ patient, onUpdate }: PatientHeaderProps)
                                             checked={checks.circulationOk}
                                             onCheckedChange={(c: boolean) => setChecks(prev => ({ ...prev, circulationOk: c }))}
                                         />
-                                        <Label htmlFor="circulation">Circulation / Hemodynamics Stable</Label>
+                                        <Label htmlFor="circulation" className="text-sm">Circulation / Hemodynamics</Label>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Quick Note</Label>
+                                        <Label className="text-sm">Quick Note</Label>
                                         <Input
                                             value={notes}
                                             onChange={(e) => setNotes(e.target.value)}
                                             placeholder="Any concerns?"
+                                            className="h-9 text-sm"
                                         />
                                     </div>
                                 </div>
                                 <DialogFooter>
-                                    <Button onClick={handleCheckIn}>Confirm Check-in</Button>
+                                    <Button className="w-full sm:w-auto" onClick={handleCheckIn}>Confirm Check-in</Button>
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
                         {user?.role === 'NURSE' && (
-                            <Button variant="destructive" className="gap-2 ml-2" onClick={handleSignOut}>
-                                <LogOut className="w-4 h-4" />
-                                Leave Patient
+                            <Button variant="destructive" size="sm" className="gap-1.5 sm:gap-2 h-8 sm:h-9 text-[11px] sm:text-xs px-2 sm:px-3" onClick={handleSignOut}>
+                                <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                <span className="inline sm:hidden lg:inline">Leave</span>
+                                <span className="hidden sm:inline lg:hidden">Leave Patient</span>
                             </Button>
                         )}
                     </div>

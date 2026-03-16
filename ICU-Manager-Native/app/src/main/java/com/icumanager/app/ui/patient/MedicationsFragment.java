@@ -128,17 +128,18 @@ public class MedicationsFragment extends Fragment {
     }
 
     private void confirmAdministration(JSONObject med) {
-        if (getActivity() == null) return;
+        if (getActivity() == null)
+            return;
 
-        String medName   = med.optString("name", "Unknown Medication");
-        String defDose   = med.optString("defaultDose", "");
+        String medName = med.optString("name", "Unknown Medication");
+        String defDose = med.optString("defaultDose", "");
         String defDilution = med.optString("dilution", "");
-        String infRate   = med.optString("infusionRate", "");
+        String infRate = med.optString("infusionRate", "");
 
         // Build a small form layout: dose field + dilution field
         LinearLayout layout = new LinearLayout(getActivity());
         layout.setOrientation(LinearLayout.VERTICAL);
-        int pad = (int)(16 * getResources().getDisplayMetrics().density);
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
         layout.setPadding(pad, pad / 2, pad, 0);
 
         EditText editDose = new EditText(getActivity());
@@ -148,7 +149,8 @@ public class MedicationsFragment extends Fragment {
         layout.addView(editDose);
 
         EditText editDilution = new EditText(getActivity());
-        editDilution.setHint("Dilution volume mL" + (defDilution.isEmpty() ? "" : " (default: " + defDilution + " mL)"));
+        editDilution
+                .setHint("Dilution volume mL" + (defDilution.isEmpty() ? "" : " (default: " + defDilution + " mL)"));
         if (!defDilution.isEmpty() && !defDilution.equals("null")) {
             editDilution.setText(defDilution);
         }
@@ -158,12 +160,26 @@ public class MedicationsFragment extends Fragment {
 
         String rateInfo = infRate.isEmpty() ? "" : "\nRate: " + infRate;
 
+        String lastAdminText = "No previous administrations";
+        JSONArray history = med.optJSONArray("Administrations");
+        if (history != null && history.length() > 0) {
+            JSONObject last = history.optJSONObject(history.length() - 1);
+            if (last != null) {
+                String ts = last.optString("administeredAt", "");
+                if (ts.length() >= 16) {
+                    lastAdminText = "Last administered at: " + ts.substring(11, 16);
+                } else {
+                    lastAdminText = "Last administered at: " + ts;
+                }
+            }
+        }
+
         new AlertDialog.Builder(getActivity())
                 .setTitle("Record Dose — " + medName)
-                .setMessage("Confirm administration" + rateInfo)
+                .setMessage(lastAdminText + (rateInfo.isEmpty() ? "" : rateInfo))
                 .setView(layout)
                 .setPositiveButton("Administer", (dialog, which) -> {
-                    String dose     = editDose.getText().toString().trim();
+                    String dose = editDose.getText().toString().trim();
                     String dilution = editDilution.getText().toString().trim();
                     administerMedication(med, dose.isEmpty() ? defDose : dose, dilution);
                 })
@@ -172,11 +188,12 @@ public class MedicationsFragment extends Fragment {
     }
 
     private void administerMedication(JSONObject med, String dose, String dilution) {
-        if (getActivity() == null) return;
+        if (getActivity() == null)
+            return;
 
         SharedPreferences prefs = getActivity().getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
-        String token        = prefs.getString("auth_token", null);
-        String userId       = prefs.getString("user_id", "");
+        String token = prefs.getString("auth_token", null);
+        String userId = prefs.getString("user_id", "");
         String medicationId = med.optString("id", "");
 
         try {
@@ -217,6 +234,14 @@ public class MedicationsFragment extends Fragment {
     }
 
     private void confirmDiscontinuation(JSONObject med) {
+        SharedPreferences prefs = getActivity().getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
+        String role = prefs.getString("user_role", "");
+
+        if (!"SENIOR".equals(role)) {
+            Toast.makeText(getContext(), "Only seniors can stop medications", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         String medName = med.optString("name", "Unknown Medication");
         new AlertDialog.Builder(getActivity())
                 .setTitle("Stop Medication")
