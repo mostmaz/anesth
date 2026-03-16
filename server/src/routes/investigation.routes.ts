@@ -74,6 +74,34 @@ router.post('/', async (req, res) => {
     }
 });
 
+// Update Investigation
+router.patch('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, pdfFilename, result, impression, conductedAt, status } = req.body;
+
+        const investigation = await prisma.investigation.update({
+            where: { id },
+            data: {
+                title,
+                pdfFilename,
+                result: result !== undefined ? result : undefined,
+                impression,
+                conductedAt: conductedAt ? new Date(conductedAt) : undefined,
+                status
+            },
+            include: {
+                author: { select: { name: true, role: true } }
+            }
+        });
+
+        res.json(investigation);
+    } catch (error) {
+        console.error('Error updating investigation:', error);
+        res.status(500).json({ error: 'Failed to update investigation' });
+    }
+});
+
 // Delete All Investigations for a Patient
 router.delete('/patient/:patientId/all', async (req, res) => {
     try {

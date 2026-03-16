@@ -289,7 +289,8 @@ export class LabImportService {
                         } as any,
                         update: {
                             status: 'PROCESSING' as any,
-                            conductedAt: this.parseDate(report.date)
+                            conductedAt: this.parseDate(report.date),
+                            pdfFilename: `INVOICE_${report.invoiceId}`
                         } as any
                     });
                     results.push(inv);

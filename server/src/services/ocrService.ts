@@ -48,9 +48,17 @@ export const ocrService = {
                     Extract all technical data points from the attached document.
                     Return ONLY a JSON array of grouped objects.
                     Format: [{"title": "Section Title", "results": {"Key": {"value": "Result", "range": "Ref", "isAbnormal": boolean}}}]
-                    CRITICAL: The "title" MUST be the name of the medical test or panel (e.g., "Complete Blood Count", "Liver Function Test", "Electrolytes", "Coagulation Profile", "Biochemistry").
+                    
+                    CRITICAL Categorization Rules:
+                    - "CBC" (Complete Blood Count): MUST include both cell counts AND the differential (Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils) if present.
+                    - "Renal Function": Group Urea, Creatinine (Urea/S. Creatinine), and any BUN/eGFR together.
+                    - "CRP": Extract C-Reactive Protein as its own title.
+                    - "Procalcitonin": Extract as its own title.
+                    - "Electrolytes": Group Sodium, Potassium, Chloride, etc.
+                    - "Liver Function Tests": Group ALT, AST, Bilirubin, Albumin, etc.
+                    - "Coagulation": Group PT, PTT, INR.
+
                     DO NOT use the patient's name, doctor's name, hospital name, or dates as the "title".
-                    If a clear section title is missing, infer a standard medical category based on the results.
                     Translate any non-English labels to English medical terms where appropriate.
                     Strictly JSON only. No text.
                 `;
@@ -103,23 +111,28 @@ export const ocrService = {
 
                         // Normalize and merge logic
                         if (Array.isArray(parsed)) {
-                            // (Keep existing merge logic for CBC and Coagulation)
-                            let cbcIndex = parsed.findIndex(p => p && p.title && (p.title.toUpperCase().includes('CBC') || p.title.toUpperCase().includes('COMPLETE BLOOD')));
-                            if (cbcIndex !== -1) parsed[cbcIndex].title = "CBC";
-
-                            const coagTitles = ["COAGULATION", "PROTHROMBIN TIME", "PARTIAL THROMBOPLASTIN TIME", "IN VITRO B", "PT", "PTT", "INR"];
-                            let coagGroups = parsed.filter(p => p && p.title && coagTitles.some(t => p.title.toUpperCase().includes(t)));
-                            if (coagGroups.length > 1) {
-                                let primary = coagGroups[0];
-                                for (let i = 1; i < coagGroups.length; i++) {
-                                    primary.results = { ...primary.results, ...coagGroups[i].results };
-                                    const idx = parsed.indexOf(coagGroups[i]);
-                                    if (idx !== -1) parsed.splice(idx, 1);
+                            // Merge logic for CBC, Coagulation, and Renal Function
+                            const mergeCategories = (titles: string[], targetName: string) => {
+                                let groups = parsed.filter(p => p && p.title && titles.some(t => p.title.toUpperCase().includes(t)));
+                                if (groups.length > 1) {
+                                    let primary = groups[0];
+                                    for (let i = 1; i < groups.length; i++) {
+                                        primary.results = { ...primary.results, ...groups[i].results };
+                                        const idx = parsed.indexOf(groups[i]);
+                                        if (idx !== -1) parsed.splice(idx, 1);
+                                    }
+                                    primary.title = targetName;
+                                } else if (groups.length === 1) {
+                                    groups[0].title = targetName;
                                 }
-                                primary.title = "Coagulation";
-                            } else if (coagGroups.length === 1) {
-                                coagGroups[0].title = "Coagulation";
-                            }
+                            };
+
+                            mergeCategories(['CBC', 'COMPLETE BLOOD', 'HEMATOLOGY'], 'CBC');
+                            mergeCategories(['COAGULATION', 'PT', 'PTT', 'INR'], 'Coagulation');
+                            mergeCategories(['RENAL', 'KIDNEY', 'UREA', 'CREATININE'], 'Renal Function');
+                            mergeCategories(['ELECTROLYTE'], 'Electrolytes');
+                            mergeCategories(['C-REACTIVE', 'CRP'], 'CRP');
+                            mergeCategories(['PROCALCITONIN'], 'Procalcitonin');
                         }
 
                         console.log("ocrService: Success with model", modelName);

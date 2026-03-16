@@ -125,8 +125,9 @@ export default function InvestigationsTab({ patientId, defaultTab }: Investigati
         const n = name.trim().toLowerCase();
         if (n === 'cbc' || n === 'complete blood count' || n === 'complete blood count with differential') return 'CBC';
         if (n === 'crp' || n.includes('c-reactive protein')) return 'CRP';
-        if (n.includes('renal') || n.includes('kidney')) return 'Renal Function';
-        if (n.includes('electrolyte')) return 'Electrolytes';
+        if (n === 'procalcitonin' || n.includes('procalcitonin')) return 'Procalcitonin';
+        if (n.includes('renal') || n.includes('kidney') || n === 'urea' || n === 'creatinine') return 'Renal Function';
+        if (n.includes('electrolyte') || n === 'sodium' || n === 'potassium' || n === 'chloride') return 'Electrolytes';
         if (n === 'abg' || n.includes('arterial blood gas')) return 'ABG';
         if (n.includes('viral') || n.includes('virology')) return 'Virology';
 
@@ -269,7 +270,7 @@ export default function InvestigationsTab({ patientId, defaultTab }: Investigati
                                     <TableHead className="w-[150px]">Date</TableHead>
                                     <TableHead>Test Name</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead className="w-[100px]">Image</TableHead>
+                                    <TableHead className="w-[150px]">Files</TableHead>
                                     <TableHead className="w-[50px]"></TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -314,35 +315,65 @@ export default function InvestigationsTab({ patientId, defaultTab }: Investigati
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                    {lab.result?.imageUrl && (
-                                                        <Dialog>
-                                                            <DialogTrigger asChild>
-                                                                <Button variant="ghost" size="sm" className="h-8 px-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50">
-                                                                    <Eye className="w-4 h-4" />
-                                                                    <span className="sr-only">View Image</span>
-                                                                </Button>
-                                                            </DialogTrigger>
-                                                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
-                                                                <div className="p-4 bg-black/5 flex justify-center items-center min-h-[200px]">
-                                                                    {lab.result.imageUrl.toLowerCase().endsWith('.pdf') ? (
-                                                                        <div className="text-center py-20 px-10">
-                                                                            <p className="mb-4 text-muted-foreground text-lg">This report is a PDF document.</p>
-                                                                            <Button size="lg" onClick={() => window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`, '_blank')}>
-                                                                                <FileText className="w-5 h-5 mr-3" />
-                                                                                Click here to open PDF in a new tab
-                                                                            </Button>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <img
-                                                                            src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`}
-                                                                            alt="Result"
-                                                                            className="max-w-full h-auto rounded shadow-sm"
-                                                                        />
-                                                                    )}
-                                                                </div>
-                                                            </DialogContent>
-                                                        </Dialog>
-                                                    )}
+                                                    <div className="flex gap-1 items-center">
+                                                        {lab.result?.imageUrl && (
+                                                            <Dialog>
+                                                                <DialogTrigger asChild>
+                                                                    <Button variant="ghost" size="sm" className="h-8 px-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                                                                        <Eye className="w-4 h-4" />
+                                                                        <span className="sr-only">View Image</span>
+                                                                    </Button>
+                                                                </DialogTrigger>
+                                                                <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
+                                                                    <div className="p-4 bg-black/5 flex justify-center items-center min-h-[200px]">
+                                                                        {lab.result.imageUrl.toLowerCase().endsWith('.pdf') ? (
+                                                                            <div className="text-center py-20 px-10">
+                                                                                <p className="mb-4 text-muted-foreground text-lg">This report is a PDF document.</p>
+                                                                                <Button size="lg" onClick={() => window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`, '_blank')}>
+                                                                                    <FileText className="w-5 h-5 mr-3" />
+                                                                                    Click here to open PDF in a new tab
+                                                                                </Button>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <img
+                                                                                src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`}
+                                                                                alt="Result"
+                                                                                className="max-w-full h-auto rounded shadow-sm"
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                </DialogContent>
+                                                            </Dialog>
+                                                        )}
+                                                        {lab.pdfFilename ? (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 px-2 text-red-600 hover:text-red-800 hover:bg-rose-50"
+                                                                onClick={() => window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}/uploads/${lab.pdfFilename}.pdf`, '_blank')}
+                                                                title="View Original PDF"
+                                                            >
+                                                                <FileText className="w-4 h-4 mr-1" />
+                                                                PDF
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 px-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+                                                                onClick={() => {
+                                                                    const fn = prompt("Enter PDF filename (without extension):");
+                                                                    if (fn) {
+                                                                        investigationsApi.update(lab.id, { pdfFilename: fn }).then(() => fetchInvestigations());
+                                                                    }
+                                                                }}
+                                                                title="Link PDF"
+                                                            >
+                                                                <FileText className="w-4 h-4" />
+                                                                <span className="text-[10px] ml-1">Link</span>
+                                                            </Button>
+                                                        )}
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell>
                                                     <Button
