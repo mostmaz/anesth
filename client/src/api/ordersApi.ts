@@ -33,20 +33,24 @@ export const ordersApi = {
         return apiClient.get<ClinicalOrder[]>(`/orders/${patientId}`);
     },
 
-    getPendingOrders: async () => {
-        return apiClient.get<ClinicalOrder[]>('/orders/pending');
+    getPendingOrders: async (userId?: string) => {
+        const url = userId ? `/orders/pending?userId=${userId}` : '/orders/pending';
+        return apiClient.get<ClinicalOrder[]>(url);
     },
 
-    getActiveOrders: async () => {
-        return apiClient.get<ClinicalOrder[]>('/orders/active');
+    getActiveOrders: async (userId?: string) => {
+        const url = userId ? `/orders/active?userId=${userId}` : '/orders/active';
+        return apiClient.get<ClinicalOrder[]>(url);
     },
 
-    getCompletedOrders: async () => {
-        return apiClient.get<ClinicalOrder[]>('/orders/completed');
+    getCompletedOrders: async (userId?: string) => {
+        const url = userId ? `/orders/completed?userId=${userId}` : '/orders/completed';
+        return apiClient.get<ClinicalOrder[]>(url);
     },
 
-    getRecentOrders: async () => {
-        return apiClient.get<ClinicalOrder[]>('/orders/recent');
+    getRecentOrders: async (userId?: string) => {
+        const url = userId ? `/orders/recent?userId=${userId}` : '/orders/recent';
+        return apiClient.get<ClinicalOrder[]>(url);
     },
 
     createOrder: async (data: {
@@ -66,7 +70,8 @@ export const ordersApi = {
         return apiClient.patch<ClinicalOrder>(`/orders/${id}/status`, { status, userId });
     },
 
-    getDueReminders: async () => {
-        return apiClient.get<ClinicalOrder[]>('/orders/due-reminders');
-    }
+    getDueReminders: async (userId?: string) => {
+        const url = userId ? `/orders/due-reminders?userId=${userId}` : '/orders/due-reminders';
+        return apiClient.get<ClinicalOrder[]>(url);
+    },
 };

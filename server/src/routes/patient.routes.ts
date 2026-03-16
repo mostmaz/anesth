@@ -7,19 +7,33 @@ const router = Router();
 // GET all patients
 router.get('/', async (req, res) => {
     try {
+        const { userId } = req.query;
+        const where: any = {};
+
+        if (userId) {
+            where.assignments = {
+                some: {
+                    userId: String(userId),
+                    isActive: true
+                }
+            };
+        }
+
         const patients = await prisma.patient.findMany({
+            where,
             include: {
                 admissions: {
                     include: { doctor: true, specialty: true }
                 },
                 assignments: {
                     where: { isActive: true },
-                    include: { user: { select: { name: true, role: true } } }
+                    include: { user: { select: { id: true, name: true, role: true } } }
                 }
             }
         });
         res.json(patients);
     } catch (error) {
+        console.error("Error fetching patients:", error);
         res.status(500).json({ error: 'Failed to fetch patients' });
     }
 });
