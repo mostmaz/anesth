@@ -173,22 +173,37 @@ export default function AppShell() {
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                {/* Mobile Header */}
-                <header className="lg:hidden sticky top-0 z-30 h-16 bg-white border-b border-slate-200 flex items-center px-4 shadow-sm print:hidden">
+                {/* Universal Header */}
+                <header className="sticky top-0 z-30 h-16 bg-white border-b border-slate-200 flex items-center px-4 shadow-sm print:hidden">
                     <button
                         onClick={() => setSidebarOpen(true)}
-                        className="text-slate-500 hover:text-slate-700 p-2 -ml-2 rounded-md hover:bg-slate-100 transition-colors"
+                        className="lg:hidden text-slate-500 hover:text-slate-700 p-2 -ml-2 rounded-md hover:bg-slate-100 transition-colors"
                         aria-label="Open Sidebar"
                     >
                         <Menu className="w-6 h-6" />
                     </button>
                     <div className="flex-1 flex items-center justify-between ml-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex lg:hidden items-center gap-2">
                             <Dna className="w-6 h-6 text-blue-600" />
                             <span className="font-bold text-slate-900 tracking-tight">ICU Manager</span>
                         </div>
-                        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-[11px] font-bold text-white uppercase shadow-sm border-2 border-white">
-                            {user?.name.charAt(0)}
+                        <div className="hidden lg:block" /> {/* Desktop Spacer */}
+
+                        <div className="flex items-center gap-3">
+                            <div className="hidden sm:flex flex-col items-end mr-1">
+                                <span className="text-sm font-bold text-slate-800 leading-tight">{user?.name}</span>
+                                <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">{user?.role}</span>
+                            </div>
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-[13px] font-bold text-white uppercase shadow-sm border-2 border-white ring-1 ring-slate-200">
+                                {user?.name.charAt(0)}
+                            </div>
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center gap-2 px-3 py-1.5 text-xs sm:text-sm font-semibold text-slate-700 hover:text-red-600 hover:bg-red-50 border border-slate-200 rounded-lg transition-all active:scale-95 shadow-sm"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                <span className="hidden xs:inline">Sign Out</span>
+                            </button>
                         </div>
                     </div>
                 </header>
