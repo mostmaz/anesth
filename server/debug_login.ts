@@ -6,7 +6,7 @@ import * as path from 'path';
 async function debugLogin() {
     console.log('Starting Targeted Login Debug...');
     const browser = await puppeteer.launch({
-        executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
         headless: true,
         args: [
             '--no-sandbox',
