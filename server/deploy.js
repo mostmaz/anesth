@@ -19,7 +19,7 @@ ssh.connect({
     try {
         await exec('if [ ! -d "anesth" ]; then git clone https://github.com/mostmaz/anesth.git; fi');
         await exec('git fetch origin', '/root/anesth');
-        await exec('git reset --hard origin/main', '/root/anesth');
+        await exec('git reset --hard origin/master', '/root/anesth');
 
         console.log('Replacing IP in docker-compose...');
         await exec('sed -i "s/VITE_API_URL=\\${VITE_API_URL:-http:\\/\\/localhost:3001\\/api}/VITE_API_URL=\\${VITE_API_URL:-http:\\/\\/161.35.216.33:3001\\/api}/g" docker-compose.yml', '/root/anesth');
