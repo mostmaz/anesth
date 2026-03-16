@@ -387,7 +387,7 @@ export default function Dashboard() {
     const visibleReminders = dueReminders.filter(o => !dismissedIds.has(o.id));
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-6 sm:space-y-8">
             {/* ── Global Due Reminders Banner ── */}
             {visibleReminders.length > 0 && (
                 <div className="rounded-xl border-2 border-amber-400 bg-amber-50 shadow-lg overflow-hidden">
@@ -438,42 +438,42 @@ export default function Dashboard() {
                     </div>
                 </div>
             )}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">ICU Command Center</h1>
-                    <p className="text-slate-500 mt-1">
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 leading-tight">ICU Command Center</h1>
+                    <p className="text-sm sm:text-base text-slate-500 mt-1">
                         Welcome back, <span className="font-semibold">{user?.name}</span> ({user?.role})
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
                     {user?.role === 'SENIOR' && lastSyncResult && (
                         <div className={cn(
-                            "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border shadow-sm transition-all",
-                            lastSyncResult.status === 'RUNNING' ? "bg-blue-50 text-blue-700 border-blue-200 animate-pulse" :
-                                lastSyncResult.status === 'SUCCESS' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                                    "bg-rose-50 text-rose-700 border-rose-200"
+                            "flex items-center gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-semibold border shadow-sm transition-all bg-white",
+                            lastSyncResult.status === 'RUNNING' ? "text-blue-700 border-blue-200 animate-pulse" :
+                                lastSyncResult.status === 'SUCCESS' ? "text-emerald-700 border-emerald-200" :
+                                    "text-rose-700 border-rose-200"
                         )}>
                             <div className={cn(
-                                "w-2 h-2 rounded-full",
+                                "w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full",
                                 lastSyncResult.status === 'RUNNING' ? "bg-blue-500 animate-ping" :
                                     lastSyncResult.status === 'SUCCESS' ? "bg-emerald-500" : "bg-rose-500"
                             )} />
-                            <span>
+                            <span className="whitespace-nowrap">
                                 Lab Sync: {lastSyncResult.status}
                                 {lastSyncResult.endedAt ? ` (${new Date(lastSyncResult.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` :
                                     ` (${new Date(lastSyncResult.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`}
                             </span>
                             {lastSyncResult.status === 'SUCCESS' && lastSyncResult.resultsCount > 0 && (
-                                <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 border-none h-4 px-1.5 text-[10px]">
+                                <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 border-none h-4 px-1.5 text-[9px] sm:text-[10px]">
                                     +{lastSyncResult.resultsCount}
                                 </Badge>
                             )}
                         </div>
                     )}
                     {activeShift && (
-                        <Badge variant="outline" className="px-4 py-2 text-sm bg-green-50 text-green-700 border-green-200">
-                            <Clock className="w-4 h-4 mr-2" />
-                            Shift Active: {new Date(activeShift.startTime).toLocaleTimeString()}
+                        <Badge variant="outline" className="px-3 sm:px-4 py-1 sm:py-2 text-[10px] sm:text-sm bg-green-50 text-green-700 border-green-200 whitespace-nowrap">
+                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                            Active: {new Date(activeShift.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </Badge>
                     )}
                     {/* End Shift button for SENIOR and RESIDENT in the header */}
@@ -482,9 +482,9 @@ export default function Dashboard() {
                             variant="destructive"
                             size="sm"
                             onClick={handleEndShift}
-                            className="gap-2"
+                            className="h-8 sm:h-9 text-[10px] sm:text-xs gap-1.5 sm:gap-2 px-2 sm:px-3"
                         >
-                            <LogOut className="w-4 h-4" />
+                            <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             End Shift
                         </Button>
                     )}
@@ -884,8 +884,8 @@ export default function Dashboard() {
 
                     {/* Patient List */}
                     <Card>
-                        <CardHeader className="pb-3 border-b border-slate-100 flex-row items-center justify-between">
-                            <Tabs value={patientTab} onValueChange={(v: any) => setPatientTab(v)} className="w-[300px]">
+                        <CardHeader className="pb-3 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <Tabs value={patientTab} onValueChange={(v: any) => setPatientTab(v)} className="w-full sm:w-[300px]">
                                 <TabsList className="grid w-full grid-cols-2">
                                     <TabsTrigger value="active" className="flex items-center justify-center gap-2">
                                         <Users className="w-4 h-4" /> Active
@@ -895,7 +895,7 @@ export default function Dashboard() {
                                     </TabsTrigger>
                                 </TabsList>
                             </Tabs>
-                            <Button size="sm" onClick={() => setIsAddPatientOpen(true)}>
+                            <Button size="sm" className="w-full sm:w-auto" onClick={() => setIsAddPatientOpen(true)}>
                                 + Admit Patient
                             </Button>
                         </CardHeader>
@@ -908,79 +908,83 @@ export default function Dashboard() {
                                         <div
                                             key={patient.id}
                                             onClick={() => handlePatientClick(patient.id)}
-                                            className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 cursor-pointer transition-colors"
+                                            className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg hover:bg-slate-50 cursor-pointer transition-colors gap-4"
                                         >
                                             <div className="flex items-center space-x-4">
-                                                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
+                                                <div className="h-10 w-10 shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
                                                     {patient.name.substring(0, 2).toUpperCase()}
                                                 </div>
-                                                <div>
-                                                    <div className="font-medium text-slate-900">{patient.name}</div>
-                                                    <div className="text-sm text-slate-500 font-mono">MRN: {patient.mrn}</div>
+                                                <div className="min-w-0">
+                                                    <div className="font-medium text-slate-900 truncate">{patient.name}</div>
+                                                    <div className="text-sm text-slate-500 font-mono truncate">MRN: {patient.mrn}</div>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-4">
-                                                {/* Assigned Nurses Display */}
-                                                <div className="flex -space-x-2 overflow-hidden">
-                                                    {assignments
-                                                        .filter(a => a.patientId === patient.id)
-                                                        .map(a => (
-                                                            <div key={a.id} title={`Nurse: ${a.user.name}`} className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-green-100 flex items-center justify-center text-[10px] font-bold text-green-700">
-                                                                {a.user.name.substring(0, 1)}
-                                                            </div>
-                                                        ))
-                                                    }
+                                            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                                                <div className="flex items-center gap-2 mr-auto sm:mr-0">
+                                                    <Badge variant="outline" className="text-[10px] sm:text-xs px-2 py-0.5 whitespace-nowrap">{new Date().getFullYear() - new Date(patient.dob).getFullYear()}y / {patient.gender}</Badge>
+                                                    <Badge className={cn("text-[10px] sm:text-xs px-2 py-0.5", Math.random() > 0.8 ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800")}>
+                                                        {Math.random() > 0.8 ? "Critical" : "Stable"}
+                                                    </Badge>
                                                 </div>
 
-                                                {/* Sign In/Out Button */}
-                                                {(() => {
-                                                    const patientAssignments = assignments.filter(a => a.patientId === patient.id);
-                                                    const myAssignment = patientAssignments.find(a => a.userId === user?.id);
-                                                    const myPending = pendingAssignments.find(a => a.patientId === patient.id && a.userId === user?.id);
+                                                <div className="flex items-center gap-3 ml-auto sm:ml-0">
+                                                    {/* Assigned Nurses Display */}
+                                                    <div className="flex -space-x-2 overflow-hidden shrink-0">
+                                                        {assignments
+                                                            .filter(a => a.patientId === patient.id)
+                                                            .map(a => (
+                                                                <div key={a.id} title={`Nurse: ${a.user.name}`} className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-green-100 flex items-center justify-center text-[10px] font-bold text-green-700">
+                                                                    {a.user.name.substring(0, 1)}
+                                                                </div>
+                                                            ))
+                                                        }
+                                                    </div>
 
-                                                    if (myAssignment) {
-                                                        return (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="destructive"
-                                                                className="h-7 text-xs"
-                                                                onClick={(e) => handleSignOut(patient.id, e)}
-                                                            >
-                                                                Sign Out
-                                                            </Button>
-                                                        );
-                                                    }
+                                                    {/* Sign In/Out Button */}
+                                                    {(() => {
+                                                        const patientAssignments = assignments.filter(a => a.patientId === patient.id);
+                                                        const myAssignment = patientAssignments.find(a => a.userId === user?.id);
+                                                        const myPending = pendingAssignments.find(a => a.patientId === patient.id && a.userId === user?.id);
 
-                                                    if (myPending) {
-                                                        return (
-                                                            <Badge variant="outline" className="h-7 bg-orange-50 text-orange-600 border-orange-200">
-                                                                Pending Approval
-                                                            </Badge>
-                                                        );
-                                                    }
+                                                        if (myAssignment) {
+                                                            return (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="destructive"
+                                                                    className="h-7 px-3 text-[10px] sm:text-xs"
+                                                                    onClick={(e) => handleSignOut(patient.id, e)}
+                                                                >
+                                                                    Sign Out
+                                                                </Button>
+                                                            );
+                                                        }
 
-                                                    if (user?.role === 'NURSE') {
-                                                        const isOccupied = patientAssignments.length > 0;
-                                                        return (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                className={`h-7 text-xs ${isOccupied
-                                                                    ? 'border-orange-200 text-orange-700 hover:bg-orange-50'
-                                                                    : 'border-blue-200 text-blue-700 hover:bg-blue-50'}`}
-                                                                onClick={(e) => handleSignIn(patient.id, e)}
-                                                            >
-                                                                {isOccupied ? 'Request Sign-In' : 'Sign In'}
-                                                            </Button>
-                                                        );
-                                                    }
-                                                    return null;
-                                                })()}
+                                                        if (myPending) {
+                                                            return (
+                                                                <Badge variant="outline" className="h-7 px-3 bg-orange-50 text-orange-600 border-orange-200 text-[10px] sm:text-xs">
+                                                                    Pending
+                                                                </Badge>
+                                                            );
+                                                        }
 
-                                                <Badge variant="outline">{new Date().getFullYear() - new Date(patient.dob).getFullYear()}y / {patient.gender}</Badge>
-                                                <Badge className={Math.random() > 0.8 ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}>
-                                                    {Math.random() > 0.8 ? "Critical" : "Stable"}
-                                                </Badge>
+                                                        if (user?.role === 'NURSE') {
+                                                            const isOccupied = patientAssignments.length > 0;
+                                                            return (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className={`h-7 px-3 text-[10px] sm:text-xs ${isOccupied
+                                                                        ? 'border-orange-200 text-orange-700 hover:bg-orange-50'
+                                                                        : 'border-blue-200 text-blue-700 hover:bg-blue-50'}`}
+                                                                    onClick={(e) => handleSignIn(patient.id, e)}
+                                                                >
+                                                                    {isOccupied ? 'Request' : 'Sign In'}
+                                                                </Button>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
+                                                </div>
                                             </div>
                                         </div>
                                     ))
