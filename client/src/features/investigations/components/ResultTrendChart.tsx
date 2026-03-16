@@ -26,14 +26,22 @@ export function ResultTrendChart({ patientId, parameterName, testName, onClose }
         ?.filter(inv => inv.result && inv.result[parameterName] !== undefined) // Must have the parameter
         .map(inv => {
             const rawValue = inv.result[parameterName];
-            // Try to parse number if possible, currently simple parsing
-            const numericValue = parseFloat(String(rawValue).replace(/[^0-9.-]/g, ''));
+
+            // Handle structured objects {value, range, isAbnormal}
+            const valueToParse = (typeof rawValue === 'object' && rawValue !== null && 'value' in rawValue)
+                ? (rawValue as any).value
+                : rawValue;
+
+            // Try to parse number, handling strings with units (e.g., "12.5 g/dL") and empty values
+            const cleanValue = String(valueToParse || '').replace(/[^0-9.-]/g, '');
+            const numericValue = cleanValue === '' ? NaN : parseFloat(cleanValue);
 
             return {
                 date: new Date(inv.conductedAt).toLocaleDateString(),
+                time: new Date(inv.conductedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 timestamp: new Date(inv.conductedAt).getTime(),
                 value: isNaN(numericValue) ? 0 : numericValue,
-                originalValue: rawValue
+                originalValue: valueToParse
             };
         })
         .sort((a, b) => a.timestamp - b.timestamp) || [];

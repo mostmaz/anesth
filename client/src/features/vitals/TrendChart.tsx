@@ -51,7 +51,7 @@ export default function TrendChart({
                                     <stop offset="95%" stopColor={color} stopOpacity={0} />
                                 </linearGradient>
                             </defs>
-                            <XAxis dataKey="time" hide />
+                            <XAxis dataKey="timestamp" hide />
                             <YAxis domain={[min || 'auto', max || 'auto']} hide />
                             <Tooltip
                                 contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '4px', fontSize: '12px', color: '#f8fafc' }}
