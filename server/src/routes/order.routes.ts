@@ -8,13 +8,24 @@ const router = Router();
 // GET due intervention reminders (reminderAt <= now, PROCEDURE type, not COMPLETED)
 router.get('/due-reminders', async (req, res) => {
     try {
+        const { userId } = req.query;
         const now = new Date();
+        const where: any = {
+            type: 'PROCEDURE',
+            reminderAt: { lte: now },
+            status: { not: 'COMPLETED' }
+        };
+
+        if (userId) {
+            where.patient = {
+                assignments: {
+                    some: { userId: String(userId), isActive: true }
+                }
+            };
+        }
+
         const orders = await prisma.clinicalOrder.findMany({
-            where: {
-                type: 'PROCEDURE',
-                reminderAt: { lte: now },
-                status: { not: 'COMPLETED' }
-            },
+            where,
             orderBy: { reminderAt: 'asc' },
             include: {
                 patient: { select: { id: true, name: true, mrn: true } },
@@ -50,11 +61,19 @@ router.get('/pending', async (req, res) => {
 // GET recent orders (for Dashboard)
 router.get('/recent', async (req, res) => {
     try {
+        const { userId } = req.query;
+        const where: any = {};
+
+        if (userId) {
+            where.patient = {
+                assignments: {
+                    some: { userId: String(userId), isActive: true }
+                }
+            };
+        }
+
         const orders = await prisma.clinicalOrder.findMany({
-            where: {
-                // optional: filter out DISCONTINUED if cluttering? 
-                // For now show all recent activity
-            },
+            where,
             orderBy: { createdAt: 'desc' },
             include: {
                 patient: { select: { name: true, mrn: true } },
@@ -72,10 +91,21 @@ router.get('/recent', async (req, res) => {
 // GET active orders (Approved/In Progress)
 router.get('/active', async (req, res) => {
     try {
+        const { userId } = req.query;
+        const where: any = {
+            status: { in: ['APPROVED', 'PENDING'] }
+        };
+
+        if (userId) {
+            where.patient = {
+                assignments: {
+                    some: { userId: String(userId), isActive: true }
+                }
+            };
+        }
+
         const orders = await prisma.clinicalOrder.findMany({
-            where: {
-                status: { in: ['APPROVED', 'PENDING'] }
-            },
+            where,
             orderBy: { createdAt: 'desc' },
             include: {
                 patient: { select: { name: true, mrn: true } },
@@ -93,10 +123,21 @@ router.get('/active', async (req, res) => {
 // GET completed orders
 router.get('/completed', async (req, res) => {
     try {
+        const { userId } = req.query;
+        const where: any = {
+            status: 'COMPLETED'
+        };
+
+        if (userId) {
+            where.patient = {
+                assignments: {
+                    some: { userId: String(userId), isActive: true }
+                }
+            };
+        }
+
         const orders = await prisma.clinicalOrder.findMany({
-            where: {
-                status: 'COMPLETED'
-            },
+            where,
             orderBy: { updatedAt: 'desc' },
             include: {
                 patient: { select: { name: true, mrn: true } },

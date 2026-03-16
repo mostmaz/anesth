@@ -87,14 +87,23 @@ export default function Dashboard() {
 
     const fetchData = async () => {
         try {
-            const [pts, activeData, recentData, activeAssignments, staffData, pendingData, historicalLabs, userPrefs, lastSync] = await Promise.all([
-                apiClient.get<Patient[]>('/patients'),
-                ordersApi.getActiveOrders().catch(() => []),
-                ordersApi.getRecentOrders().catch(() => []),
-                assignmentApi.getActive().catch(() => []),
+            // First jump: get assignments to check the nurse's state
+            const activeAssignments = await assignmentApi.getActive().catch(() => []);
+            setAssignments(activeAssignments);
+
+            const myAssignment = user?.role === 'NURSE' ? activeAssignments.find((a: any) => a.userId === user.id) : null;
+            const filterUserId = (user?.role === 'NURSE' && myAssignment) ? user.id : undefined;
+
+            const patientsUrl = filterUserId ? `/patients?userId=${filterUserId}` : '/patients';
+            const investigationsUrl = filterUserId ? `/investigations?userId=${filterUserId}` : '/investigations';
+
+            const [pts, activeData, recentData, staffData, pendingData, historicalLabs, userPrefs, lastSync] = await Promise.all([
+                apiClient.get<Patient[]>(patientsUrl),
+                ordersApi.getActiveOrders(filterUserId).catch(() => []),
+                ordersApi.getRecentOrders(filterUserId).catch(() => []),
                 shiftApi.getStaffOnDuty().catch(() => ({ seniors: [], nurses: [] })),
                 assignmentApi.getPending().catch(() => []),
-                apiClient.get<any[]>('/investigations').catch(() => []),
+                apiClient.get<any[]>(investigationsUrl).catch(() => []),
                 user ? userApi.getPreferences(user.id).catch(() => ({ dismissedLabs: [] })) : Promise.resolve({ dismissedLabs: [] }),
                 user?.role === 'SENIOR' ? apiClient.get<{ success: boolean, data: any }>('/lab/last-sync').catch(() => null) : Promise.resolve(null)
             ]);
@@ -161,8 +170,6 @@ export default function Dashboard() {
             }
 
             setAllPatients(pts);
-
-            setAssignments(activeAssignments);
 
             // Workflow logic is now handled in a separate useEffect for better state sync
 
@@ -885,19 +892,29 @@ export default function Dashboard() {
                     {/* Patient List */}
                     <Card>
                         <CardHeader className="pb-3 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                            <Tabs value={patientTab} onValueChange={(v: any) => setPatientTab(v)} className="w-full sm:w-[300px]">
-                                <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger value="active" className="flex items-center justify-center gap-2">
-                                        <Users className="w-4 h-4" /> Active
-                                    </TabsTrigger>
-                                    <TabsTrigger value="archived" className="flex items-center justify-center gap-2">
-                                        <ArchiveX className="w-4 h-4" /> Archived
-                                    </TabsTrigger>
-                                </TabsList>
-                            </Tabs>
-                            <Button size="sm" className="w-full sm:w-auto" onClick={() => setIsAddPatientOpen(true)}>
-                                + Admit Patient
-                            </Button>
+                            {user?.role !== 'NURSE' && (
+                                <Tabs value={patientTab} onValueChange={(v: any) => setPatientTab(v)} className="w-full sm:w-[300px]">
+                                    <TabsList className="grid w-full grid-cols-2">
+                                        <TabsTrigger value="active" className="flex items-center justify-center gap-2">
+                                            <Users className="w-4 h-4" /> Active
+                                        </TabsTrigger>
+                                        <TabsTrigger value="archived" className="flex items-center justify-center gap-2">
+                                            <ArchiveX className="w-4 h-4" /> Archived
+                                        </TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+                            )}
+                            {user?.role !== 'NURSE' && (
+                                <Button size="sm" className="w-full sm:w-auto" onClick={() => setIsAddPatientOpen(true)}>
+                                    + Admit Patient
+                                </Button>
+                            )}
+                            {user?.role === 'NURSE' && (
+                                <div className="flex items-center gap-2 text-slate-800 font-semibold">
+                                    <Users className="w-5 h-5 text-blue-600" />
+                                    {assignments.some(a => a.userId === user.id) ? "My Assigned Patient" : "Select a Patient to Sign In"}
+                                </div>
+                            )}
                         </CardHeader>
                         <CardContent className="pt-6">
                             <div className="space-y-4">

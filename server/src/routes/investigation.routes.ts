@@ -7,11 +7,23 @@ const router = Router();
 // Get all Investigations (global feed for dashboard)
 router.get('/', async (req, res) => {
     try {
+        const { userId } = req.query;
+        const where: any = {};
+
+        if (userId) {
+            where.patient = {
+                assignments: {
+                    some: { userId: String(userId), isActive: true }
+                }
+            };
+        }
+
         const investigations = await prisma.investigation.findMany({
+            where,
             orderBy: { conductedAt: 'desc' },
             take: 20,
             include: {
-                patient: { select: { name: true } },
+                patient: { select: { name: true, id: true } },
                 author: { select: { name: true, role: true } }
             }
         });
