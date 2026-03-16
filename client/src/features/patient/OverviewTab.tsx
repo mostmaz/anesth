@@ -30,9 +30,10 @@ import type { Patient } from '../../types';
 interface OverviewTabProps {
     patientId: string;
     patient?: Patient;
+    onLoadHistory?: () => void;
 }
 
-export default function OverviewTab({ patientId, patient }: OverviewTabProps) {
+export default function OverviewTab({ patientId, patient, onLoadHistory }: OverviewTabProps) {
     const [lastVitals, setLastVitals] = useState<VitalSign | null>(null);
     const [ioHistory, setIoHistory] = useState<IOEntry[]>([]);
     const [latestOrders, setLatestOrders] = useState<ClinicalOrder[]>([]);
@@ -500,7 +501,12 @@ export default function OverviewTab({ patientId, patient }: OverviewTabProps) {
                                 </div>
                             </div>
                             <div className="p-3 border-t bg-slate-50/30">
-                                <Button variant="ghost" size="sm" className="w-full text-[10px] h-6 text-slate-500">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-full text-[10px] h-6 text-slate-500"
+                                    onClick={onLoadHistory}
+                                >
                                     Load Full History
                                 </Button>
                             </div>

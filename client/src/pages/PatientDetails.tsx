@@ -16,6 +16,7 @@ import OverviewTab from '../features/patient/OverviewTab';
 import VentilatorTab from '../features/ventilator/VentilatorTab';
 import ConsultationTab from '../features/patient/ConsultationTab';
 import NursingTab from '../features/nursing/NursingTab';
+import HistoryTab from '../features/patient/HistoryTab';
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiClient } from '../api/client';
@@ -69,6 +70,7 @@ export default function PatientDetails() {
     const [dueReminders, setDueReminders] = useState<ClinicalOrder[]>([]);
     const [confirmOrder, setConfirmOrder] = useState<ClinicalOrder | null>(null);
     const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+    const [activeTab, setActiveTab] = useState('overview');
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const fetchPatient = () => {
@@ -200,7 +202,7 @@ export default function PatientDetails() {
             <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
                 {(() => {
                     return (
-                        <Tabs defaultValue="overview" className="w-full">
+                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                             <TabsList className="mb-6 sm:mb-8 w-full p-1 bg-muted rounded-lg overflow-x-auto flex flex-nowrap scrollbar-hide">
                                 <TabsTrigger value="overview" className="whitespace-nowrap px-3 sm:px-4">Overview</TabsTrigger>
                                 <TabsTrigger value="vitals" className="whitespace-nowrap px-3 sm:px-4">Vitals</TabsTrigger>
@@ -220,11 +222,16 @@ export default function PatientDetails() {
                                 </TabsTrigger>
                                 {user?.role !== 'NURSE' && <TabsTrigger value="consultation" className="whitespace-nowrap px-3 sm:px-4">Consultation</TabsTrigger>}
                                 <TabsTrigger value="notes" className="whitespace-nowrap px-3 sm:px-4">Notes</TabsTrigger>
+                                <TabsTrigger value="history" className="whitespace-nowrap px-3 sm:px-4">History</TabsTrigger>
                                 {user?.role !== 'NURSE' && <TabsTrigger value="handover" className="whitespace-nowrap px-3 sm:px-4">Handover</TabsTrigger>}
                             </TabsList>
 
                             <TabsContent value="overview" className="space-y-6">
-                                <OverviewTab patientId={patient.id} patient={patient} />
+                                <OverviewTab
+                                    patientId={patient.id}
+                                    patient={patient}
+                                    onLoadHistory={() => setActiveTab('history')}
+                                />
                             </TabsContent>
 
                             <TabsContent value="vitals">
@@ -286,6 +293,10 @@ export default function PatientDetails() {
 
                             <TabsContent value="handover">
                                 <HandoverTab patient={patient} />
+                            </TabsContent>
+
+                            <TabsContent value="history">
+                                <HistoryTab patientId={patient.id} />
                             </TabsContent>
                         </Tabs>
                     );
