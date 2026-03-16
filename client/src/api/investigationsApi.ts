@@ -15,6 +15,7 @@ export interface Investigation {
     status: InvestigationStatus;
     result?: any;
     impression?: string;
+    pdfFilename?: string;
     conductedAt: string;
     author: {
         name: string;
@@ -55,5 +56,9 @@ export const investigationsApi = {
 
     sync: async (data: { patientId: string; mrn: string; name: string; authorId: string }, options?: { timeout?: number }) => {
         return apiClient.post<{ success: boolean; data: any[] }>('/lab/sync', data, options);
+    },
+
+    update: async (id: string, data: Partial<Investigation>) => {
+        return apiClient.patch<Investigation>(`/investigations/${id}`, data);
     }
 };
