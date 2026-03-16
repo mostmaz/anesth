@@ -47,7 +47,10 @@ export const ocrService = {
                 prompt = `
                     Extract all technical data points from the attached document.
                     Return ONLY a JSON array of grouped objects.
-                    Format: [{"title": "Section Title", "results": {"Key": {"value": "Result", "range": "Ref", "isAbnormal": boolean}}}]
+                    Format: [{"title": "Section Title", "registrationDate": "YYYY-MM-DD HH:mm", "results": {"Key": {"value": "Result", "range": "Ref", "isAbnormal": boolean}}}]
+                    
+                    CRITICAL EXTRACTION RULES:
+                    - "registrationDate": LOOK FOR "Reg. Date", "Registration Date", or "Date of Collection" in the document header. Extract it for each group.
                     
                     CRITICAL Categorization Rules:
                     - "CBC" (Complete Blood Count): MUST include both cell counts AND the differential (Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils) if present.
@@ -58,7 +61,7 @@ export const ocrService = {
                     - "Liver Function Tests": Group ALT, AST, Bilirubin, Albumin, etc.
                     - "Coagulation": Group PT, PTT, INR.
 
-                    DO NOT use the patient's name, doctor's name, hospital name, or dates as the "title".
+                    DO NOT use the patient's name, doctor's name, hospital name, or other dates as the "title".
                     Translate any non-English labels to English medical terms where appropriate.
                     Strictly JSON only. No text.
                 `;
