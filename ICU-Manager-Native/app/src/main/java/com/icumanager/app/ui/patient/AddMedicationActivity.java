@@ -24,8 +24,8 @@ public class AddMedicationActivity extends AppCompatActivity {
 
     private android.widget.AutoCompleteTextView editMedName;
     private TextInputEditText editMedDose;
-    private TextInputEditText editMedRoute;
-    private TextInputEditText editMedFrequency;
+    private android.widget.AutoCompleteTextView editMedRoute;
+    private android.widget.AutoCompleteTextView editMedFrequency;
     private TextInputEditText editMedInfusionRate;
     private TextInputEditText editMedDilution;
     private TextInputEditText editMedReminder;
@@ -70,7 +70,22 @@ public class AddMedicationActivity extends AppCompatActivity {
         progressSubmitMed = findViewById(R.id.progressSubmitMed);
 
         setupDrugAutocomplete();
+        setupRouteAndFrequencyDropdowns();
         btnSubmitMed.setOnClickListener(v -> submitMedication());
+    }
+
+    private void setupRouteAndFrequencyDropdowns() {
+        String[] routes = { "PO", "IV", "IM", "SC", "PR", "SL", "Topical", "Inhalation", "NG", "PEG", "Intrathecal",
+                "Intraventricular" };
+        android.widget.ArrayAdapter<String> routeAdapter = new android.widget.ArrayAdapter<>(this,
+                android.R.layout.simple_dropdown_item_1line, routes);
+        editMedRoute.setAdapter(routeAdapter);
+
+        String[] frequencies = { "Once Only", "Stat", "PRN", "Daily", "BID", "TID", "QID", "Q4H", "Q6H", "Q8H", "Q12H",
+                "Q24H", "Weekly", "Monthly" };
+        android.widget.ArrayAdapter<String> frequencyAdapter = new android.widget.ArrayAdapter<>(this,
+                android.R.layout.simple_dropdown_item_1line, frequencies);
+        editMedFrequency.setAdapter(frequencyAdapter);
     }
 
     private void setupDrugAutocomplete() {
@@ -99,7 +114,7 @@ public class AddMedicationActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
         String token = prefs.getString("auth_token", null);
 
-        ApiClient.get("/medications/search?q=" + query, token, new ApiClient.ApiCallback() {
+        ApiClient.get("/medications/catalog?q=" + query, token, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(String response) {
                 try {

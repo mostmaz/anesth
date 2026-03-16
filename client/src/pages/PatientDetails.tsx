@@ -131,15 +131,15 @@ export default function PatientDetails() {
                         </div>
                     </div>
                 </div>
-                <main className="max-w-7xl mx-auto px-4 py-6 space-y-8">
-                    <Skeleton className="h-10 w-[600px]" />
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <Skeleton className="h-32" />
-                        <Skeleton className="h-32" />
-                        <Skeleton className="h-32" />
-                        <Skeleton className="h-32" />
+                <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6 sm:space-y-8">
+                    <Skeleton className="h-10 w-full sm:w-[600px]" />
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                        <Skeleton className="h-24 sm:h-32" />
+                        <Skeleton className="h-24 sm:h-32" />
+                        <Skeleton className="h-24 sm:h-32" />
+                        <Skeleton className="h-24 sm:h-32" />
                     </div>
-                    <Skeleton className="h-[400px] w-full" />
+                    <Skeleton className="h-[300px] sm:h-[400px] w-full" />
                 </main>
             </div>
         );
@@ -163,12 +163,12 @@ export default function PatientDetails() {
                                 <div className="flex items-center gap-3 flex-1 min-w-0">
                                     <Bell className="w-5 h-5 text-white animate-pulse shrink-0" />
                                     <div className="text-white min-w-0">
-                                        <p className="font-bold text-sm truncate">
+                                        <p className="font-bold text-[11px] sm:text-sm truncate">
                                             ⏰ Intervention Check Due: {(order.details as any)?.notificationText || order.title}
                                         </p>
-                                        <p className="text-xs text-amber-100 flex items-center gap-1">
+                                        <p className="text-[10px] sm:text-xs text-amber-100 flex items-center gap-1 mt-0.5">
                                             <Clock className="w-3 h-3" />
-                                            Scheduled for {new Date((order as any).reminderAt).toLocaleString()}
+                                            Due: {new Date((order as any).reminderAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </p>
                                     </div>
                                 </div>
@@ -197,30 +197,30 @@ export default function PatientDetails() {
                 </div>
             )}
 
-            <main className="max-w-7xl mx-auto px-4 py-6">
+            <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
                 {(() => {
                     return (
                         <Tabs defaultValue="overview" className="w-full">
-                            <TabsList className="mb-8 w-full p-1 bg-muted rounded-lg overflow-x-auto">
-                                <TabsTrigger value="overview">Overview</TabsTrigger>
-                                <TabsTrigger value="vitals">Vitals</TabsTrigger>
-                                <TabsTrigger value="mar">MAR</TabsTrigger>
-                                <TabsTrigger value="nursing">Nursing</TabsTrigger>
-                                <TabsTrigger value="ventilator">Ventilator</TabsTrigger>
-                                <TabsTrigger value="orders">Orders</TabsTrigger>
-                                <TabsTrigger value="io">I/O</TabsTrigger>
-                                {user?.role !== 'NURSE' && <TabsTrigger value="investigations">Investigations</TabsTrigger>}
-                                {user?.role !== 'NURSE' && <TabsTrigger value="radiology">Radiology</TabsTrigger>}
-                                {user?.role !== 'NURSE' && <TabsTrigger value="cardiology">Cardiology</TabsTrigger>}
-                                <TabsTrigger value="interventions" className="relative">
+                            <TabsList className="mb-6 sm:mb-8 w-full p-1 bg-muted rounded-lg overflow-x-auto flex flex-nowrap scrollbar-hide">
+                                <TabsTrigger value="overview" className="whitespace-nowrap px-3 sm:px-4">Overview</TabsTrigger>
+                                <TabsTrigger value="vitals" className="whitespace-nowrap px-3 sm:px-4">Vitals</TabsTrigger>
+                                <TabsTrigger value="mar" className="whitespace-nowrap px-3 sm:px-4">MAR</TabsTrigger>
+                                <TabsTrigger value="nursing" className="whitespace-nowrap px-3 sm:px-4">Nursing</TabsTrigger>
+                                <TabsTrigger value="ventilator" className="whitespace-nowrap px-3 sm:px-4">Ventilator</TabsTrigger>
+                                <TabsTrigger value="orders" className="whitespace-nowrap px-3 sm:px-4">Orders</TabsTrigger>
+                                <TabsTrigger value="io" className="whitespace-nowrap px-3 sm:px-4">I/O</TabsTrigger>
+                                {user?.role !== 'NURSE' && <TabsTrigger value="investigations" className="whitespace-nowrap px-3 sm:px-4">Labs</TabsTrigger>}
+                                {user?.role !== 'NURSE' && <TabsTrigger value="radiology" className="whitespace-nowrap px-3 sm:px-4">Radiology</TabsTrigger>}
+                                {user?.role !== 'NURSE' && <TabsTrigger value="cardiology" className="whitespace-nowrap px-3 sm:px-4">Cardiology</TabsTrigger>}
+                                <TabsTrigger value="interventions" className="relative whitespace-nowrap px-3 sm:px-4">
                                     Interventions
                                     {visibleReminders.length > 0 && (
                                         <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full" />
                                     )}
                                 </TabsTrigger>
-                                {user?.role !== 'NURSE' && <TabsTrigger value="consultation">Consultation</TabsTrigger>}
-                                <TabsTrigger value="notes">Notes</TabsTrigger>
-                                {user?.role !== 'NURSE' && <TabsTrigger value="handover">Handover</TabsTrigger>}
+                                {user?.role !== 'NURSE' && <TabsTrigger value="consultation" className="whitespace-nowrap px-3 sm:px-4">Consultation</TabsTrigger>}
+                                <TabsTrigger value="notes" className="whitespace-nowrap px-3 sm:px-4">Notes</TabsTrigger>
+                                {user?.role !== 'NURSE' && <TabsTrigger value="handover" className="whitespace-nowrap px-3 sm:px-4">Handover</TabsTrigger>}
                             </TabsList>
 
                             <TabsContent value="overview" className="space-y-6">

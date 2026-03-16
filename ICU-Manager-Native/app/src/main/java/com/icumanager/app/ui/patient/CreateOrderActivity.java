@@ -65,13 +65,15 @@ public class CreateOrderActivity extends AppCompatActivity {
         // Setup Spinners
         String[] types = new String[] { "MEDICATION", "LAB", "IMAGING", "PROTOCOL", "NURSING", "DIET", "CONSULT",
                 "BLOOD_PRODUCT" };
-        ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
+        ArrayAdapter<String> typeAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item,
                 types);
+        typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerType.setAdapter(typeAdapter);
 
         String[] priorities = new String[] { "ROUTINE", "URGENT", "STAT" };
-        ArrayAdapter<String> priorityAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
+        ArrayAdapter<String> priorityAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item,
                 priorities);
+        priorityAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerPriority.setAdapter(priorityAdapter);
 
         btnSubmitOrder.setOnClickListener(v -> submitOrder());

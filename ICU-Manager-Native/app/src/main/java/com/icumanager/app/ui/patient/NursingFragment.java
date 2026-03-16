@@ -101,7 +101,8 @@ public class NursingFragment extends Fragment {
         ApiClient.get("/skin/" + patientId, token, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(String responseStr) {
-                if (getActivity() == null) return;
+                if (getActivity() == null)
+                    return;
                 getActivity().runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
                     try {
@@ -111,7 +112,8 @@ public class NursingFragment extends Fragment {
                         } else {
                             JSONObject obj = new JSONObject(responseStr);
                             array = obj.optJSONArray("data");
-                            if (array == null) array = new JSONArray();
+                            if (array == null)
+                                array = new JSONArray();
                         }
                         adapter.setAssessments(array);
                         textEmpty.setVisibility(array.length() == 0 ? View.VISIBLE : View.GONE);
@@ -123,7 +125,8 @@ public class NursingFragment extends Fragment {
 
             @Override
             public void onError(Exception error) {
-                if (getActivity() == null) return;
+                if (getActivity() == null)
+                    return;
                 getActivity().runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
                     textEmpty.setVisibility(View.VISIBLE);
@@ -228,7 +231,8 @@ public class NursingFragment extends Fragment {
             if (cursor != null) {
                 cursor.moveToFirst();
                 int idx = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
-                if (idx >= 0) filePath = cursor.getString(idx);
+                if (idx >= 0)
+                    filePath = cursor.getString(idx);
                 cursor.close();
             }
             if (filePath == null) {
@@ -244,26 +248,30 @@ public class NursingFragment extends Fragment {
             ApiClient.uploadFile("/upload", fileBytes, file.getName(), token, new ApiClient.ApiCallback() {
                 @Override
                 public void onSuccess(String responseStr) {
-                    if (getActivity() == null) return;
+                    if (getActivity() == null)
+                        return;
                     getActivity().runOnUiThread(() -> {
                         String imageUrl = null;
                         try {
                             if (responseStr.trim().startsWith("[")) {
                                 JSONArray arr = new JSONArray(responseStr);
-                                if (arr.length() > 0) imageUrl = arr.getJSONObject(0).optString("url");
+                                if (arr.length() > 0)
+                                    imageUrl = arr.getJSONObject(0).optString("url");
                             } else {
                                 imageUrl = new JSONObject(responseStr).optString("url");
                             }
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                        }
                         saveSkinAssessment(dialog, token, userId, bodyPart, bodyView, type, notes, imageUrl);
                     });
                 }
 
                 @Override
                 public void onError(Exception error) {
-                    if (getActivity() == null) return;
-                    getActivity().runOnUiThread(() ->
-                            saveSkinAssessment(dialog, token, userId, bodyPart, bodyView, type, notes, null));
+                    if (getActivity() == null)
+                        return;
+                    getActivity().runOnUiThread(
+                            () -> saveSkinAssessment(dialog, token, userId, bodyPart, bodyView, type, notes, null));
                 }
             });
         } catch (Exception e) {
@@ -281,12 +289,14 @@ public class NursingFragment extends Fragment {
             body.put("view", bodyView);
             body.put("type", type);
             body.put("notes", notes);
-            if (imageUrl != null) body.put("imageUrl", imageUrl);
+            if (imageUrl != null)
+                body.put("imageUrl", imageUrl);
 
             ApiClient.post("/skin", body, token, new ApiClient.ApiCallback() {
                 @Override
                 public void onSuccess(String response) {
-                    if (getActivity() == null) return;
+                    if (getActivity() == null)
+                        return;
                     getActivity().runOnUiThread(() -> {
                         Toast.makeText(getContext(), "Skin assessment saved", Toast.LENGTH_SHORT).show();
                         dialog.dismiss();
@@ -296,9 +306,10 @@ public class NursingFragment extends Fragment {
 
                 @Override
                 public void onError(Exception error) {
-                    if (getActivity() == null) return;
-                    getActivity().runOnUiThread(() ->
-                            Toast.makeText(getContext(), "Failed: " + error.getMessage(), Toast.LENGTH_LONG).show());
+                    if (getActivity() == null)
+                        return;
+                    getActivity().runOnUiThread(() -> Toast
+                            .makeText(getContext(), "Failed: " + error.getMessage(), Toast.LENGTH_LONG).show());
                 }
             });
         } catch (Exception e) {
@@ -326,8 +337,10 @@ public class NursingFragment extends Fragment {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            JSONObject a = assessments.optJSONObject(position);
-            if (a == null) return;
+            // Newest first
+            JSONObject a = assessments.optJSONObject(assessments.length() - 1 - position);
+            if (a == null)
+                return;
 
             String bodyPart = a.optString("bodyPart", "—");
             String view = a.optString("view", "");
@@ -338,7 +351,8 @@ public class NursingFragment extends Fragment {
             // Author info
             String authorName = "";
             JSONObject author = a.optJSONObject("author");
-            if (author != null) authorName = author.optString("name", "");
+            if (author != null)
+                authorName = author.optString("name", "");
 
             holder.textBodyPart.setText(bodyPart + (view.isEmpty() ? "" : " (" + view + ")"));
             holder.textType.setText(type);

@@ -141,7 +141,7 @@ export default function OverviewTab({ patientId, patient }: OverviewTabProps) {
     }
 
     return (
-        <div className="space-y-6 pb-8">
+        <div className="space-y-4 sm:space-y-6 pb-8">
             {/* Abnormal Labs Alert */}
             {abnormalLabs.length > 0 && (
                 <Alert variant="destructive" className="bg-rose-50 border-rose-200 text-rose-800 shadow-sm animate-in fade-in slide-in-from-top-4">
@@ -159,57 +159,59 @@ export default function OverviewTab({ patientId, patient }: OverviewTabProps) {
 
             {/* Comorbidities */}
             {patient?.comorbidities && patient.comorbidities.length > 0 && (
-                <div className="flex items-center gap-2 flex-wrap bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5">
-                    <Stethoscope className="w-4 h-4 text-slate-500 shrink-0" />
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide shrink-0">PMH:</span>
-                    {patient.comorbidities.map((c, i) => (
-                        <Badge key={i} variant="secondary" className="text-xs bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-100">
-                            {c}
-                        </Badge>
-                    ))}
+                <div className="flex items-center gap-2 flex-wrap bg-slate-50 border border-slate-200 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5">
+                    <Stethoscope className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 shrink-0" />
+                    <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wide shrink-0">PMH:</span>
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                        {patient.comorbidities.map((c, i) => (
+                            <Badge key={i} variant="secondary" className="text-[10px] sm:text-xs bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-100 px-1.5 sm:px-2 py-0">
+                                {c}
+                            </Badge>
+                        ))}
+                    </div>
                 </div>
             )}
 
             {/* --- TOP ROW: VITALS & BALANCE --- */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {/* Vitals Card */}
                 <Card className={cn(
                     "border-l-4 transition-all hover:shadow-md",
                     vitalsDelayed ? "border-l-rose-500 bg-rose-50/30" : "border-l-emerald-500"
                 )}>
-                    <CardHeader className="pb-2">
+                    <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-6">
                         <div className="flex justify-between items-start">
-                            <CardTitle className="text-sm font-medium text-slate-500 uppercase flex items-center gap-2">
-                                <Activity className="w-4 h-4" /> Vitals
+                            <CardTitle className="text-[10px] sm:text-sm font-medium text-slate-500 uppercase flex items-center gap-1.5 sm:gap-2">
+                                <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Vitals
                             </CardTitle>
-                            {vitalsDelayed && <Badge variant="destructive" className="animate-pulse">Delayed</Badge>}
+                            {vitalsDelayed && <Badge variant="destructive" className="animate-pulse text-[8px] sm:text-[10px] px-1 sm:px-2 h-4 sm:h-5">Delay</Badge>}
                         </div>
                     </CardHeader>
-                    <CardContent className="py-2">
+                    <CardContent className="py-1.5 sm:py-2 px-3 sm:px-6">
                         {lastVitals ? (
                             <div className="space-y-1">
                                 <div className="flex justify-between items-baseline">
-                                    <span className="text-xl font-bold tracking-tight">
-                                        {lastVitals.bpSys}/{lastVitals.bpDia} <span className="text-[10px] text-slate-400 font-normal">mmHg</span>
+                                    <span className="text-lg sm:text-xl font-bold tracking-tight">
+                                        {lastVitals.bpSys}/{lastVitals.bpDia} <span className="text-[9px] sm:text-[10px] text-slate-400 font-normal">mmHg</span>
                                     </span>
                                 </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="flex items-center gap-1.5 text-sm">
-                                        <Heart className="w-3.5 h-3.5 text-rose-500" />
+                                <div className="flex flex-col sm:flex-row sm:gap-3">
+                                    <div className="flex items-center gap-1.5 text-xs sm:text-sm">
+                                        <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-500" />
                                         <span className="font-semibold">{lastVitals.heartRate}</span>
                                     </div>
-                                    <div className="flex items-center gap-1.5 text-sm">
-                                        <Droplets className="w-3.5 h-3.5 text-blue-500" />
+                                    <div className="flex items-center gap-1.5 text-xs sm:text-sm">
+                                        <Droplets className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-500" />
                                         <span className="font-semibold">{lastVitals.spo2}%</span>
                                     </div>
                                 </div>
                                 <p className="text-[9px] text-slate-400 mt-1 flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
+                                    <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                                     {new Date(lastVitals.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </p>
                             </div>
                         ) : (
-                            <p className="text-slate-400 italic text-xs">No records</p>
+                            <p className="text-slate-400 italic text-[10px] sm:text-xs">No records</p>
                         )}
                     </CardContent>
                 </Card>
@@ -219,22 +221,22 @@ export default function OverviewTab({ patientId, patient }: OverviewTabProps) {
                     "border-l-4 transition-all hover:shadow-md",
                     ioDelayed ? "border-l-rose-500 bg-rose-50/30" : "border-l-blue-500"
                 )}>
-                    <CardHeader className="pb-2">
+                    <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-6">
                         <div className="flex justify-between items-start">
-                            <CardTitle className="text-sm font-medium text-slate-500 uppercase flex items-center gap-2">
-                                <Droplets className="w-4 h-4" /> 12h Balance
+                            <CardTitle className="text-[10px] sm:text-sm font-medium text-slate-500 uppercase flex items-center gap-1.5 sm:gap-2">
+                                <Droplets className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> 12h Balance
                             </CardTitle>
-                            {ioDelayed && <Badge variant="destructive" className="animate-pulse">Delayed</Badge>}
+                            {ioDelayed && <Badge variant="destructive" className="animate-pulse text-[8px] sm:text-[10px] px-1 sm:px-2 h-4 sm:h-5">Delay</Badge>}
                         </div>
                     </CardHeader>
-                    <CardContent className="py-2">
+                    <CardContent className="py-1.5 sm:py-2 px-3 sm:px-6">
                         <div className="space-y-1">
                             <div className="flex justify-between items-baseline">
                                 <span className={cn(
-                                    "text-xl font-bold tracking-tight",
+                                    "text-lg sm:text-xl font-bold tracking-tight",
                                     balance > 0 ? "text-blue-600" : balance < 0 ? "text-amber-600" : ""
                                 )}>
-                                    {balance > 0 ? '+' : ''}{balance} <span className="text-[10px] text-slate-400 font-normal">mL</span>
+                                    {balance > 0 ? '+' : ''}{balance} <span className="text-[9px] sm:text-[10px] text-slate-400 font-normal">mL</span>
                                 </span>
                             </div>
                             <div className="space-y-1">
@@ -242,40 +244,36 @@ export default function OverviewTab({ patientId, patient }: OverviewTabProps) {
                                     <span>In: {totalInput}</span>
                                     <span>Out: {totalOutput}</span>
                                 </div>
-                                <Progress value={(totalInput / (totalInput + totalOutput)) * 100 || 50} className="h-1" />
+                                <Progress value={(totalInput / (totalInput + totalOutput)) * 100 || 50} className="h-1 shadow-none" />
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
                 {/* Support Card */}
-                <Card className="border-l-4 border-l-amber-500 transition-all hover:shadow-md sm:col-span-2">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-500 uppercase flex items-center gap-2">
-                            <Zap className="w-4 h-4 text-amber-500" /> Active Support
+                <Card className="border-l-4 border-l-amber-500 transition-all hover:shadow-md col-span-2">
+                    <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-6">
+                        <CardTitle className="text-[10px] sm:text-sm font-medium text-slate-500 uppercase flex items-center gap-1.5 sm:gap-2">
+                            <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" /> Active Support
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="py-2">
-                        <div className="grid grid-cols-2 gap-2">
+                    <CardContent className="py-1.5 sm:py-2 px-3 sm:px-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {activeSupport.length > 0 ? activeSupport.slice(0, 4).map((s, i) => (
-                                <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100">
-                                    <div className="min-w-0">
+                                <div key={i} className="flex items-center justify-between p-1.5 sm:p-2 bg-slate-50 rounded border border-slate-100">
+                                    <div className="min-w-0 pr-1">
                                         <div className="flex items-center gap-1">
-                                            <p className="font-bold text-slate-800 text-[11px] truncate">{s.name}</p>
-                                            {s.isOverdue ? (
-                                                <Badge variant="destructive" className="ml-1 text-[8px] h-3 px-1">Day {s.day}</Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="ml-1 text-[8px] h-3 px-1 border-primary/20 text-primary">Day {s.day}</Badge>
-                                            )}
+                                            <p className="font-bold text-slate-800 text-[10px] sm:text-[11px] truncate">{s.name}</p>
+                                            <Badge variant={s.isOverdue ? "destructive" : "outline"} className="text-[8px] h-3 px-1 shrink-0 whitespace-nowrap">D{s.day}</Badge>
                                         </div>
-                                        <p className="text-[9px] text-slate-500 truncate">{s.doseMg}</p>
+                                        <p className="text-[8px] sm:text-[9px] text-slate-500 truncate">{s.doseMg}</p>
                                     </div>
                                     <div className="text-right shrink-0">
-                                        <p className="text-sm font-black text-amber-600">{(s.doseMlHr || '0').split(' ')[0]}</p>
+                                        <p className="text-xs sm:text-sm font-black text-amber-600">{(s.doseMlHr || '0').split(' ')[0]}</p>
                                     </div>
                                 </div>
                             )) : (
-                                <p className="text-slate-400 italic text-xs col-span-2 py-2">No active support</p>
+                                <p className="text-slate-400 italic text-[10px] sm:text-xs col-span-2 py-2">No active support</p>
                             )}
                         </div>
                     </CardContent>
