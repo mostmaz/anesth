@@ -1,0 +1,26 @@
+2026/03/16-09:26:29.895 be70 Reusing MANIFEST E:\claude\anesth\server\lab_session_data\Default\IndexedDB\https_amrlab.net_0.indexeddb.leveldb/MANIFEST-000001
+2026/03/16-09:26:29.895 be70 Recovering log #128
+2026/03/16-09:26:29.896 be70 Reusing old log E:\claude\anesth\server\lab_session_data\Default\IndexedDB\https_amrlab.net_0.indexeddb.leveldb/000128.log 
+2026/03/16-09:26:29.897 be70 Delete type=2 #126
+2026/03/16-09:26:29.906 ba5c Level-0 table #133: started
+2026/03/16-09:26:29.907 ba5c Level-0 table #133: 1039 bytes OK
+2026/03/16-09:26:29.910 ba5c Delete type=0 #128
+2026/03/16-09:26:29.911 ba5c Manual compaction at level-0 from '\x00?\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00@\x00\x00\x00' @ 0 : 0; will stop at '\x00?\x00\x00\x05' @ 1230 : 1
+2026/03/16-09:26:29.911 ba5c Compacting 1@0 + 1@1 files
+2026/03/16-09:26:29.913 ba5c Generated table #134@0: 39 keys, 1014 bytes
+2026/03/16-09:26:29.913 ba5c Compacted 1@0 + 1@1 files => 1014 bytes
+2026/03/16-09:26:29.914 ba5c compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/03/16-09:26:29.915 ba5c Delete type=2 #133
+2026/03/16-09:26:29.915 be70 Manual compaction at level-0 from '\x00?\x00\x00\x05' @ 1230 : 1 .. '\x00@\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/03/16-09:26:30.997 ba5c Level-0 table #136: started
+2026/03/16-09:26:31.000 ba5c Level-0 table #136: 661 bytes OK
+2026/03/16-09:26:31.002 ba5c Delete type=2 #130
+2026/03/16-09:26:31.002 ba5c Delete type=0 #132
+2026/03/16-09:26:31.003 be70 Manual compaction at level-0 from '\x00@\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00A\x00\x00\x00' @ 0 : 0; will stop at '\x00@\x00\x00\x05' @ 1249 : 1
+2026/03/16-09:26:31.003 be70 Compacting 1@0 + 1@1 files
+2026/03/16-09:26:31.005 be70 Generated table #137@0: 39 keys, 1014 bytes
+2026/03/16-09:26:31.006 be70 Compacted 1@0 + 1@1 files => 1014 bytes
+2026/03/16-09:26:31.006 be70 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/03/16-09:26:31.007 be70 Delete type=2 #136
+2026/03/16-09:26:31.007 be70 Manual compaction at level-0 from '\x00@\x00\x00\x05' @ 1249 : 1 .. '\x00A\x00\x00\x00' @ 0 : 0; will stop at (end)
+2026/03/16-09:26:36.811 cb94 Manual compaction at level-0 from '\x00A\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00B\x00\x00\x00' @ 0 : 0; will stop at (end)

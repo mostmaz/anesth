@@ -36,6 +36,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".ui.patient.AddPatientActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ui.patient.AddInterventionActivity"
             android:exported="false" />
 
@@ -85,6 +89,10 @@
 
         <activity
             android:name=".ui.main.NotificationsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.patient.AddConsultationActivity"
             android:exported="false" />
 
         <service

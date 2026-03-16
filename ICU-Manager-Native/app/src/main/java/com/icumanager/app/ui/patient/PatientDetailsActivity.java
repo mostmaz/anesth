@@ -176,49 +176,16 @@ public class PatientDetailsActivity extends AppCompatActivity {
     }
 
     private void setupViewPager() {
-        PatientPagerAdapter pagerAdapter = new PatientPagerAdapter(this, patientId);
+        SharedPreferences prefs = getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
+        String role = prefs.getString("user_role", "RESIDENT");
+
+        PatientPagerAdapter pagerAdapter = new PatientPagerAdapter(this, patientId, role);
         viewPager.setAdapter(pagerAdapter);
 
-        new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
-            switch (position) {
-                case 0:
-                    tab.setText("Overview");
-                    break;
-                case 1:
-                    tab.setText("Handover");
-                    break;
-                case 2:
-                    tab.setText("Vitals");
-                    break;
-                case 3:
-                    tab.setText("MAR");
-                    break;
-                case 4:
-                    tab.setText("I/O");
-                    break;
-                case 5:
-                    tab.setText("Labs");
-                    break;
-                case 6:
-                    tab.setText("Radiology");
-                    break;
-                case 7:
-                    tab.setText("Cardiology");
-                    break;
-                case 8:
-                    tab.setText("Interventions");
-                    break;
-                case 9:
-                    tab.setText("Notes");
-                    break;
-                case 10:
-                    tab.setText("Ventilator");
-                    break;
-                case 11:
-                    tab.setText("Orders");
-                    break;
-            }
-        }).attach();
+        // Tab titles are role-aware — ask the adapter directly
+        new TabLayoutMediator(tabLayout, viewPager,
+                (tab, position) -> tab.setText(pagerAdapter.getTabTitle(position))
+        ).attach();
     }
 
     private void loadPatientData() {

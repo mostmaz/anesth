@@ -299,7 +299,7 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {vitals.map((entry) => (
+                                    {[...vitals].reverse().map((entry) => (
                                         <TableRow key={entry.id}>
                                             <TableCell>
                                                 <div className="flex flex-col">

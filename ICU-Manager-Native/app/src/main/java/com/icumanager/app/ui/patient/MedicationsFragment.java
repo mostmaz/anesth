@@ -16,6 +16,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.content.Intent;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.text.InputType;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.icumanager.app.R;
 import com.icumanager.app.network.ApiClient;
@@ -124,28 +128,56 @@ public class MedicationsFragment extends Fragment {
     }
 
     private void confirmAdministration(JSONObject med) {
-        if (getActivity() == null)
-            return;
+        if (getActivity() == null) return;
 
-        String medName = med.optString("name", "Unknown Medication");
+        String medName   = med.optString("name", "Unknown Medication");
+        String defDose   = med.optString("defaultDose", "");
+        String defDilution = med.optString("dilution", "");
+        String infRate   = med.optString("infusionRate", "");
+
+        // Build a small form layout: dose field + dilution field
+        LinearLayout layout = new LinearLayout(getActivity());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        int pad = (int)(16 * getResources().getDisplayMetrics().density);
+        layout.setPadding(pad, pad / 2, pad, 0);
+
+        EditText editDose = new EditText(getActivity());
+        editDose.setHint("Dose (e.g. " + defDose + ")");
+        editDose.setText(defDose);
+        editDose.setInputType(InputType.TYPE_CLASS_TEXT);
+        layout.addView(editDose);
+
+        EditText editDilution = new EditText(getActivity());
+        editDilution.setHint("Dilution volume mL" + (defDilution.isEmpty() ? "" : " (default: " + defDilution + " mL)"));
+        if (!defDilution.isEmpty() && !defDilution.equals("null")) {
+            editDilution.setText(defDilution);
+        }
+        editDilution.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        editDilution.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        layout.addView(editDilution);
+
+        String rateInfo = infRate.isEmpty() ? "" : "\nRate: " + infRate;
 
         new AlertDialog.Builder(getActivity())
-                .setTitle("Record Dose")
-                .setMessage("Are you sure you want to record a dose for " + medName + "?")
-                .setPositiveButton("Administer", (dialog, which) -> administerMedication(med))
+                .setTitle("Record Dose — " + medName)
+                .setMessage("Confirm administration" + rateInfo)
+                .setView(layout)
+                .setPositiveButton("Administer", (dialog, which) -> {
+                    String dose     = editDose.getText().toString().trim();
+                    String dilution = editDilution.getText().toString().trim();
+                    administerMedication(med, dose.isEmpty() ? defDose : dose, dilution);
+                })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
-    private void administerMedication(JSONObject med) {
-        if (getActivity() == null)
-            return;
+    private void administerMedication(JSONObject med, String dose, String dilution) {
+        if (getActivity() == null) return;
 
         SharedPreferences prefs = getActivity().getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
-        String token = prefs.getString("auth_token", null);
-        String userId = prefs.getString("user_id", "");
+        String token        = prefs.getString("auth_token", null);
+        String userId       = prefs.getString("user_id", "");
         String medicationId = med.optString("id", "");
-        String dose = med.optString("defaultDose", "");
 
         try {
             JSONObject body = new JSONObject();
@@ -154,6 +186,9 @@ public class MedicationsFragment extends Fragment {
             body.put("status", "Given");
             body.put("dose", dose);
             body.put("userId", userId);
+            if (!dilution.isEmpty()) {
+                body.put("dilutionVolume", Double.parseDouble(dilution));
+            }
 
             ApiClient.post("/medications/administer", body, token, new ApiClient.ApiCallback() {
                 @Override

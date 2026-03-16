@@ -12,6 +12,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -154,6 +155,14 @@ public class DashboardActivity extends AppCompatActivity {
             startActivity(new Intent(this, com.icumanager.app.ui.admin.AdminDashboardActivity.class));
         });
 
+        // Add Patient FAB — only visible to SENIOR/RESIDENT
+        com.google.android.material.floatingactionbutton.FloatingActionButton fabAddPatient =
+                findViewById(R.id.fabAddPatient);
+        fabAddPatient.setOnClickListener(v -> {
+            startActivityForResult(
+                    new Intent(this, com.icumanager.app.ui.patient.AddPatientActivity.class), 999);
+        });
+
         checkUserRole();
 
         // Tab buttons
@@ -201,7 +210,7 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     private void fetchSystemNotifications(String token) {
-        ApiClient.get("/investigations", token, new ApiClient.ApiCallback() {
+        ApiClient.get("/notifications", token, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(String responseStr) {
                 runOnUiThread(() -> {
@@ -471,10 +480,22 @@ public class DashboardActivity extends AppCompatActivity {
     private void checkUserRole() {
         SharedPreferences prefs = getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
         String role = prefs.getString("user_role", "");
-        if ("SENIOR".equals(role)) {
-            btnAdmin.setVisibility(View.VISIBLE);
-        } else {
-            btnAdmin.setVisibility(View.GONE);
+
+        // Admin panel only for SENIOR
+        btnAdmin.setVisibility("SENIOR".equals(role) ? View.VISIBLE : View.GONE);
+
+        // Add Patient FAB only for SENIOR and RESIDENT (not NURSE)
+        com.google.android.material.floatingactionbutton.FloatingActionButton fabAddPatient =
+                findViewById(R.id.fabAddPatient);
+        fabAddPatient.setVisibility("NURSE".equals(role) ? View.GONE : View.VISIBLE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable android.content.Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 999 && resultCode == android.app.Activity.RESULT_OK) {
+            // Patient was added — refresh the dashboard
+            fetchDashboardData();
         }
     }
 

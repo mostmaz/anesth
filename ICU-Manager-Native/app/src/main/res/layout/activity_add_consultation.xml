@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbarConsultation"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        app:title="Add Consultation"
+        app:navigationIcon="@android:drawable/ic_menu_close_clear_cancel" />
+
+    <ProgressBar
+        android:id="@+id/progressConsultationForm"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+        android:indeterminate="true"
+        android:visibility="gone" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Doctor Name *"
+                android:textSize="13sp"
+                android:textColor="#374151"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/editConsultDoctorName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="e.g. Smith"
+                android:inputType="textPersonName"
+                android:layout_marginBottom="14dp"
+                style="@style/Widget.MaterialComponents.TextInputEditText.OutlinedBox" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Specialty *"
+                android:textSize="13sp"
+                android:textColor="#374151"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/editConsultSpecialty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="e.g. Cardiology"
+                android:inputType="text"
+                android:layout_marginBottom="14dp"
+                style="@style/Widget.MaterialComponents.TextInputEditText.OutlinedBox" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Notes / Recommendations"
+                android:textSize="13sp"
+                android:textColor="#374151"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/editConsultNotes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Enter consultant's notes and recommendations..."
+                android:inputType="textMultiLine"
+                android:minLines="4"
+                android:gravity="top"
+                android:layout_marginBottom="14dp"
+                style="@style/Widget.MaterialComponents.TextInputEditText.OutlinedBox" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Report Image (Optional)"
+                android:textSize="13sp"
+                android:textColor="#374151"
+                android:layout_marginBottom="4dp" />
+
+            <Button
+                android:id="@+id/btnPickConsultImage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Select Report Image"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/textConsultImageStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="12sp"
+                android:textColor="#10B981"
+                android:layout_marginBottom="8dp" />
+
+            <ImageView
+                android:id="@+id/imageConsultPreview"
+                android:layout_width="match_parent"
+                android:layout_height="150dp"
+                android:scaleType="centerCrop"
+                android:layout_marginBottom="14dp"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btnSubmitConsultation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Save Consultation"
+                android:layout_marginTop="8dp" />
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

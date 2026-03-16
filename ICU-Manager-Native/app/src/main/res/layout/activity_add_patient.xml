@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0F172A">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="#1E293B"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+        android:title="Add Patient"
+        android:titleTextColor="#FFFFFF" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Name -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Full Name *"
+                android:textColor="#94A3B8"
+                android:textSize="13sp"
+                android:layout_marginBottom="4dp" />
+            <EditText
+                android:id="@+id/editName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Patient full name"
+                android:background="#1E293B"
+                android:textColor="#F8FAFC"
+                android:textColorHint="#475569"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp"
+                android:inputType="textPersonName" />
+
+            <!-- MRN -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="MRN (Medical Record Number)"
+                android:textColor="#94A3B8"
+                android:textSize="13sp"
+                android:layout_marginBottom="4dp" />
+            <EditText
+                android:id="@+id/editMrn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="e.g. MRN-00123"
+                android:background="#1E293B"
+                android:textColor="#F8FAFC"
+                android:textColorHint="#475569"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp"
+                android:inputType="text" />
+
+            <!-- Age -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Age"
+                android:textColor="#94A3B8"
+                android:textSize="13sp"
+                android:layout_marginBottom="4dp" />
+            <EditText
+                android:id="@+id/editAge"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Age in years"
+                android:background="#1E293B"
+                android:textColor="#F8FAFC"
+                android:textColorHint="#475569"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp"
+                android:inputType="number" />
+
+            <!-- Gender -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Gender"
+                android:textColor="#94A3B8"
+                android:textSize="13sp"
+                android:layout_marginBottom="4dp" />
+            <Spinner
+                android:id="@+id/spinnerGender"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#1E293B"
+                android:layout_marginBottom="12dp"
+                android:padding="8dp" />
+
+            <!-- Bed Number -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Bed Number"
+                android:textColor="#94A3B8"
+                android:textSize="13sp"
+                android:layout_marginBottom="4dp" />
+            <EditText
+                android:id="@+id/editBedNumber"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="e.g. Bed 3"
+                android:background="#1E293B"
+                android:textColor="#F8FAFC"
+                android:textColorHint="#475569"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp"
+                android:inputType="text" />
+
+            <!-- Diagnosis -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Diagnosis / Presenting Complaint"
+                android:textColor="#94A3B8"
+                android:textSize="13sp"
+                android:layout_marginBottom="4dp" />
+            <EditText
+                android:id="@+id/editDiagnosis"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Primary diagnosis"
+                android:background="#1E293B"
+                android:textColor="#F8FAFC"
+                android:textColorHint="#475569"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp"
+                android:inputType="textMultiLine"
+                android:minLines="2"
+                android:gravity="top" />
+
+            <!-- Comorbidities -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Comorbidities"
+                android:textColor="#94A3B8"
+                android:textSize="13sp"
+                android:layout_marginBottom="4dp" />
+            <EditText
+                android:id="@+id/editComorbidities"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="e.g. DM, HTN, CKD"
+                android:background="#1E293B"
+                android:textColor="#F8FAFC"
+                android:textColorHint="#475569"
+                android:padding="12dp"
+                android:layout_marginBottom="12dp"
+                android:inputType="textMultiLine"
+                android:minLines="2"
+                android:gravity="top" />
+
+            <!-- Admitting Doctor -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Admitting Doctor"
+                android:textColor="#94A3B8"
+                android:textSize="13sp"
+                android:layout_marginBottom="4dp" />
+            <EditText
+                android:id="@+id/editAdmittingDoctor"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Dr. Name"
+                android:background="#1E293B"
+                android:textColor="#F8FAFC"
+                android:textColorHint="#475569"
+                android:padding="12dp"
+                android:layout_marginBottom="24dp"
+                android:inputType="textPersonName" />
+
+            <Button
+                android:id="@+id/btnSave"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Admit Patient"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#3B82F6"
+                android:padding="14dp"
+                android:textSize="16sp" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>

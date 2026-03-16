@@ -11,6 +11,10 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import android.widget.Button;
 import android.util.Log;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 public class MedicationsAdapter extends RecyclerView.Adapter<MedicationsAdapter.ViewHolder> {
     private JSONArray medications = new JSONArray();
@@ -86,14 +90,36 @@ public class MedicationsAdapter extends RecyclerView.Adapter<MedicationsAdapter.
                 holder.textInstructions.setVisibility(View.GONE);
             }
 
+            // Day counter badge — calculated from startedAt
+            String startedAt = med.optString("startedAt", "");
+            if (!startedAt.isEmpty() && !startedAt.equals("null")) {
+                try {
+                    // Parse ISO date (2024-01-15T08:00:00.000Z)
+                    String datePart = startedAt.split("T")[0];
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+                    Date startDate = sdf.parse(datePart);
+                    if (startDate != null) {
+                        long diffMs = System.currentTimeMillis() - startDate.getTime();
+                        long dayCount = TimeUnit.MILLISECONDS.toDays(diffMs) + 1;
+                        holder.textDayCounter.setText("Day " + dayCount);
+                        holder.textDayCounter.setVisibility(View.VISIBLE);
+                    } else {
+                        holder.textDayCounter.setVisibility(View.GONE);
+                    }
+                } catch (Exception e) {
+                    holder.textDayCounter.setVisibility(View.GONE);
+                }
+            } else {
+                holder.textDayCounter.setVisibility(View.GONE);
+            }
+
             // Meta info (Reminder, Started Date)
             int reminder = med.optInt("durationReminder", 0);
-            String startedAt = med.optString("startedAt", "");
             StringBuilder meta = new StringBuilder();
             if (reminder > 0) {
                 meta.append("Reminder: ").append(reminder).append(" days");
             }
-            if (!startedAt.isEmpty()) {
+            if (!startedAt.isEmpty() && !startedAt.equals("null")) {
                 if (meta.length() > 0)
                     meta.append(" | ");
                 meta.append("Started: ").append(startedAt.split("T")[0]);
@@ -125,11 +151,11 @@ public class MedicationsAdapter extends RecyclerView.Adapter<MedicationsAdapter.
                     String timeStr = lastTime.length() >= 16
                             ? lastTime.substring(0, 16).replace("T", " ")
                             : lastTime;
-                    String dose = lastAdm.optString("dose", "");
-                    JSONObject user = lastAdm.optJSONObject("User");
-                    String nurse = (user != null) ? user.optString("name", "") : "";
+                    String lastDose = lastAdm.optString("dose", "");
+                    JSONObject admUser = lastAdm.optJSONObject("User");
+                    String nurse = (admUser != null) ? admUser.optString("name", "") : "";
                     StringBuilder sb = new StringBuilder("Last given: ").append(timeStr);
-                    if (!dose.isEmpty()) sb.append(" · ").append(dose);
+                    if (!lastDose.isEmpty()) sb.append(" · ").append(lastDose);
                     if (!nurse.isEmpty()) sb.append(" (").append(nurse).append(")");
                     holder.textLastAdmin.setText(sb.toString());
                     holder.textLastAdmin.setVisibility(View.VISIBLE);
@@ -172,18 +198,19 @@ public class MedicationsAdapter extends RecyclerView.Adapter<MedicationsAdapter.
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView textName, textDetails, textInstructions, textMeta, textLastAdmin;
+        TextView textName, textDetails, textInstructions, textMeta, textLastAdmin, textDayCounter;
         Button btnRecordDose, btnStopMed;
 
         ViewHolder(View itemView) {
             super(itemView);
-            textName = itemView.findViewById(R.id.textMedName);
-            textDetails = itemView.findViewById(R.id.textMedDetails);
-            textInstructions = itemView.findViewById(R.id.textMedInstructions);
-            textMeta = itemView.findViewById(R.id.textMedMeta);
-            textLastAdmin = itemView.findViewById(R.id.textLastAdmin);
-            btnRecordDose = itemView.findViewById(R.id.btnRecordDose);
-            btnStopMed = itemView.findViewById(R.id.btnStopMed);
+            textName        = itemView.findViewById(R.id.textMedName);
+            textDayCounter  = itemView.findViewById(R.id.textDayCounter);
+            textDetails     = itemView.findViewById(R.id.textMedDetails);
+            textInstructions= itemView.findViewById(R.id.textMedInstructions);
+            textMeta        = itemView.findViewById(R.id.textMedMeta);
+            textLastAdmin   = itemView.findViewById(R.id.textLastAdmin);
+            btnRecordDose   = itemView.findViewById(R.id.btnRecordDose);
+            btnStopMed      = itemView.findViewById(R.id.btnStopMed);
         }
     }
 }

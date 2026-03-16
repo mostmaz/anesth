@@ -51,5 +51,9 @@ export const investigationsApi = {
 
     deleteAll: async (patientId: string) => {
         return apiClient.delete(`/investigations/patient/${patientId}/all`);
+    },
+
+    sync: async (data: { patientId: string; mrn: string; name: string; authorId: string }, options?: { timeout?: number }) => {
+        return apiClient.post<{ success: boolean; data: any[] }>('/lab/sync', data, options);
     }
 };
