@@ -32,7 +32,8 @@ public class VitalsAdapter extends RecyclerView.Adapter<VitalsAdapter.ViewHolder
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        JSONObject vital = vitals.optJSONObject(position);
+        // Reverse so oldest entry is at the top (chronological order)
+        JSONObject vital = vitals.optJSONObject(vitals.length() - 1 - position);
         if (vital != null) {
             try {
                 String timestamp = vital.optString("timestamp");

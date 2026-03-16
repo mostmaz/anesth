@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../../../components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -8,14 +8,14 @@ import {
     DialogTitle,
     DialogTrigger,
     DialogFooter,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { investigationsApi } from '@/api/investigationsApi';
-import { useAuthStore } from '@/stores/authStore';
+} from '../../../components/ui/dialog';
+import { Input } from '../../../components/ui/input';
+import { Label } from '../../../components/ui/label';
+import { investigationsApi } from '../../../api/investigationsApi';
+import { useAuthStore } from '../../../stores/authStore';
 import { Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { uploadApi } from '@/api/uploadApi';
+import { uploadApi } from '../../../api/uploadApi';
 
 interface UploadExternalResultDialogProps {
     patientId: string;

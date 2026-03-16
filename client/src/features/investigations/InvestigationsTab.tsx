@@ -7,11 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Input } from '../../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { investigationsApi, Investigation } from '../../api/investigationsApi';
-import { FileText, Microscope, Search, Filter, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { FileText, Microscope, Search, Filter, Trash2, RotateCw } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { patientApi } from '../../api/patientApi';
 
 import { UploadExternalResultDialog } from './components/UploadExternalResultDialog';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger } from '../../components/ui/dialog';
 import { Eye } from 'lucide-react';
 import { InvestigationDetailDialog } from './components/InvestigationDetailDialog';
 
@@ -32,6 +33,8 @@ export default function InvestigationsTab({ patientId, defaultTab }: Investigati
     const [isDeletingAll, setIsDeletingAll] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<string>(defaultTab || 'labs');
+    const [patient, setPatient] = useState<any>(null);
+    const [isSyncing, setIsSyncing] = useState(false);
 
     const fetchInvestigations = async () => {
         try {
@@ -42,6 +45,40 @@ export default function InvestigationsTab({ patientId, defaultTab }: Investigati
             console.error("Failed to load investigations", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchPatient = async () => {
+        try {
+            const data = await patientApi.getPatient(patientId);
+            setPatient(data);
+        } catch (error) {
+            console.error("Failed to load patient", error);
+        }
+    };
+
+    const handleSync = async () => {
+        if (!patient) return;
+        setIsSyncing(true);
+        try {
+            // Get current user from localStorage or auth state if possible
+            const authData = localStorage.getItem('auth_storage');
+            const currentUser = authData ? JSON.parse(authData).state?.user : null;
+            const authorId = currentUser?.id || 'manual-sync';
+
+            await investigationsApi.sync({
+                patientId,
+                mrn: patient.mrn,
+                name: patient.name,
+                authorId
+            }, { timeout: 300000 }); // 5 minutes
+            await fetchInvestigations();
+            alert("Sync completed successfully!");
+        } catch (error) {
+            console.error("Sync failed", error);
+            alert("Failed to sync with lab portal.");
+        } finally {
+            setIsSyncing(false);
         }
     };
 
@@ -79,6 +116,7 @@ export default function InvestigationsTab({ patientId, defaultTab }: Investigati
     };
 
     useEffect(() => {
+        fetchPatient();
         fetchInvestigations();
     }, [patientId]);
 
@@ -128,10 +166,20 @@ export default function InvestigationsTab({ patientId, defaultTab }: Investigati
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium">
-                    {defaultTab === 'labs' ? 'Laboratory Investigations' :
-                        defaultTab === 'cardiology' ? 'Cardiology' : 'Radiology'}
+                    {activeTab === 'labs' ? 'Laboratory Investigations' :
+                        activeTab === 'cardiology' ? 'Cardiology' : 'Radiology'}
                 </h3>
                 <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSync}
+                        disabled={isSyncing || !patient}
+                        className="bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 border-blue-200"
+                    >
+                        <RotateCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                        {isSyncing ? 'Syncing...' : 'Sync with Lab'}
+                    </Button>
                     <UploadExternalResultDialog patientId={patientId} onSuccess={fetchInvestigations} activeTab={activeTab} />
                     {investigations.length > 0 && (
                         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -458,11 +506,21 @@ export default function InvestigationsTab({ patientId, defaultTab }: Investigati
                                                 </DialogTrigger>
                                                 <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto p-0">
                                                     <div className="p-4 bg-black/5 flex justify-center items-center min-h-[200px]">
-                                                        <img
-                                                            src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${img.result.imageUrl}`}
-                                                            alt="Investigation result"
-                                                            className="max-w-full h-auto rounded shadow-sm"
-                                                        />
+                                                        {img.result.imageUrl.toLowerCase().endsWith('.pdf') ? (
+                                                            <div className="text-center py-20 px-10">
+                                                                <p className="mb-4 text-muted-foreground text-lg">This report is a PDF document.</p>
+                                                                <Button size="lg" onClick={() => window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${img.result.imageUrl}`, '_blank')}>
+                                                                    <FileText className="w-5 h-5 mr-3" />
+                                                                    Click here to open PDF in a new tab
+                                                                </Button>
+                                                            </div>
+                                                        ) : (
+                                                            <img
+                                                                src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${img.result.imageUrl}`}
+                                                                alt="Investigation result"
+                                                                className="max-w-full h-auto rounded shadow-sm"
+                                                            />
+                                                        )}
                                                     </div>
                                                 </DialogContent>
                                             </Dialog>

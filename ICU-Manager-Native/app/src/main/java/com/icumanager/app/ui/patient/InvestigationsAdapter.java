@@ -1,21 +1,17 @@
 package com.icumanager.app.ui.patient;
 
-import android.content.Context;
-import android.content.Intent;
+import android.graphics.Color;
 import android.graphics.Typeface;
-import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
+import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.icumanager.app.R;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -30,309 +26,244 @@ import java.util.TimeZone;
 
 public class InvestigationsAdapter extends RecyclerView.Adapter<InvestigationsAdapter.ViewHolder> {
 
-    private JSONArray investigations = new JSONArray();
+    public interface OnInvestigationActionListener {
+        void onViewReport(String imageUrl);
+        void onDelete(String invId, int position);
+    }
 
-    // ── Date parsing ─────────────────────────────────────────────────────────
+    private JSONArray investigations = new JSONArray();
+    private OnInvestigationActionListener listener;
+
+    public InvestigationsAdapter(OnInvestigationActionListener listener) {
+        this.listener = listener;
+    }
+
+    public InvestigationsAdapter() {}
 
     private static final SimpleDateFormat[] DATE_FORMATS = {
-            makeUtcFmt("yyyy-MM-dd'T'HH:mm:ss.SSSX"),
-            makeUtcFmt("yyyy-MM-dd'T'HH:mm:ssX"),
-            makeUtcFmt("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"),
-            makeUtcFmt("yyyy-MM-dd'T'HH:mm:ss'Z'"),
-            makeUtcFmt("yyyy-MM-dd"),
+        makeUtcFmt("yyyy-MM-dd'T'HH:mm:ss.SSSX"),
+        makeUtcFmt("yyyy-MM-dd'T'HH:mm:ssX"),
+        makeUtcFmt("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"),
+        makeUtcFmt("yyyy-MM-dd'T'HH:mm:ss'Z'"),
+        makeUtcFmt("yyyy-MM-dd"),
     };
-
     private static final SimpleDateFormat DISPLAY_FMT =
-            new SimpleDateFormat("MMM dd, yyyy  HH:mm", Locale.getDefault());
-
+        new SimpleDateFormat("MMM dd, yyyy  HH:mm", Locale.getDefault());
     private static SimpleDateFormat makeUtcFmt(String pattern) {
         SimpleDateFormat sdf = new SimpleDateFormat(pattern, Locale.US);
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
         return sdf;
     }
-
     private String parseAndFormatDate(String raw) {
         if (raw == null || raw.isEmpty()) return "--";
         for (SimpleDateFormat fmt : DATE_FORMATS) {
-            try {
-                Date d = fmt.parse(raw);
-                if (d != null) return DISPLAY_FMT.format(d);
-            } catch (ParseException ignored) {
-            }
+            try { Date d = fmt.parse(raw); if (d != null) return DISPLAY_FMT.format(d); }
+            catch (ParseException ignored) {}
         }
-        String s = raw.length() > 16 ? raw.substring(0, 16) : raw;
-        return s.replace("T", "  ");
+        return raw.length() > 16 ? raw.substring(0, 16).replace("T", "  ") : raw;
     }
-
-    // ── Result row model ─────────────────────────────────────────────────────
 
     private static class ResultRow {
-        final String label;
-        final String value;
-        final String reference;
-        final String flag;
-
-        ResultRow(String label, String value, String reference, String flag) {
-            this.label     = label;
-            this.value     = value;
-            this.reference = reference;
-            this.flag      = flag;
+        final String label, value, reference, flag;
+        final boolean isAbnormal;
+        ResultRow(String l, String v, String r, String f, boolean a) {
+            label = l; value = v; reference = r; flag = f; isAbnormal = a;
         }
     }
 
-    /**
-     * Parse a result JSONObject into display rows.
-     * Handles two server shapes:
-     *   Flat:   { "WBC": "10.5 K/uL" }
-     *   Nested: { "WBC": { "value":"10.5","unit":"K/uL","flag":"H","reference":"4-11" } }
-     */
     private List<ResultRow> parseResultRows(JSONObject result) {
         List<ResultRow> rows = new ArrayList<>();
         if (result == null) return rows;
-
         Iterator<String> keys = result.keys();
         while (keys.hasNext()) {
             String key = keys.next();
-            if (key.startsWith("_") || key.equals("id") || key.equals("__v")) continue;
-
+            if (key.equals("imageUrl") || key.equals("fileUrl") || key.equals("url") || key.startsWith("_")) continue;
             Object raw = result.opt(key);
             if (raw == null) continue;
-
             String label = humanise(key);
-
             if (raw instanceof JSONObject) {
                 JSONObject obj = (JSONObject) raw;
-                String val  = obj.optString("value",  obj.optString("result", ""));
-                String unit = obj.optString("unit",   obj.optString("units",  ""));
-                String ref  = obj.optString("reference",
-                             obj.optString("normalRange",
-                             obj.optString("range", "")));
-                String flag = obj.optString("flag",
-                             obj.optString("status", "")).toUpperCase();
-
-                // Single-key object fallback
-                if (val.isEmpty() && obj.length() == 1) {
-                    val = String.valueOf(obj.opt(obj.keys().next()));
-                }
-
-                String displayValue = val.isEmpty() ? "--"
-                        : unit.isEmpty() ? val
-                        : val + "  " + unit;
-
-                rows.add(new ResultRow(label, displayValue, ref, flag));
-
-            } else if (raw instanceof JSONArray) {
-                JSONArray arr = (JSONArray) raw;
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < arr.length(); i++) {
-                    if (sb.length() > 0) sb.append(", ");
-                    sb.append(arr.opt(i));
-                }
-                rows.add(new ResultRow(label, sb.toString(), "", ""));
-
+                String val  = obj.optString("value", obj.optString("result", ""));
+                String unit = obj.optString("unit", obj.optString("units", ""));
+                String ref  = obj.optString("reference", obj.optString("normalRange", obj.optString("range", "")));
+                String flag = obj.optString("flag", obj.optString("status", "")).toUpperCase();
+                boolean abnormal = obj.optBoolean("isAbnormal", false);
+                if (val.isEmpty() && obj.length() == 1) val = String.valueOf(obj.opt(obj.keys().next()));
+                String displayVal = val.isEmpty() ? "--" : unit.isEmpty() ? val : val + " " + unit;
+                rows.add(new ResultRow(label, displayVal, ref, flag, abnormal));
             } else {
                 String val = raw.toString().trim();
-                if (!val.isEmpty()) {
-                    rows.add(new ResultRow(label, val, "", ""));
-                }
+                if (!val.isEmpty()) rows.add(new ResultRow(label, val, "", "", false));
             }
         }
         return rows;
     }
 
-    /** CamelCase / snake_case → "Human Readable Label" */
     private String humanise(String key) {
         String s = key.replace("_", " ").replace("-", " ");
         s = s.replaceAll("([a-z])([A-Z])", "$1 $2");
-        if (!s.isEmpty()) {
-            s = Character.toUpperCase(s.charAt(0)) + s.substring(1);
-        }
-        return s;
+        return s.isEmpty() ? key : Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
-    /** Color for value text based on flag. */
-    private int flagColor(String flag) {
-        if (flag == null || flag.isEmpty()) return 0xFFCBD5E1;
+    private int flagColor(String flag, boolean isAbnormal) {
+        if (isAbnormal) return Color.parseColor("#F87171");
+        if (flag == null || flag.isEmpty()) return Color.parseColor("#CBD5E1");
         switch (flag.toUpperCase()) {
-            case "H": case "HIGH": case "HH":       return 0xFFF87171; // red
-            case "L": case "LOW":  case "LL":       return 0xFF60A5FA; // blue
-            case "C": case "CRITICAL": case "PANIC": return 0xFFFF4444; // bright red
-            case "N": case "NORMAL": case "WNL":    return 0xFF4ADE80; // green
-            default:                                return 0xFFCBD5E1; // default
+            case "H": case "HIGH": case "HH": return Color.parseColor("#F87171");
+            case "L": case "LOW":  case "LL": return Color.parseColor("#60A5FA");
+            case "C": case "CRITICAL":        return Color.parseColor("#FF4444");
+            case "N": case "NORMAL":          return Color.parseColor("#4ADE80");
+            default: return Color.parseColor("#CBD5E1");
         }
     }
 
-    /** Arrow indicator appended to value. */
-    private String flagArrow(String flag) {
-        if (flag == null || flag.isEmpty()) return "";
+    private String flagArrow(String flag, boolean isAbnormal) {
+        if (isAbnormal) return " !";
+        if (flag == null) return "";
         switch (flag.toUpperCase()) {
-            case "H": case "HIGH":  case "HH":           return " ↑";
-            case "L": case "LOW":   case "LL":           return " ↓";
-            case "C": case "CRITICAL": case "PANIC":     return " ‼";
+            case "H": case "HIGH": case "HH": return " \u2191";
+            case "L": case "LOW":  case "LL": return " \u2193";
+            case "C": case "CRITICAL":        return " \u203C";
             default: return "";
         }
     }
 
-    // ── Adapter API ──────────────────────────────────────────────────────────
-
-    public void setInvestigations(JSONArray investigations) {
-        this.investigations = investigations;
+    public void setInvestigations(JSONArray arr) {
+        this.investigations = arr;
         notifyDataSetChanged();
     }
 
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View v = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_investigation, parent, false);
+        View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_investigation, parent, false);
         return new ViewHolder(v);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull ViewHolder h, int position) {
         JSONObject inv = investigations.optJSONObject(position);
         if (inv == null) return;
 
-        Context ctx = holder.itemView.getContext();
+        String invId = inv.optString("id", "");
+        h.textType.setText(inv.optString("type", "UNKNOWN").toUpperCase());
+        h.textDate.setText(parseAndFormatDate(inv.optString("conductedAt", inv.optString("createdAt", ""))));
+        h.textTitle.setText(inv.optString("title", "Unnamed Study"));
 
-        holder.textType.setText(inv.optString("type", "UNKNOWN").toUpperCase());
-        String rawDate = inv.optString("conductedAt", inv.optString("createdAt", ""));
-        holder.textDate.setText(parseAndFormatDate(rawDate));
-        holder.textTitle.setText(inv.optString("title", "Unnamed Study"));
-
-        // View Report button — check result object for imageUrl/fileUrl
-        JSONObject resultForUrl = inv.optJSONObject("result");
-        String reportUrl = "";
-        if (resultForUrl != null) {
-            reportUrl = resultForUrl.optString("imageUrl",
-                        resultForUrl.optString("fileUrl",
-                        resultForUrl.optString("pdfUrl",
-                        resultForUrl.optString("url", ""))));
-        }
-        if (reportUrl.isEmpty()) {
-            reportUrl = inv.optString("fileUrl", inv.optString("imageUrl", ""));
-        }
-        final String finalReportUrl = reportUrl;
-        if (!finalReportUrl.isEmpty()) {
-            holder.btnViewReport.setVisibility(View.VISIBLE);
-            holder.btnViewReport.setOnClickListener(v -> {
-                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(finalReportUrl));
-                ctx.startActivity(intent);
-            });
+        // Delete button
+        if (listener != null) {
+            h.btnDelete.setVisibility(View.VISIBLE);
+            h.btnDelete.setOnClickListener(v -> listener.onDelete(invId, h.getAdapterPosition()));
         } else {
-            holder.btnViewReport.setVisibility(View.GONE);
+            h.btnDelete.setVisibility(View.GONE);
         }
 
-        // Clear previous rows (critical for RecyclerView view reuse)
-        holder.layoutResultRows.removeAllViews();
-
+        // Check overall abnormality for card background highlight
         JSONObject resultObj = inv.optJSONObject("result");
         List<ResultRow> rows = parseResultRows(resultObj);
+        boolean anyAbnormal = rows.stream().anyMatch(r -> r.isAbnormal ||
+            r.flag.equals("H") || r.flag.equals("HIGH") || r.flag.equals("L") ||
+            r.flag.equals("LOW") || r.flag.equals("C") || r.flag.equals("CRITICAL") || r.flag.equals("HH") || r.flag.equals("LL"));
 
+        // Abnormal badge
+        if (h.textAbnormalBadge != null)
+            h.textAbnormalBadge.setVisibility(anyAbnormal ? View.VISIBLE : View.GONE);
+
+        // Card highlight for abnormal results
+        if (h.cardView != null)
+            h.cardView.setCardBackgroundColor(Color.parseColor(anyAbnormal ? "#2D1515" : "#1E293B"));
+
+        // Report URL
+        String reportUrl = "";
+        if (resultObj != null) {
+            reportUrl = resultObj.optString("imageUrl", resultObj.optString("fileUrl", resultObj.optString("url", "")));
+        }
+        if (reportUrl.isEmpty()) reportUrl = inv.optString("fileUrl", inv.optString("imageUrl", ""));
+        final String finalUrl = reportUrl;
+        if (!finalUrl.isEmpty()) {
+            h.btnViewReport.setVisibility(View.VISIBLE);
+            h.btnViewReport.setOnClickListener(v -> { if (listener != null) listener.onViewReport(finalUrl); });
+        } else {
+            h.btnViewReport.setVisibility(View.GONE);
+        }
+
+        // Result rows
+        h.layoutResultRows.removeAllViews();
         if (!rows.isEmpty()) {
-            // ── Structured table ──────────────────────────────────────────
-            holder.divider.setVisibility(View.VISIBLE);
-            holder.layoutHeader.setVisibility(View.VISIBLE);
-            holder.layoutResultRows.setVisibility(View.VISIBLE);
-            holder.textResult.setVisibility(View.GONE);
-
+            h.divider.setVisibility(View.VISIBLE);
+            h.layoutHeader.setVisibility(View.VISIBLE);
+            h.textResult.setVisibility(View.GONE);
             for (int i = 0; i < rows.size(); i++) {
                 ResultRow row = rows.get(i);
+                LinearLayout rowLay = new LinearLayout(h.itemView.getContext());
+                rowLay.setOrientation(LinearLayout.HORIZONTAL);
+                rowLay.setPadding(0, 6, 0, 6);
 
-                LinearLayout rowLayout = new LinearLayout(ctx);
-                rowLayout.setOrientation(LinearLayout.HORIZONTAL);
-                rowLayout.setPadding(0, 8, 0, 8);
-
-                boolean isFlagged = !row.flag.isEmpty() && !row.flag.equalsIgnoreCase("N")
-                        && !row.flag.equalsIgnoreCase("NORMAL") && !row.flag.equalsIgnoreCase("WNL");
-
-                // Label column (weight 2)
-                TextView tvLabel = new TextView(ctx);
+                TextView tvLabel = new TextView(h.itemView.getContext());
                 tvLabel.setText(row.label);
-                tvLabel.setTextColor(0xFFE2E8F0);
-                tvLabel.setTextSize(14f);
+                tvLabel.setTextColor(Color.parseColor("#E2E8F0"));
+                tvLabel.setTextSize(13f);
                 tvLabel.setTypeface(null, Typeface.BOLD);
-                tvLabel.setLayoutParams(new LinearLayout.LayoutParams(0,
-                        ViewGroup.LayoutParams.WRAP_CONTENT, 2f));
+                tvLabel.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 2f));
 
-                // Value column — colored by flag (weight 2), bolder when flagged
-                TextView tvValue = new TextView(ctx);
-                tvValue.setText(row.value + flagArrow(row.flag));
-                tvValue.setTextColor(flagColor(row.flag));
-                tvValue.setTextSize(isFlagged ? 15f : 14f);
-                tvValue.setTypeface(null, isFlagged ? Typeface.BOLD : Typeface.NORMAL);
-                tvValue.setLayoutParams(new LinearLayout.LayoutParams(0,
-                        ViewGroup.LayoutParams.WRAP_CONTENT, 2f));
+                TextView tvValue = new TextView(h.itemView.getContext());
+                tvValue.setText(row.value + flagArrow(row.flag, row.isAbnormal));
+                tvValue.setTextColor(flagColor(row.flag, row.isAbnormal));
+                tvValue.setTextSize(row.isAbnormal ? 14f : 13f);
+                tvValue.setTypeface(null, row.isAbnormal ? Typeface.BOLD : Typeface.NORMAL);
+                tvValue.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 2f));
 
-                // Reference range column (weight 2, end-aligned, muted)
-                TextView tvRef = new TextView(ctx);
+                TextView tvRef = new TextView(h.itemView.getContext());
                 tvRef.setText(row.reference);
-                tvRef.setTextColor(0xFF64748B);
-                tvRef.setTextSize(12f);
+                tvRef.setTextColor(Color.parseColor("#64748B"));
+                tvRef.setTextSize(11f);
                 tvRef.setGravity(android.view.Gravity.END);
-                tvRef.setLayoutParams(new LinearLayout.LayoutParams(0,
-                        ViewGroup.LayoutParams.WRAP_CONTENT, 2f));
+                tvRef.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 2f));
 
-                rowLayout.addView(tvLabel);
-                rowLayout.addView(tvValue);
-                rowLayout.addView(tvRef);
-                holder.layoutResultRows.addView(rowLayout);
-
-                // Thin separator between rows (not after last)
+                rowLay.addView(tvLabel);
+                rowLay.addView(tvValue);
+                rowLay.addView(tvRef);
+                h.layoutResultRows.addView(rowLay);
                 if (i < rows.size() - 1) {
-                    View sep = new View(ctx);
-                    sep.setBackgroundColor(0x1AFFFFFF);
-                    sep.setLayoutParams(new LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT, 1));
-                    holder.layoutResultRows.addView(sep);
+                    View sep = new View(h.itemView.getContext());
+                    sep.setBackgroundColor(Color.parseColor("#1A334155"));
+                    sep.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1));
+                    h.layoutResultRows.addView(sep);
                 }
             }
-
         } else {
-            // ── Plain text fallback ───────────────────────────────────────
-            holder.divider.setVisibility(View.GONE);
-            holder.layoutHeader.setVisibility(View.GONE);
-            holder.layoutResultRows.setVisibility(View.GONE);
-
+            h.divider.setVisibility(View.GONE);
+            h.layoutHeader.setVisibility(View.GONE);
             String impression = inv.optString("impression", "");
-            String notes      = inv.optString("notes", "");
-
-            String display = !impression.isEmpty() ? "Impression:\n" + impression
-                           : !notes.isEmpty()      ? notes
-                           : "";
-
-            if (!display.isEmpty()) {
-                holder.textResult.setText(display);
-                holder.textResult.setVisibility(View.VISIBLE);
-            } else {
-                holder.textResult.setVisibility(View.GONE);
-            }
+            String notes = inv.optString("notes", "");
+            String display = !impression.isEmpty() ? "Impression:\n" + impression : !notes.isEmpty() ? notes : "";
+            if (!display.isEmpty()) { h.textResult.setText(display); h.textResult.setVisibility(View.VISIBLE); }
+            else h.textResult.setVisibility(View.GONE);
         }
     }
 
     @Override
-    public int getItemCount() {
-        return investigations.length();
-    }
-
-    // ── ViewHolder ───────────────────────────────────────────────────────────
+    public int getItemCount() { return investigations.length(); }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView     textType, textDate, textTitle, textResult;
-        Button       btnViewReport;
-        View         divider;
+        TextView textType, textDate, textTitle, textResult, textAbnormalBadge;
+        Button btnViewReport, btnDelete;
+        View divider;
         LinearLayout layoutHeader, layoutResultRows;
-
-        ViewHolder(View itemView) {
-            super(itemView);
-            textType         = itemView.findViewById(R.id.textInvType);
-            textDate         = itemView.findViewById(R.id.textInvDate);
-            textTitle        = itemView.findViewById(R.id.textInvTitle);
-            textResult       = itemView.findViewById(R.id.textInvResult);
-            btnViewReport    = itemView.findViewById(R.id.btnViewReport);
-            divider          = itemView.findViewById(R.id.dividerResult);
-            layoutHeader     = itemView.findViewById(R.id.layoutResultHeader);
-            layoutResultRows = itemView.findViewById(R.id.layoutResultRows);
+        CardView cardView;
+        ViewHolder(View v) {
+            super(v);
+            textType         = v.findViewById(R.id.textInvType);
+            textDate         = v.findViewById(R.id.textInvDate);
+            textTitle        = v.findViewById(R.id.textInvTitle);
+            textResult       = v.findViewById(R.id.textInvResult);
+            textAbnormalBadge= v.findViewById(R.id.textAbnormalBadge);
+            btnViewReport    = v.findViewById(R.id.btnViewReport);
+            btnDelete        = v.findViewById(R.id.btnDelete);
+            divider          = v.findViewById(R.id.dividerResult);
+            layoutHeader     = v.findViewById(R.id.layoutResultHeader);
+            layoutResultRows = v.findViewById(R.id.layoutResultRows);
+            cardView         = v.findViewById(R.id.cardInvestigation);
         }
     }
 }

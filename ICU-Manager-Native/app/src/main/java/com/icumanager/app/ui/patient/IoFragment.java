@@ -11,6 +11,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -27,7 +28,13 @@ public class IoFragment extends Fragment {
     private static final String ARG_PATIENT_ID = "patient_id";
     private String patientId;
     private IoAdapter adapter;
-    private TextView textSummary;
+
+    // Summary card views
+    private TextView textTotalInput;
+    private TextView textTotalOutput;
+    private TextView textIoSummary;   // Net balance value
+    private TextView textBalanceLabel;
+    private CardView cardNetBalance;
 
     public static IoFragment newInstance(String patientId) {
         IoFragment fragment = new IoFragment();
@@ -51,9 +58,14 @@ public class IoFragment extends Fragment {
             @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_io, container, false);
 
-        textSummary = view.findViewById(R.id.textIoSummary);
-        RecyclerView recyclerView = view.findViewById(R.id.recyclerViewIo);
+        // Bind summary card views
+        textTotalInput  = view.findViewById(R.id.textTotalInput);
+        textTotalOutput = view.findViewById(R.id.textTotalOutput);
+        textIoSummary   = view.findViewById(R.id.textIoSummary);
+        textBalanceLabel = view.findViewById(R.id.textBalanceLabel);
+        cardNetBalance  = view.findViewById(R.id.cardNetBalance);
 
+        RecyclerView recyclerView = view.findViewById(R.id.recyclerViewIo);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new IoAdapter();
         recyclerView.setAdapter(adapter);
@@ -79,8 +91,7 @@ public class IoFragment extends Fragment {
     }
 
     private void loadIoHistory() {
-        if (getActivity() == null)
-            return;
+        if (getActivity() == null) return;
 
         SharedPreferences prefs = getActivity().getSharedPreferences("ICU_PREFS", Context.MODE_PRIVATE);
         String token = prefs.getString("auth_token", null);
@@ -93,7 +104,7 @@ public class IoFragment extends Fragment {
                         try {
                             JSONArray history = new JSONArray(responseStr);
 
-                            int totalIn = 0;
+                            int totalIn  = 0;
                             int totalOut = 0;
 
                             for (int i = 0; i < history.length(); i++) {
@@ -109,15 +120,9 @@ public class IoFragment extends Fragment {
                             }
 
                             int balance = totalIn - totalOut;
-                            String prefix = balance > 0 ? "+" : "";
-                            textSummary.setText("Net: " + prefix + balance + " mL");
-                            if (balance >= 0) {
-                                textSummary.setTextColor(Color.parseColor("#4ADE80")); // Green
-                            } else {
-                                textSummary.setTextColor(Color.parseColor("#F87171")); // Red
-                            }
-
+                            updateSummaryCards(totalIn, totalOut, balance);
                             adapter.setEntries(history);
+
                         } catch (Exception e) {
                             Toast.makeText(getContext(), "Failed to parse I/O data", Toast.LENGTH_SHORT).show();
                         }
@@ -128,11 +133,35 @@ public class IoFragment extends Fragment {
             @Override
             public void onError(Exception error) {
                 if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        Toast.makeText(getContext(), "Network error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
-                    });
+                    getActivity().runOnUiThread(() ->
+                        Toast.makeText(getContext(), "Network error: " + error.getMessage(), Toast.LENGTH_SHORT).show()
+                    );
                 }
             }
         });
+    }
+
+    private void updateSummaryCards(int totalIn, int totalOut, int balance) {
+        // Total Input — always blue
+        textTotalInput.setText(totalIn + " mL");
+
+        // Total Output — always amber
+        textTotalOutput.setText(totalOut + " mL");
+
+        // Net Balance — green if >= 0, red if negative
+        String prefix = balance > 0 ? "+" : "";
+        textIoSummary.setText(prefix + balance + " mL");
+
+        if (balance >= 0) {
+            // Green theme
+            cardNetBalance.setCardBackgroundColor(Color.parseColor("#0D2E1A"));
+            textBalanceLabel.setTextColor(Color.parseColor("#34D399"));
+            textIoSummary.setTextColor(Color.parseColor("#6EE7B7"));
+        } else {
+            // Red theme
+            cardNetBalance.setCardBackgroundColor(Color.parseColor("#2D0F0F"));
+            textBalanceLabel.setTextColor(Color.parseColor("#F87171"));
+            textIoSummary.setTextColor(Color.parseColor("#FCA5A5"));
+        }
     }
 }

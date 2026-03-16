@@ -26,19 +26,36 @@ public class AdminDashboardActivity extends AppCompatActivity {
             @NonNull
             @Override
             public Fragment createFragment(int position) {
-                if (position == 0)
-                    return new UserManagementFragment();
-                return new DrugCatalogFragment();
+                switch (position) {
+                    case 0:
+                        return new UserManagementFragment();
+                    case 1:
+                        return new DrugCatalogFragment();
+                    case 2:
+                        return new NurseAssignmentFragment();
+                    default:
+                        return new UserManagementFragment();
+                }
             }
 
             @Override
             public int getItemCount() {
-                return 2;
+                return 3;
             }
         });
 
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
-            tab.setText(position == 0 ? "Users" : "Drug Catalog");
+            switch (position) {
+                case 0:
+                    tab.setText("Users");
+                    break;
+                case 1:
+                    tab.setText("Drug Catalog");
+                    break;
+                case 2:
+                    tab.setText("Assignments");
+                    break;
+            }
         }).attach();
     }
 }

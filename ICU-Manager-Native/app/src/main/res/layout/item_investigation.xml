@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardInvestigation"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="8dp"
-    android:layout_marginEnd="4dp"
-    android:layout_marginStart="4dp"
-    android:layout_marginTop="4dp"
+    android:layout_marginHorizontal="4dp"
     app:cardBackgroundColor="#1E293B"
     app:cardCornerRadius="8dp"
     app:cardElevation="2dp">
@@ -17,7 +16,7 @@
         android:orientation="vertical"
         android:padding="12dp">
 
-        <!-- Header row: type badge + date + view report button -->
+        <!-- Header: type badge + abnormal badge + date + delete -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -31,8 +30,22 @@
                 android:paddingEnd="8dp"
                 android:textAllCaps="true"
                 android:textColor="#3B82F6"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/textAbnormalBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ABNORMAL"
+                android:textColor="#FCA5A5"
+                android:background="#7F1D1D"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:paddingHorizontal="5dp"
+                android:paddingVertical="2dp"
+                android:layout_marginEnd="6dp"
+                android:visibility="gone"/>
 
             <TextView
                 android:id="@+id/textInvDate"
@@ -41,43 +54,41 @@
                 android:layout_weight="1"
                 android:gravity="end"
                 android:textColor="#94A3B8"
-                android:textSize="12sp" />
+                android:textSize="11sp" />
 
             <Button
-                android:id="@+id/btnViewReport"
-                android:layout_width="wrap_content"
-                android:layout_height="28dp"
+                android:id="@+id/btnDelete"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:layout_marginStart="8dp"
-                android:backgroundTint="#1E40AF"
-                android:paddingHorizontal="10dp"
-                android:text="View Report"
-                android:textColor="#FFFFFF"
+                android:backgroundTint="#7F1D1D"
+                android:text="X"
+                android:textColor="#FCA5A5"
                 android:textSize="10sp"
-                android:visibility="gone"
-                style="@style/Widget.MaterialComponents.Button" />
+                android:padding="0dp"
+                style="@style/Widget.MaterialComponents.Button"/>
         </LinearLayout>
 
-        <!-- Study / test title -->
+        <!-- Title -->
         <TextView
             android:id="@+id/textInvTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
             android:layout_marginTop="4dp"
+            android:layout_marginBottom="8dp"
             android:textColor="#F8FAFC"
-            android:textSize="16sp"
+            android:textSize="15sp"
             android:textStyle="bold" />
 
-        <!-- Thin divider shown only when there are results -->
         <View
             android:id="@+id/dividerResult"
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginBottom="8dp"
+            android:layout_marginBottom="6dp"
             android:background="#334155"
             android:visibility="gone" />
 
-        <!-- Column headers (shown only when there are structured results) -->
+        <!-- Column headers for structured results -->
         <LinearLayout
             android:id="@+id/layoutResultHeader"
             android:layout_width="match_parent"
@@ -85,47 +96,22 @@
             android:layout_marginBottom="4dp"
             android:orientation="horizontal"
             android:visibility="gone">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="2"
-                android:text="Test"
-                android:textColor="#64748B"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:textAllCaps="true" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="2"
-                android:text="Result"
-                android:textColor="#64748B"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:textAllCaps="true" />
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="2"
-                android:gravity="end"
-                android:text="Reference"
-                android:textColor="#64748B"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:textAllCaps="true" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="2"
+                android:text="Test" android:textColor="#64748B" android:textSize="10sp" android:textStyle="bold" android:textAllCaps="true"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="2"
+                android:text="Result" android:textColor="#64748B" android:textSize="10sp" android:textStyle="bold" android:textAllCaps="true"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="2"
+                android:gravity="end" android:text="Range" android:textColor="#64748B" android:textSize="10sp" android:textStyle="bold" android:textAllCaps="true"/>
         </LinearLayout>
 
-        <!-- Dynamic result rows injected by the adapter -->
+        <!-- Dynamic result rows -->
         <LinearLayout
             android:id="@+id/layoutResultRows"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical" />
 
-        <!-- Fallback for plain-text impression / notes -->
+        <!-- Plain text impression fallback -->
         <TextView
             android:id="@+id/textInvResult"
             android:layout_width="match_parent"
@@ -133,8 +119,22 @@
             android:layout_marginTop="4dp"
             android:lineSpacingMultiplier="1.4"
             android:textColor="#CBD5E1"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:visibility="gone" />
+
+        <!-- View Image/Report Button -->
+        <Button
+            android:id="@+id/btnViewReport"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginTop="8dp"
+            android:backgroundTint="#1E40AF"
+            android:paddingHorizontal="12dp"
+            android:text="View Report"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:visibility="gone"
+            style="@style/Widget.MaterialComponents.Button" />
 
     </LinearLayout>
 </androidx.cardview.widget.CardView>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingVertical="6dp"
+    android:paddingEnd="4dp">
+
+    <!-- Dot -->
+    <View
+        android:id="@+id/viewDot"
+        android:layout_width="10dp"
+        android:layout_height="10dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginStart="2dp"
+        android:background="@drawable/circle_dot"
+        android:backgroundTint="#60A5FA"/>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/textTimelineTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="#F1F5F9"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:text="Event"/>
+            <TextView
+                android:id="@+id/textTimelineTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#64748B"
+                android:textSize="10sp"
+                android:text="--:--"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="2dp">
+            <TextView
+                android:id="@+id/textTimelineStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="#1E3A5F"
+                android:textColor="#93C5FD"
+                android:textSize="9sp"
+                android:paddingHorizontal="5dp"
+                android:paddingVertical="1dp"
+                android:text="STARTED"
+                android:layout_marginEnd="6dp"/>
+            <TextView
+                android:id="@+id/textTimelineDetail"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="#94A3B8"
+                android:textSize="10sp"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:text="details"/>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
