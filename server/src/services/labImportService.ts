@@ -514,32 +514,67 @@ export class LabImportService {
 
     private parseDate(s: string): Date {
         if (!s) return new Date();
+        console.log(`[SYNC] Parsing date string: "${s}"`);
 
-        // Handle Arabic portal format: DD/MM/YYYY or DD/MM/YYYY HH:mm
-        const parts = s.split('/');
-        if (parts.length === 3) {
-            const day = parseInt(parts[0]);
-            const month = parseInt(parts[1]) - 1;
+        try {
+            // Handle YYYY-MM-DD HH:mm (Dash separators)
+            if (s.includes('-')) {
+                const parts = s.split(' '); // Split date and time
+                const dateParts = parts[0].split('-');
+                if (dateParts.length === 3) {
+                    const year = parseInt(dateParts[0]);
+                    const month = parseInt(dateParts[1]) - 1;
+                    const day = parseInt(dateParts[2]);
 
-            // Year might contain time: "2024 14:30"
-            const yearPart = parts[2].split(' ');
-            const year = parseInt(yearPart[0]);
-
-            let hours = 0;
-            let minutes = 0;
-
-            if (yearPart.length > 1) {
-                const timeParts = yearPart[1].split(':');
-                if (timeParts.length >= 2) {
-                    hours = parseInt(timeParts[0]);
-                    minutes = parseInt(timeParts[1]);
+                    let hours = 0;
+                    let minutes = 0;
+                    if (parts.length > 1) {
+                        const timeParts = parts[1].split(':');
+                        if (timeParts.length >= 2) {
+                            hours = parseInt(timeParts[0]);
+                            minutes = parseInt(timeParts[1]);
+                        }
+                    }
+                    const d = new Date(year, month, day, hours, minutes);
+                    console.log(`[SYNC] Parsed (Dash): ${d.toISOString()}`);
+                    return d;
                 }
             }
 
-            return new Date(year, month, day, hours, minutes);
+            // Handle DD/MM/YYYY or DD/MM/YYYY HH:mm (Slash separators)
+            if (s.includes('/')) {
+                const parts = s.split('/');
+                if (parts.length === 3) {
+                    const day = parseInt(parts[0]);
+                    const month = parseInt(parts[1]) - 1;
+
+                    // Year might contain time: "2024 14:30"
+                    const yearPart = parts[2].split(' ');
+                    const year = parseInt(yearPart[0]);
+
+                    let hours = 0;
+                    let minutes = 0;
+
+                    if (yearPart.length > 1) {
+                        const timeParts = yearPart[1].split(':');
+                        if (timeParts.length >= 2) {
+                            hours = parseInt(timeParts[0]);
+                            minutes = parseInt(timeParts[1]);
+                        }
+                    }
+
+                    const d = new Date(year, month, day, hours, minutes);
+                    console.log(`[SYNC] Parsed (Slash): ${d.toISOString()}`);
+                    return d;
+                }
+            }
+        } catch (err) {
+            console.error(`[SYNC] Error parsing date "${s}":`, err);
         }
 
         const fallback = new Date(s);
-        return isNaN(fallback.getTime()) ? new Date() : fallback;
+        const result = isNaN(fallback.getTime()) ? new Date() : fallback;
+        console.log(`[SYNC] Fallback parsed: ${result.toISOString()}`);
+        return result;
     }
 }
