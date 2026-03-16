@@ -287,7 +287,10 @@ export class LabImportService {
                             impression: 'Under processing on portal...',
                             pdfFilename: `INVOICE_${report.invoiceId}`
                         } as any,
-                        update: { status: 'PROCESSING' as any } as any
+                        update: {
+                            status: 'PROCESSING' as any,
+                            conductedAt: this.parseDate(report.date)
+                        } as any
                     });
                     results.push(inv);
                 } else {
@@ -427,7 +430,8 @@ export class LabImportService {
                                         status: 'FINAL' as any,
                                         pdfFilename: filename,
                                         result: extractedResult as any,
-                                        impression: null
+                                        impression: null,
+                                        conductedAt: this.parseDate(report.date)
                                     };
 
                                     let inv;
@@ -440,7 +444,7 @@ export class LabImportService {
                                             data: {
                                                 ...invData,
                                                 patientId, authorId: validAuthorId, title: testTitle, type: 'LAB',
-                                                category: 'External', externalId: report.accNo, conductedAt: this.parseDate(report.date)
+                                                category: 'External', externalId: report.accNo
                                             } as any
                                         });
                                     }
@@ -452,7 +456,8 @@ export class LabImportService {
                                     status: 'FINAL' as any,
                                     pdfFilename: filename,
                                     result: null,
-                                    impression: 'Failed to extract results.'
+                                    impression: 'Failed to extract results.',
+                                    conductedAt: this.parseDate(report.date)
                                 };
 
                                 let inv;
@@ -463,7 +468,7 @@ export class LabImportService {
                                         data: {
                                             ...invData,
                                             patientId, authorId: validAuthorId, title: report.title, type: 'LAB',
-                                            category: 'External', externalId: report.accNo, conductedAt: this.parseDate(report.date)
+                                            category: 'External', externalId: report.accNo
                                         } as any
                                     });
                                 }
@@ -508,10 +513,33 @@ export class LabImportService {
     }
 
     private parseDate(s: string): Date {
+        if (!s) return new Date();
+
+        // Handle Arabic portal format: DD/MM/YYYY or DD/MM/YYYY HH:mm
         const parts = s.split('/');
         if (parts.length === 3) {
-            return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            const day = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1;
+
+            // Year might contain time: "2024 14:30"
+            const yearPart = parts[2].split(' ');
+            const year = parseInt(yearPart[0]);
+
+            let hours = 0;
+            let minutes = 0;
+
+            if (yearPart.length > 1) {
+                const timeParts = yearPart[1].split(':');
+                if (timeParts.length >= 2) {
+                    hours = parseInt(timeParts[0]);
+                    minutes = parseInt(timeParts[1]);
+                }
+            }
+
+            return new Date(year, month, day, hours, minutes);
         }
-        return new Date();
+
+        const fallback = new Date(s);
+        return isNaN(fallback.getTime()) ? new Date() : fallback;
     }
 }
