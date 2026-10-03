@@ -5,13 +5,15 @@ import { broadcastNotification } from './notifications.routes';
 
 const router = Router();
 
-// GET due intervention reminders (reminderAt <= now, PROCEDURE type, not COMPLETED)
+// GET due reminders (reminderAt <= now, not COMPLETED).
+// Includes both one-off PROCEDURE interventions and recurring NURSING tasks
+// (turn-q2h, dressing-daily, etc.).
 router.get('/due-reminders', async (req, res) => {
     try {
         const { userId } = req.query;
         const now = new Date();
         const where: any = {
-            type: 'PROCEDURE',
+            type: { in: ['PROCEDURE', 'NURSING'] },
             reminderAt: { lte: now },
             status: { not: 'COMPLETED' }
         };
@@ -183,6 +185,15 @@ router.post('/', async (req, res) => {
         const initialStatus = 'APPROVED';
         const approverId = authorId; // Auto-approved by author
 
+        // If a recurring nursing/procedure order is created without an explicit
+        // reminderAt, auto-schedule the first reminder one interval out so it starts firing.
+        const { repetitionToMs } = await import('../jobs/reminderScheduler');
+        let computedReminderAt: Date | null = reminderAt ? new Date(reminderAt) : null;
+        if (!computedReminderAt) {
+            const intervalMs = repetitionToMs(details?.repetition);
+            if (intervalMs) computedReminderAt = new Date(Date.now() + intervalMs);
+        }
+
         const order = await prisma.clinicalOrder.create({
             data: {
                 patientId,
@@ -195,7 +206,7 @@ router.post('/', async (req, res) => {
                 notes,
                 approverId,
                 // @ts-ignore
-                reminderAt: reminderAt ? new Date(reminderAt) : null
+                reminderAt: computedReminderAt,
             },
             // @ts-ignore
             include: {

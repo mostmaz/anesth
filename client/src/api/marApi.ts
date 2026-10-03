@@ -21,7 +21,8 @@ export interface MedicationAdministration {
     status: 'Scheduled' | 'Given' | 'Held' | 'NotGiven';
     dose?: string;
     dilution?: number;
-    timestamp: string;
+    timestamp: string;   // actual administration time (may be back-dated)
+    chartedAt?: string;  // when charted; differs from timestamp on late entries
     userId?: string;
     user?: { name: string }; // Nurse details
 }
@@ -62,7 +63,7 @@ export const marApi = {
         return response.json();
     },
 
-    administerMedication: async (data: { patientId: string; medicationId: string; status: string; dose?: string; dilution?: number; userId?: string }): Promise<MedicationAdministration> => {
+    administerMedication: async (data: { patientId: string; medicationId: string; status: string; dose?: string; dilution?: number; userId?: string; administeredAt?: string }): Promise<MedicationAdministration> => {
         const response = await fetch(`${API_URL}/medications/administer`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

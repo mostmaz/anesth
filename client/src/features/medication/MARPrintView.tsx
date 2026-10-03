@@ -106,33 +106,29 @@ export default function MARPrintView() {
                     <tbody>
                         {medications.map((med, i) => (
                             <tr key={med.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                                <td className="border p-2 align-top">
-                                    <div className="font-bold text-sm">{med.name}</div>
-                                    <div className="mt-1">
+                                <td className="border p-1 align-top leading-tight">
+                                    <div className="font-bold text-xs">{med.name}</div>
+                                    <div className="text-[10px]">
                                         <span className="font-mono bg-slate-200 px-1 rounded">{med.defaultDose}</span> • {med.route}
-                                    </div>
-                                    <div className="text-[10px] text-slate-500 mt-1 italic">
-                                        {med.frequency} {med.infusionRate && `• ${med.infusionRate}`}
+                                        <span className="text-slate-500 italic"> • {med.frequency}{med.infusionRate && ` • ${med.infusionRate}`}</span>
                                     </div>
                                     {med.otherInstructions && (
-                                        <div className="text-[10px] text-slate-500 mt-1 border-t pt-1">
-                                            {med.otherInstructions}
-                                        </div>
+                                        <div className="text-[9px] text-slate-500 italic">{med.otherInstructions}</div>
                                     )}
                                 </td>
                                 {dates.map(date => {
                                     const admins = getAdminsForDate(med, date);
                                     return (
-                                        <td key={date.toISOString()} className="border p-1 align-top h-24">
-                                            <div className="flex flex-col gap-1 h-full">
+                                        <td key={date.toISOString()} className="border p-0.5 align-top">
+                                            <div className="flex flex-col gap-0.5">
                                                 {admins.map(admin => (
-                                                    <div key={admin.id} className="bg-slate-100 p-1 rounded border text-[9px]">
-                                                        <div className="font-bold text-center">
+                                                    <div key={admin.id} className="bg-slate-100 px-1 py-0.5 rounded border text-[8px] leading-tight">
+                                                        <span className="font-bold">
                                                             {new Date(admin.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                        </div>
-                                                        <div className="text-center truncate max-w-full" title={admin.user?.name}>
-                                                            {admin.user?.name ? admin.user.name.split(' ').map(n => n[0]).join('') : 'RN'}
-                                                        </div>
+                                                        </span>{' · '}
+                                                        <span title={admin.user?.name}>
+                                                            {admin.user?.name || 'RN'}
+                                                        </span>
                                                     </div>
                                                 ))}
                                             </div>

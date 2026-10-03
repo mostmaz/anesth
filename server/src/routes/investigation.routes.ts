@@ -1,8 +1,15 @@
 
 import { Router } from 'express';
 import prisma from '../prisma';
+import { sendToAll } from '../services/pushService';
 
 const router = Router();
+
+// True if any structured result value is flagged abnormal.
+function hasAbnormal(result: any): boolean {
+    return !!result && typeof result === 'object' &&
+        Object.values(result).some((v: any) => v && typeof v === 'object' && v.isAbnormal);
+}
 
 // Get all Investigations (global feed for dashboard)
 router.get('/', async (req, res) => {
@@ -78,6 +85,12 @@ router.post('/', async (req, res) => {
 
         // If linked to an order, potentially update order status to COMPLETED?
         // keeping it simple for now.
+
+        // Warning push when the new result contains an abnormal value.
+        if (hasAbnormal(result)) {
+            const wp = await prisma.patient.findUnique({ where: { id: patientId }, select: { name: true } });
+            sendToAll('Abnormal result', `${title} flagged abnormal for ${wp?.name || 'a patient'}`, { type: 'warning', patientId });
+        }
 
         res.status(201).json(investigation);
     } catch (error) {

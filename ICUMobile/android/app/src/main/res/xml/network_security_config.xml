@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The prod backend (161.35.216.33:3001) is plain HTTP, and Android release builds
+  block cleartext traffic by default. A network security config takes precedence
+  over the usesCleartextTraffic manifest attribute, so this reliably permits it.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

@@ -1,1211 +1,611 @@
-
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { toast } from 'sonner';
 import { apiClient } from '../api/client';
 import { useAuthStore } from '../stores/authStore';
+import { useLang } from '../i18n';
 import { useShiftStore } from '../stores/shiftStore';
 import { Patient } from '../types';
-import { ClinicalOrder } from '../api/ordersApi';
-import { ClipboardList, AlertTriangle, Clock, CheckCircle2, LogOut, CheckCheck, X, FlaskConical, Bell, ArchiveX, Users } from 'lucide-react';
-
-import { ordersApi } from '../api/ordersApi';
-import { userApi } from '../api/userApi';
+import { ordersApi, ClinicalOrder } from '../api/ordersApi';
 import { assignmentApi, Assignment } from '../api/assignmentApi';
-import { shiftApi } from '../api/shiftApi';
-import { toast } from 'sonner';
-import { cn } from '../lib/utils';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
+import {
+  Card, CardHead, Pill, StatusBadge, SectionTitle, Icon,
+  Avatar, initialsFromName, colorFromId, Sheet, Sparkline,
+} from '../components/icu';
 import AddPatientForm from '../features/patient/AddPatientForm';
 
-// Confirmation dialog for completing a check from the dashboard
-function ConfirmCheckDialog({
-    open, onOpenChange, onConfirm, title
-}: { open: boolean; onOpenChange: (v: boolean) => void; onConfirm: () => void; title: string }) {
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[380px]">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        Complete Check
-                    </DialogTitle>
-                </DialogHeader>
-                <p className="text-sm text-slate-600 py-2">
-                    Mark <span className="font-semibold">{title}</span> as checked and dismiss this reminder?
-                </p>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                    <Button className="bg-green-600 hover:bg-green-700" onClick={() => { onOpenChange(false); onConfirm(); }}>
-                        Yes, Complete Check
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
 export default function Dashboard() {
-    const navigate = useNavigate();
-    const { user, logout } = useAuthStore();
-    const { activeShift, loadingShift, startShift, endShift, checkActiveShift } = useShiftStore();
-    const [allPatients, setAllPatients] = useState<Patient[]>([]);
-    const [patientTab, setPatientTab] = useState<'active' | 'archived'>('active');
-    const [isAddPatientOpen, setIsAddPatientOpen] = useState(false);
-    const [assignments, setAssignments] = useState<any[]>([]);
-    const [pendingAssignments, setPendingAssignments] = useState<Assignment[]>([]);
-    const [showShiftDialog, setShowShiftDialog] = useState(false);
-    const [showHandoverChecklist, setShowHandoverChecklist] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const { t } = useLang();
+  const { activeShift, startShift, endShift } = useShiftStore();
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [pendingAssignments, setPendingAssignments] = useState<Assignment[]>([]);
+  const [activeOrders, setActiveOrders] = useState<ClinicalOrder[]>([]);
+  const [dueReminders, setDueReminders] = useState<ClinicalOrder[]>([]);
+  const [confirmCheck, setConfirmCheck] = useState<ClinicalOrder | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [showStartShift, setShowStartShift] = useState(false);
+  const [patientTab, setPatientTab] = useState<'active' | 'archived'>('active');
+  const reminderPoll = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    // Staff of the Day
-    const [staffOnDuty, setStaffOnDuty] = useState<{ seniors: any[], nurses: any[] }>({ seniors: [], nurses: [] });
-    const [showAssignmentDialog, setShowAssignmentDialog] = useState(false);
+  const fetchAll = async () => {
+    try {
+      // Always fetch ALL active patients — nurses need to see who's available
+      // to sign in to (filtering by userId returns only patients already assigned
+      // to them, hiding everyone else).
+      const [pts, active, pending] = await Promise.all([
+        apiClient.get<Patient[]>('/patients'),
+        ordersApi.getActiveOrders().catch(() => []),
+        assignmentApi.getPending().catch(() => []),
+      ]);
+      setPatients(pts || []);
+      setActiveOrders((active || []).filter((o: any) => o.type !== 'PROCEDURE'));
+      setPendingAssignments(pending);
+      const aa = await assignmentApi.getActive().catch(() => []);
+      setAssignments(aa);
+    } catch (e) {
+      console.error('Dashboard fetch failed', e);
+    }
+  };
 
-    // Live Feed for new lab results via SSE
-    const [recentLabsFeed, setRecentLabsFeed] = useState<any[]>([]);
-    const dismissedLabsRef = useRef<Set<string>>(new Set()); // Tracks dismissed labs for SSE listener
+  const fetchReminders = async () => {
+    try {
+      const r = await ordersApi.getDueReminders();
+      setDueReminders(r || []);
+    } catch { /* silent */ }
+  };
 
-    // Due intervention reminders (global, across all patients)
-    const [dueReminders, setDueReminders] = useState<ClinicalOrder[]>([]);
-    const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
-    const [confirmOrder, setConfirmOrder] = useState<ClinicalOrder | null>(null);
-    const reminderPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    fetchAll();
+    fetchReminders();
+    reminderPoll.current = setInterval(fetchReminders, 60_000);
+    return () => { if (reminderPoll.current) clearInterval(reminderPoll.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
-    const [stats, setStats] = useState({
-        critical: 0,
-        activeOrders: [] as any[],
-        recentOrders: [] as any[],
-        newAdmissions: 0
-    });
-    const [lastSyncResult, setLastSyncResult] = useState<any>(null);
+  // Nurse without active shift → prompt
+  useEffect(() => {
+    if (user?.role === 'NURSE' && !activeShift) setShowStartShift(true);
+  }, [user, activeShift]);
 
-    const fetchData = async () => {
-        try {
-            // First jump: get assignments to check the nurse's state
-            const activeAssignments = await assignmentApi.getActive().catch(() => []);
-            setAssignments(activeAssignments);
+  // The receiving checklist now lives in the patient check-in flow (PatientDetails),
+  // shown right after a nurse checks in — not on the dashboard.
 
-            const myAssignment = user?.role === 'NURSE' ? activeAssignments.find((a: any) => a.userId === user.id) : null;
-            const filterUserId = (user?.role === 'NURSE' && myAssignment) ? user.id : undefined;
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return t('dash.greeting.morning');
+    if (h < 18) return t('dash.greeting.afternoon');
+    return t('dash.greeting.evening');
+  })();
+  const firstName = user?.name?.replace('Dr. ', '').split(' ')[0] || '';
 
-            const patientsUrl = filterUserId ? `/patients?userId=${filterUserId}` : '/patients';
-            const investigationsUrl = filterUserId ? `/investigations?userId=${filterUserId}` : '/investigations';
+  const completeCheck = async (o: ClinicalOrder) => {
+    try {
+      await ordersApi.updateStatus(o.id, 'COMPLETED', user!.id);
+      toast.success('Intervention check completed');
+      setConfirmCheck(null);
+      fetchReminders();
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to complete');
+    }
+  };
 
-            const [pts, activeData, recentData, staffData, pendingData, historicalLabs, userPrefs, lastSync] = await Promise.all([
-                apiClient.get<Patient[]>(patientsUrl),
-                ordersApi.getActiveOrders(filterUserId).catch(() => []),
-                ordersApi.getRecentOrders(filterUserId).catch(() => []),
-                shiftApi.getStaffOnDuty().catch(() => ({ seniors: [], nurses: [] })),
-                assignmentApi.getPending().catch(() => []),
-                apiClient.get<any[]>(investigationsUrl).catch(() => []),
-                user ? userApi.getPreferences(user.id).catch(() => ({ dismissedLabs: [] })) : Promise.resolve({ dismissedLabs: [] }),
-                user?.role === 'SENIOR' ? apiClient.get<{ success: boolean, data: any }>('/lab/last-sync').catch(() => null) : Promise.resolve(null)
-            ]);
+  const approveOrder = async (o: ClinicalOrder) => {
+    try {
+      await ordersApi.updateStatus(o.id, 'APPROVED', user!.id);
+      toast.success('Order approved');
+      fetchAll();
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed');
+    }
+  };
+  const completeOrder = async (o: ClinicalOrder) => {
+    try {
+      await ordersApi.updateStatus(o.id, 'COMPLETED', user!.id);
+      toast.success('Order completed');
+      fetchAll();
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed');
+    }
+  };
 
-            if (lastSync?.data?.success) {
-                setLastSyncResult(lastSync.data.data);
-            } else if (lastSync?.success) {
-                setLastSyncResult(lastSync.data);
-            }
+  // A patient is "active" if they have at least one admission with no dischargedAt.
+  // The server returns admissions[] on the patient object.
+  const isActive = (p: any) => {
+    const adms = (p?.admissions || []) as Array<{ dischargedAt?: string | null }>;
+    if (adms.length === 0) return true; // no admission record yet → treat as active
+    return adms.some(a => !a.dischargedAt);
+  };
+  const activePatients = patients.filter(isActive);
+  const archivedPatients = patients.filter(p => !isActive(p));
+  const shown = patientTab === 'active' ? activePatients : archivedPatients;
 
-            setStaffOnDuty(staffData);
-            setPendingAssignments(pendingData);
+  const myAssignments = new Set(assignments.filter((a: any) => a.userId === user?.id).map((a: any) => a.patientId));
 
-            const dismissedSet = new Set<string>((userPrefs as any).dismissedLabs || []);
-            dismissedLabsRef.current = dismissedSet;
+  return (
+    <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1400, margin: '0 auto', width: '100%' }}>
+      {/* Greeting / shift strip */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: 'var(--ink)' }}>
+            {greeting}, {firstName}
+          </h1>
+          <p style={{ fontSize: 12, margin: '4px 0 0', color: 'var(--ink-3)' }}>
+            {t('dash.commandCenter')} · <span style={{ color: 'var(--accent-ink)', fontWeight: 600 }}>{user?.role}</span>
+          </p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {activeShift ? (
+            <Pill tone="ok">
+              <span className="icu-dot icu-pulse-soft" style={{ background: 'var(--st-ok-line)' }} />
+              SHIFT {activeShift.type} · {new Date(activeShift.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Pill>
+          ) : (
+            <Pill tone="muted">{t('dash.noActiveShift')}</Pill>
+          )}
+          {(user?.role === 'SENIOR' || user?.role === 'RESIDENT') && activeShift && (
+            <button type="button" onClick={() => endShift().then(fetchAll)} className="icu-btn icu-btn-outline icu-btn-xs">
+              {t('dash.endShift')}
+            </button>
+          )}
+        </div>
+      </div>
 
-            // Prefill with recent global investigations
-            if (historicalLabs && historicalLabs.length > 0) {
-                const formattedLabs = historicalLabs
-                    .filter((lab: any) => !dismissedSet.has(lab.id))
-                    .sort((a: any, b: any) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime())
-                    .slice(0, 15)
-                    .map((lab: any) => {
-                        const isAbnormal = lab.result && typeof lab.result === 'object' &&
-                            Object.values(lab.result).some((v: any) => typeof v === 'object' && v !== null && (v as any).isAbnormal === true);
-
-                        return {
-                            id: lab.id,
-                            type: 'new_investigation',
-                            patientName: lab.patient?.name || 'Unknown Patient',
-                            patientId: lab.patientId,
-                            title: `New ${lab.type || 'Lab'} Result: ${lab.title || lab.testName || 'Investigation'}`,
-                            timestamp: lab.createdAt || lab.date,
-                            isAbnormal
-                        };
-                    });
-                setRecentLabsFeed(formattedLabs);
-            }
-
-            // Check for due intervention reminders
-            const now = new Date();
-            const dueReminders = (activeData || [])
-                .filter((o: any) =>
-                    o.type === 'PROCEDURE' &&
-                    o.reminderAt &&
-                    new Date(o.reminderAt) <= now &&
-                    o.status !== 'COMPLETED'
-                )
-                .map((o: any) => ({
-                    type: 'intervention_reminder',
-                    patientName: o.patient?.name || 'Unknown Patient',
-                    patientId: o.patientId,
-                    orderId: o.id,
-                    title: (o.details as any)?.notificationText || o.title,
-                    timestamp: o.reminderAt
-                }));
-
-            if (dueReminders.length > 0) {
-                setRecentLabsFeed(prev => {
-                    const existingIds = prev.filter((x: any) => x.orderId).map((x: any) => x.orderId);
-                    const newReminders = dueReminders.filter((r: any) => !existingIds.includes(r.orderId));
-                    return [...newReminders, ...prev].slice(0, 15);
-                });
-            }
-
-            setAllPatients(pts);
-
-            // Workflow logic is now handled in a separate useEffect for better state sync
-
-            setStats({
-                critical: Math.floor(Math.random() * 2),
-                activeOrders: (activeData || []).filter((o: any) => o.type !== 'PROCEDURE'),
-                recentOrders: (recentData || []).filter((o: any) => o.type !== 'PROCEDURE'),
-                newAdmissions: 1
-            });
-        } catch (error) {
-            console.error("Failed to fetch dashboard data", error);
-        }
-    };
-
-    // Poll /due-reminders every 60s for the top-of-page banner
-    const fetchDueReminders = async () => {
-        try {
-            const reminders = await ordersApi.getDueReminders();
-            setDueReminders(reminders);
-        } catch {
-            // silent
-        }
-    };
-
-    useEffect(() => {
-        if (user) {
-            checkActiveShift(user.id);
-        }
-        fetchData();
-        fetchDueReminders();
-
-        // Poll reminders every 60 seconds
-        reminderPollRef.current = setInterval(fetchDueReminders, 60_000);
-
-        // Listen for live SSE notifications specifically for the Dashboard widget
-        const eventSource = new EventSource(`${API_URL}/notifications/stream`);
-
-        eventSource.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.type === 'new_investigation' && data.id && !dismissedLabsRef.current.has(data.id)) {
-                    setRecentLabsFeed(prev => {
-                        // Avoid duplicates
-                        if (prev.find(p => p.id === data.id)) return prev;
-                        return [data, ...prev].slice(0, 10);
-                    });
-                } else if (!data.type && data.patientName && data.title) {
-                    setRecentLabsFeed(prev => [data, ...prev].slice(0, 10));
-                }
-            } catch (err) {
-                // Parse error
-            }
-        };
-
-        return () => {
-            eventSource.close();
-            if (reminderPollRef.current) clearInterval(reminderPollRef.current);
-        };
-    }, []);
-
-    const activePatients = allPatients.filter((p: any) => {
-        const hasAdmissions = p.admissions && p.admissions.length > 0;
-        if (!hasAdmissions) return true;
-        return !p.admissions.every((a: any) => a.dischargedAt !== null && a.dischargedAt !== undefined);
-    });
-
-    const archivedPatients = allPatients.filter((p: any) => {
-        const hasAdmissions = p.admissions && p.admissions.length > 0;
-        if (!hasAdmissions) return false;
-        return p.admissions.every((a: any) => a.dischargedAt !== null && a.dischargedAt !== undefined);
-    });
-
-    const displayedPatients = patientTab === 'active' ? activePatients : archivedPatients;
-    const patients = activePatients; // For mandatory dialog and other counts
-
-    // ── Mandatory Nurse Workflow Management ──
-    useEffect(() => {
-        if (!user || user.role !== 'NURSE' || loadingShift) return;
-
-        if (!activeShift) {
-            setShowShiftDialog(true);
-            setShowAssignmentDialog(false);
-            setShowHandoverChecklist(false);
-        } else {
-            setShowShiftDialog(false); // Close if shift is detected
-            const myAssignment = assignments.find((a: any) => a.userId === user.id);
-            if (!myAssignment) {
-                setShowAssignmentDialog(true);
-                setShowHandoverChecklist(false);
-            } else {
-                setShowAssignmentDialog(false); // Close the dialog if assigned
-                const handoverDone = localStorage.getItem(`handover_${myAssignment.id}`);
-                if (!handoverDone) {
-                    setShowHandoverChecklist(true);
-                } else {
-                    setShowHandoverChecklist(false);
-                }
-            }
-        }
-    }, [user, activeShift, loadingShift, assignments]);
-    const handleDashboardCompleteCheck = async (orderId: string) => {
-        if (!user) return;
-        try {
-            await ordersApi.updateStatus(orderId, 'COMPLETED', user.id);
-            toast.success('Intervention check completed');
-            setDueReminders(prev => prev.filter(o => o.id !== orderId));
-        } catch {
-            toast.error('Failed to complete check');
-        }
-    };
-
-    const handleDismissReminder = (orderId: string) => {
-        setDismissedIds(prev => new Set([...prev, orderId]));
-    };
-
-    const handleDismissLab = async (labId: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!user || !labId) return;
-
-        // Optimistic UI update
-        setRecentLabsFeed(prev => prev.filter(lab => lab.id !== labId));
-        dismissedLabsRef.current = new Set([...dismissedLabsRef.current, labId]);
-
-        try {
-            await userApi.dismissLab(user.id, labId);
-        } catch (err) {
-            console.error("Failed to dismiss lab notification", err);
-            // We could revert the optimistic UI update here, but for dismissals it's usually fine
-        }
-    };
-
-    const handleSignIn = async (patientId: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!user) return;
-        try {
-            const result = await assignmentApi.assign(patientId, user.id);
-            if (result.pending) {
-                toast.info("Request submitted — waiting for senior/resident approval.");
-            } else {
-                toast.success("Signed in successfully");
-            }
-            fetchData(); // Always refresh
-        } catch (err: any) {
-            const msg = err.message || "Failed to sign in";
-            toast.error(msg.includes('400') || msg.includes('already') ? 'You are already signed in to another patient.' : msg);
-        }
-    };
-
-    const handleSignOut = async (patientId: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!user) return;
-        try {
-            await assignmentApi.unassign(patientId, user.id);
-            await endShift().catch(() => { }); // End shift on patient sign-out
-            toast.success("Signed out from patient and shift ended");
-
-            if (user.role === 'NURSE') {
-                logout();
-                navigate('/login');
-            } else {
-                fetchData();
-            }
-        } catch (err: any) {
-            toast.error(err.message || "Failed to sign out");
-        }
-    };
-
-    const handlePatientClick = (id: string) => {
-        navigate(`/patients/${id}`);
-    };
-
-    const handleMandatoryAssign = async (patientId: string) => {
-        if (!user) return;
-        try {
-            const result = await assignmentApi.assign(patientId, user.id);
-            if (result.pending) {
-                toast.info("Patient is occupied — your request was submitted. Waiting for senior/resident approval.");
-                setShowAssignmentDialog(false); // Let nurse browse while waiting
-            } else {
-                toast.success("Signed in successfully");
-            }
-            fetchData(); // Always refresh
-        } catch (err: any) {
-            const msg = err.message || '';
-            toast.error(msg.includes('already') ? 'You are already signed in to another patient.' : (msg || 'Failed to sign in'));
-        }
-    };
-
-    const handleApprove = async (id: string) => {
-        try {
-            await assignmentApi.approve(id);
-            toast.success("Assignment approved");
-            fetchData();
-        } catch {
-            toast.error("Failed to approve");
-        }
-    };
-
-    const handleReject = async (id: string) => {
-        try {
-            await assignmentApi.reject(id);
-            toast.success("Assignment rejected");
-            fetchData();
-        } catch {
-            toast.error("Failed to reject");
-        }
-    };
-
-    const handleEndShift = async () => {
-        try {
-            await endShift();
-            toast.success("Shift ended");
-            if (user?.role === 'NURSE') {
-                logout();
-                navigate('/login');
-            }
-        } catch (error) {
-            toast.error("Failed to end shift");
-        }
-    };
-
-    const visibleReminders = dueReminders.filter(o => !dismissedIds.has(o.id));
-
-    return (
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-6 sm:space-y-8">
-            {/* ── Global Due Reminders Banner ── */}
-            {visibleReminders.length > 0 && (
-                <div className="rounded-xl border-2 border-amber-400 bg-amber-50 shadow-lg overflow-hidden">
-                    <div className="flex items-center gap-2 bg-amber-500 px-5 py-3">
-                        <Bell className="w-5 h-5 text-white animate-pulse" />
-                        <span className="font-bold text-white text-sm uppercase tracking-wide">
-                            {visibleReminders.length} Intervention Check{visibleReminders.length > 1 ? 's' : ''} Due
-                        </span>
-                    </div>
-                    <div className="divide-y divide-amber-200">
-                        {visibleReminders.map(order => (
-                            <div key={order.id} className="flex items-center justify-between px-5 py-3 gap-4 hover:bg-amber-100/40 transition-colors">
-                                <div
-                                    className="flex-1 min-w-0 cursor-pointer"
-                                    onClick={() => navigate(`/patients/${(order as any).patient?.id || order.patientId}`)}
-                                >
-                                    <p className="font-semibold text-amber-900 text-sm">
-                                        <span className="font-bold">{(order as any).patient?.name || 'Unknown Patient'}</span>
-                                        {' — '}
-                                        {(order.details as any)?.notificationText || order.title}
-                                    </p>
-                                    <p className="text-xs text-amber-700 flex items-center gap-1 mt-0.5">
-                                        <Clock className="w-3 h-3" />
-                                        Due: {new Date((order as any).reminderAt).toLocaleString()}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                    <Button
-                                        size="sm"
-                                        className="bg-green-600 hover:bg-green-700 text-white h-8 text-xs"
-                                        onClick={() => setConfirmOrder(order)}
-                                    >
-                                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                                        Complete Check
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-8 w-8 p-0 text-amber-700 hover:bg-amber-200"
-                                        title="Dismiss for this session"
-                                        onClick={() => handleDismissReminder(order.id)}
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 leading-tight">ICU Command Center</h1>
-                    <p className="text-sm sm:text-base text-slate-500 mt-1">
-                        Welcome back, <span className="font-semibold">{user?.name}</span> ({user?.role})
-                    </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
-                    {user?.role === 'SENIOR' && lastSyncResult && (
-                        <div className={cn(
-                            "flex items-center gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-semibold border shadow-sm transition-all bg-white",
-                            lastSyncResult.status === 'RUNNING' ? "text-blue-700 border-blue-200 animate-pulse" :
-                                lastSyncResult.status === 'SUCCESS' ? "text-emerald-700 border-emerald-200" :
-                                    "text-rose-700 border-rose-200"
-                        )}>
-                            <div className={cn(
-                                "w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full",
-                                lastSyncResult.status === 'RUNNING' ? "bg-blue-500 animate-ping" :
-                                    lastSyncResult.status === 'SUCCESS' ? "bg-emerald-500" : "bg-rose-500"
-                            )} />
-                            <span className="whitespace-nowrap">
-                                Lab Sync: {lastSyncResult.status}
-                                {lastSyncResult.endedAt ? ` (${new Date(lastSyncResult.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` :
-                                    ` (${new Date(lastSyncResult.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`}
-                            </span>
-                            {lastSyncResult.status === 'SUCCESS' && lastSyncResult.resultsCount > 0 && (
-                                <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 border-none h-4 px-1.5 text-[9px] sm:text-[10px]">
-                                    +{lastSyncResult.resultsCount}
-                                </Badge>
-                            )}
-                        </div>
-                    )}
-                    {activeShift && (
-                        <Badge variant="outline" className="px-3 sm:px-4 py-1 sm:py-2 text-[10px] sm:text-sm bg-green-50 text-green-700 border-green-200 whitespace-nowrap">
-                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-                            Active: {new Date(activeShift.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </Badge>
-                    )}
-                    {/* End Shift button for SENIOR and RESIDENT in the header */}
-                    {activeShift && (user?.role === 'SENIOR' || user?.role === 'RESIDENT') && (
-                        <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={handleEndShift}
-                            className="h-8 sm:h-9 text-[10px] sm:text-xs gap-1.5 sm:gap-2 px-2 sm:px-3"
-                        >
-                            <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                            End Shift
-                        </Button>
-                    )}
-                </div>
+      {/* Upcoming orders for the nurse's checked-in patient(s) */}
+      {user?.role === 'NURSE' && (() => {
+        const upcoming = (activeOrders as any[]).filter(o =>
+          myAssignments.has(o.patientId) && o.status !== 'COMPLETED' && o.status !== 'DISCONTINUED');
+        if (upcoming.length === 0) return null;
+        return (
+          <Card style={{ background: 'var(--accent-soft)', borderColor: 'var(--accent)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <Icon name="clipboard" size={18} style={{ color: 'var(--accent-ink)' }} />
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent-ink)' }}>
+                {upcoming.length} upcoming order{upcoming.length === 1 ? '' : 's'}
+              </div>
             </div>
-
-            {/* Shift Selection Dialog for Nurses */}
-            <Dialog open={showShiftDialog} onOpenChange={(open) => { if (!open && !activeShift) return; setShowShiftDialog(open); }}>
-                <DialogContent className="sm:max-w-[400px] [&>button]:hidden">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl flex items-center gap-2">
-                            <Clock className="h-6 w-6 text-blue-600" />
-                            Start Your Shift
-                        </DialogTitle>
-                        <p className="text-sm text-muted-foreground pt-2">
-                            Please select your current shift type to continue.
-                        </p>
-                    </DialogHeader>
-                    <div className="grid grid-cols-2 gap-4 py-6">
-                        <Button
-                            variant="outline"
-                            className="h-24 flex flex-col gap-2 border-2 hover:border-blue-500 hover:bg-blue-50 transition-all"
-                            onClick={async () => {
-                                try {
-                                    await startShift(user!.id, 'DAY');
-                                    setShowShiftDialog(false);
-                                    fetchData();
-                                    toast.success("Day shift started");
-                                } catch {
-                                    toast.error("Failed to start shift");
-                                }
-                            }}
-                        >
-                            <span className="text-2xl">☀️</span>
-                            <span className="font-bold">Day Shift</span>
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="h-24 flex flex-col gap-2 border-2 hover:border-blue-500 hover:bg-blue-50 transition-all"
-                            onClick={async () => {
-                                try {
-                                    await startShift(user!.id, 'NIGHT');
-                                    setShowShiftDialog(false);
-                                    fetchData();
-                                    toast.success("Night shift started");
-                                } catch {
-                                    toast.error("Failed to start shift");
-                                }
-                            }}
-                        >
-                            <span className="text-2xl">🌙</span>
-                            <span className="font-bold">Night Shift</span>
-                        </Button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {upcoming.slice(0, 8).map(o => {
+                const p = patients.find(pp => pp.id === o.patientId);
+                return (
+                  <button key={o.id} type="button" onClick={() => navigate(`/patients/${o.patientId}`)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--line)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+                    <span className="icu-pill icu-pill-accent" style={{ fontSize: 10 }}>{o.type}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.title}</div>
+                      {p && <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>{p.name}</div>}
                     </div>
-                </DialogContent>
-            </Dialog>
+                    <span className="icu-pill icu-pill-muted" style={{ fontSize: 10 }}>{o.status}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+        );
+      })()}
 
-            {/* Handover Checklist Dialog */}
-            <Dialog open={showHandoverChecklist} onOpenChange={(open) => { if (!open) return; setShowHandoverChecklist(open); }}>
-                <DialogContent className="sm:max-w-[500px] [&>button]:hidden">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl flex items-center gap-2">
-                            <ClipboardList className="h-6 w-6 text-green-600" />
-                            Patient Receiving Checklist
-                        </DialogTitle>
-                        <p className="text-sm text-muted-foreground pt-2">
-                            Complete this checklist while receiving the patient from the previous nurse.
-                        </p>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        {[
-                            "Verify Patient Identity & MRN",
-                            "Check All IV Access & Patency",
-                            "Confirm Current Infusions & Rates",
-                            "Review Recent Vital Signs",
-                            "Check Drains, Catheters & Output",
-                            "Verify Ventilator Settings (if applicable)",
-                            "Confirm Pending Medications/Orders"
-                        ].map((item, i) => (
-                            <div key={i} className="flex items-center gap-3 p-2 border rounded hover:bg-slate-50">
-                                <input type="checkbox" id={`item-${i}`} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                                <label htmlFor={`item-${i}`} className="text-sm font-medium leading-none cursor-pointer flex-1">
-                                    {item}
-                                </label>
-                            </div>
-                        ))}
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            className="w-full bg-green-600 hover:bg-green-700"
-                            onClick={() => {
-                                const myAssignment = assignments.find((a: any) => a.userId === user?.id);
-                                if (myAssignment) {
-                                    localStorage.setItem(`handover_${myAssignment.id}`, 'true');
-                                }
-                                setShowHandoverChecklist(false);
-                                toast.success("Handover checklist completed");
-                            }}
-                        >
-                            Complete Handover
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Mandatory Assignment Dialog — blocks nurse until patient selected */}
-            <Dialog
-                open={showAssignmentDialog}
-                onOpenChange={(open) => {
-                    // Block nurse from closing dialog — they MUST select a patient
-                    if (!open && user?.role === 'NURSE') return;
-                    setShowAssignmentDialog(open);
-                }}
+      {/* Intervention reminders banner — residents/seniors only */}
+      {user?.role !== 'NURSE' && dueReminders.length > 0 && (
+        <Card style={{ background: 'var(--st-warn-bg)', borderColor: 'var(--st-warn-line)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+            <div
+              className="icu-pulse-glow"
+              style={{
+                width: 36, height: 36, borderRadius: 10,
+                background: 'var(--st-warn-line)', color: 'white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}
             >
-                <DialogContent className="sm:max-w-[600px] [&>button]:hidden">
-                    <CardHeader>
-                        <CardTitle className="text-xl text-red-600 flex items-center gap-2">
-                            <AlertTriangle className="h-6 w-6" />
-                            Action Required: Sign In to a Patient
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                            You must sign in to a patient before accessing any records.
-                            Select a patient below to continue.
-                        </p>
-                    </CardHeader>
-                    <div className="max-h-[60vh] overflow-y-auto p-4 space-y-2">
-                        {patients.map(patient => {
-                            const patientAssignments = assignments.filter(a => a.patientId === patient.id);
-                            const isOccupied = patientAssignments.length > 0;
-                            return (
-                                <div key={patient.id} className="flex justify-between items-center p-3 border rounded hover:bg-slate-50">
-                                    <div>
-                                        <div className="font-bold">{patient.name}</div>
-                                        <div className="text-xs text-muted-foreground">MRN: {patient.mrn}</div>
-                                    </div>
-                                    {isOccupied ? (
-                                        <div className="flex items-center gap-2">
-                                            {patientAssignments.some(pa => pa.userId === user?.id) ? (
-                                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                                    Your Patient
-                                                </Badge>
-                                            ) : (
-                                                <>
-                                                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                                                        Occupied
-                                                    </Badge>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="text-xs border-orange-300 text-orange-700 hover:bg-orange-50"
-                                                        onClick={() => handleMandatoryAssign(patient.id)}
-                                                    >
-                                                        Request Sign-In
-                                                    </Button>
-                                                </>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <Button size="sm" onClick={() => handleMandatoryAssign(patient.id)}>
-                                            Sign In
-                                        </Button>
-                                    )}
-                                </div>
-                            );
-                        })}
-                        {patients.length === 0 && <p className="text-center text-muted-foreground">No patients available.</p>}
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            {/* Pending Nurse Assignment Requests — visible to SENIOR and RESIDENT only */}
-            {(user?.role === 'SENIOR' || user?.role === 'RESIDENT') && pendingAssignments.length > 0 && (
-                <Card className="border-orange-200 bg-orange-50">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base text-orange-800 flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4" />
-                            Pending Nurse Assignment Requests ({pendingAssignments.length})
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                            {pendingAssignments.map(pending => (
-                                <div key={pending.id} className="flex justify-between items-center bg-white border border-orange-100 rounded p-3">
-                                    <div className="text-sm">
-                                        <span className="font-semibold">{pending.user.name}</span>
-                                        <span className="text-muted-foreground"> wants to be assigned to </span>
-                                        <span className="font-semibold">{pending.patient.name}</span>
-                                        <span className="text-xs text-muted-foreground ml-2">(MRN: {pending.patient.mrn})</span>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Button
-                                            size="sm"
-                                            className="h-7 text-xs bg-green-600 hover:bg-green-700"
-                                            onClick={() => handleApprove(pending.id)}
-                                        >
-                                            <CheckCheck className="w-3 h-3 mr-1" />
-                                            Approve
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="destructive"
-                                            className="h-7 text-xs"
-                                            onClick={() => handleReject(pending.id)}
-                                        >
-                                            <X className="w-3 h-3 mr-1" />
-                                            Reject
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
-
-
-            {/* Main Content Area */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                {/* Right Sidebar: Quick Actions & Shift Info - MOVED TO TOP ON MOBILE */}
-                <div className="lg:col-span-1 lg:order-2 space-y-6">
-                    <Card className="border-blue-100 bg-blue-50/30">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <Users className="w-5 h-5 text-blue-600" /> Staff On Duty
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                <div>
-                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Seniors On Call</h4>
-                                    <div className="space-y-1.5 font-medium">
-                                        {staffOnDuty.seniors.length === 0 ? <p className="text-xs italic text-slate-400">No seniors found</p> :
-                                            staffOnDuty.seniors.map((s) => (
-                                                <div key={s.id} className="flex justify-between items-center text-sm">
-                                                    <span className={s.id === user?.id ? "text-blue-700 font-bold" : "text-slate-700"}>{s.name} {s.id === user?.id && "(You)"}</span>
-                                                    <Badge variant="secondary" className="text-[9px] h-4">Active</Badge>
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Nurses Active</h4>
-                                    <div className="space-y-2">
-                                        {staffOnDuty.nurses.length === 0 ? <p className="text-xs italic text-slate-400">No nurses on shift</p> :
-                                            staffOnDuty.nurses.map((n) => (
-                                                <div key={n.id} className="flex flex-col text-sm border-b border-blue-100/50 pb-2 last:border-0 last:pb-0">
-                                                    <div className="flex justify-between items-center">
-                                                        <span className={cn("font-medium", n.id === user?.id ? "text-blue-700 font-bold" : "text-slate-700")}>{n.name}</span>
-                                                        <span className="text-[9px] text-slate-400 uppercase font-bold">{n.shiftType}</span>
-                                                    </div>
-                                                    <div className="text-[11px] text-slate-500 mt-0.5">
-                                                        {n.assignment ? <span className="flex items-center gap-1"><Badge className="h-3 w-3 p-0 rounded-full" /> {n.assignment}</span> : <span className="text-rose-400 italic">No patient assigned</span>}
-                                                    </div>
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                </div>
-                                {(user?.role === 'SENIOR' || user?.role === 'RESIDENT') && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="w-full mt-2 text-rose-600 border-rose-200 hover:bg-rose-50"
-                                        onClick={async () => {
-                                            if (confirm("Sign out all staff and clear assignments?")) {
-                                                try {
-                                                    await shiftApi.endAllShifts();
-                                                    toast.success("Signed out all staff");
-                                                    fetchData();
-                                                } catch (err) {
-                                                    toast.error("Failed to sign out all staff");
-                                                }
-                                            }
-                                        }}
-                                    >
-                                        <LogOut className="w-3.5 h-3.5 mr-2" />
-                                        End All Shifts
-                                    </Button>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Left Column (Labs + Patients) */}
-                <div className="lg:col-span-3 lg:order-1 space-y-8">
-                    {/* System Notifications Feed — Hidden for NURSE */}
-                    {user?.role !== 'NURSE' && (
-                        <Card className={`shadow-sm ${recentLabsFeed.length > 0 ? 'border-blue-200 bg-gradient-to-r from-blue-50/50 to-white' : 'border-slate-200 bg-white'}`}>
-                            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
-                                <CardTitle className="text-base font-semibold flex items-center text-slate-800">
-                                    <div className="relative mr-3 flex items-center justify-center">
-                                        <Bell className={`w-5 h-5 ${recentLabsFeed.length > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
-                                        {recentLabsFeed.length > 0 && (
-                                            <>
-                                                <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full animate-ping"></span>
-                                                <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full"></span>
-                                            </>
-                                        )}
-                                    </div>
-                                    System Notifications & Updates
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                {recentLabsFeed.length === 0 ? (
-                                    <div className="p-6 text-center text-slate-500 text-sm">
-                                        No recent notifications or updates.
-                                    </div>
-                                ) : (
-                                    <div className="divide-y divide-blue-50/50 max-h-[260px] overflow-y-auto">
-                                        {recentLabsFeed.map((lab: any, index) => (
-                                            <div key={index} className={cn(
-                                                "p-4 flex items-center justify-between hover:bg-blue-50/50 transition-colors group",
-                                                lab.type === 'intervention_reminder' ? 'bg-amber-50/10' : '',
-                                                lab.isAbnormal ? 'bg-rose-50/30 border-l-4 border-l-rose-500' : ''
-                                            )}>
-                                                <div
-                                                    className="flex items-center space-x-4 flex-1 cursor-pointer"
-                                                    onClick={() => lab.patientId && handlePatientClick(lab.patientId)}
-                                                >
-                                                    <div className={cn(
-                                                        "h-10 w-10 rounded-full flex items-center justify-center transition-colors shadow-sm",
-                                                        lab.isAbnormal ? "bg-rose-100" : (lab.type === 'intervention_reminder' ? 'bg-amber-100' : 'bg-blue-100')
-                                                    )}>
-                                                        {lab.isAbnormal ? (
-                                                            <AlertTriangle className="w-5 h-5 text-rose-600 animate-pulse" />
-                                                        ) : lab.type === 'intervention_reminder' ? (
-                                                            <Clock className="w-5 h-5 text-amber-600" />
-                                                        ) : (
-                                                            <FlaskConical className="w-5 h-5 text-blue-600" />
-                                                        )}
-                                                    </div>
-                                                    <div>
-                                                        <div className={cn(
-                                                            "text-sm font-medium",
-                                                            lab.isAbnormal ? "text-rose-900" : "text-slate-900"
-                                                        )}>
-                                                            <span className="font-bold">{lab.patientName}</span> — {lab.title}
-                                                            {lab.isAbnormal && <Badge variant="destructive" className="ml-2 text-[8px] h-3 px-1 uppercase tracking-tighter">Abnormal</Badge>}
-                                                        </div>
-                                                        {lab.type === 'intervention_reminder' && (
-                                                            <p className="text-xs text-amber-700 font-medium mt-0.5">⏰ Intervention Reminder</p>
-                                                        )}
-                                                        <p className="text-xs text-slate-500 flex items-center mt-0.5">
-                                                            <Clock className="w-3 h-3 mr-1" />
-                                                            {new Date(lab.timestamp).toLocaleString()}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                {lab.type === 'intervention_reminder' ? (
-                                                    <Button
-                                                        size="sm"
-                                                        className="ml-2 bg-green-600 hover:bg-green-700 text-white h-8 text-xs"
-                                                        onClick={async (e) => {
-                                                            e.stopPropagation();
-                                                            try {
-                                                                await ordersApi.updateStatus(lab.orderId, 'COMPLETED', user!.id);
-                                                                toast.success('Intervention marked done');
-                                                                setRecentLabsFeed(prev => prev.filter((_: any, i: number) => i !== index));
-                                                            } catch {
-                                                                toast.error('Failed to mark done');
-                                                            }
-                                                        }}
-                                                    >
-                                                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Mark Done
-                                                    </Button>
-                                                ) : (
-                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 h-8"
-                                                            onClick={() => lab.patientId && handlePatientClick(lab.patientId)}
-                                                        >
-                                                            View Chart
-                                                        </Button>
-                                                        {lab.id && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-8 w-8 p-0"
-                                                                onClick={(e) => handleDismissLab(lab.id, e)}
-                                                                title="Dismiss Notification"
-                                                            >
-                                                                <ArchiveX className="w-4 h-4" />
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {/* Patient List */}
-                    <Card>
-                        <CardHeader className="pb-3 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                            {user?.role !== 'NURSE' && (
-                                <Tabs value={patientTab} onValueChange={(v: any) => setPatientTab(v)} className="w-full sm:w-[300px]">
-                                    <TabsList className="grid w-full grid-cols-2">
-                                        <TabsTrigger value="active" className="flex items-center justify-center gap-2">
-                                            <Users className="w-4 h-4" /> Active
-                                        </TabsTrigger>
-                                        <TabsTrigger value="archived" className="flex items-center justify-center gap-2">
-                                            <ArchiveX className="w-4 h-4" /> Archived
-                                        </TabsTrigger>
-                                    </TabsList>
-                                </Tabs>
-                            )}
-                            {user?.role !== 'NURSE' && (
-                                <Button size="sm" className="w-full sm:w-auto" onClick={() => setIsAddPatientOpen(true)}>
-                                    + Admit Patient
-                                </Button>
-                            )}
-                            {user?.role === 'NURSE' && (
-                                <div className="flex items-center gap-2 text-slate-800 font-semibold">
-                                    <Users className="w-5 h-5 text-blue-600" />
-                                    {assignments.some(a => a.userId === user.id) ? "My Assigned Patient" : "Select a Patient to Sign In"}
-                                </div>
-                            )}
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            <div className="space-y-4">
-                                {displayedPatients.length === 0 ? (
-                                    <div className="text-center p-8 text-muted-foreground border-2 border-dashed rounded-lg bg-slate-50">No {patientTab} patients.</div>
-                                ) : (
-                                    displayedPatients.map(patient => (
-                                        <div
-                                            key={patient.id}
-                                            onClick={() => handlePatientClick(patient.id)}
-                                            className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg hover:bg-slate-50 cursor-pointer transition-colors gap-4"
-                                        >
-                                            <div className="flex items-center space-x-4">
-                                                <div className="h-10 w-10 shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
-                                                    {patient.name.substring(0, 2).toUpperCase()}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <div className="font-medium text-slate-900 truncate">{patient.name}</div>
-                                                    <div className="text-sm text-slate-500 font-mono truncate">MRN: {patient.mrn}</div>
-                                                </div>
-                                            </div>
-                                            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-                                                <div className="flex items-center gap-2 mr-auto sm:mr-0">
-                                                    <Badge variant="outline" className="text-[10px] sm:text-xs px-2 py-0.5 whitespace-nowrap">{new Date().getFullYear() - new Date(patient.dob).getFullYear()}y / {patient.gender}</Badge>
-                                                    <Badge className={cn("text-[10px] sm:text-xs px-2 py-0.5", Math.random() > 0.8 ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800")}>
-                                                        {Math.random() > 0.8 ? "Critical" : "Stable"}
-                                                    </Badge>
-                                                </div>
-
-                                                <div className="flex items-center gap-3 ml-auto sm:ml-0">
-                                                    {/* Assigned Nurses Display */}
-                                                    <div className="flex -space-x-2 overflow-hidden shrink-0">
-                                                        {assignments
-                                                            .filter(a => a.patientId === patient.id)
-                                                            .map(a => (
-                                                                <div key={a.id} title={`Nurse: ${a.user.name}`} className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-green-100 flex items-center justify-center text-[10px] font-bold text-green-700">
-                                                                    {a.user.name.substring(0, 1)}
-                                                                </div>
-                                                            ))
-                                                        }
-                                                    </div>
-
-                                                    {/* Sign In/Out Button */}
-                                                    {(() => {
-                                                        const patientAssignments = assignments.filter(a => a.patientId === patient.id);
-                                                        const myAssignment = patientAssignments.find(a => a.userId === user?.id);
-                                                        const myPending = pendingAssignments.find(a => a.patientId === patient.id && a.userId === user?.id);
-
-                                                        if (myAssignment) {
-                                                            return (
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="destructive"
-                                                                    className="h-7 px-3 text-[10px] sm:text-xs"
-                                                                    onClick={(e) => handleSignOut(patient.id, e)}
-                                                                >
-                                                                    Sign Out
-                                                                </Button>
-                                                            );
-                                                        }
-
-                                                        if (myPending) {
-                                                            return (
-                                                                <Badge variant="outline" className="h-7 px-3 bg-orange-50 text-orange-600 border-orange-200 text-[10px] sm:text-xs">
-                                                                    Pending
-                                                                </Badge>
-                                                            );
-                                                        }
-
-                                                        if (user?.role === 'NURSE') {
-                                                            const isOccupied = patientAssignments.length > 0;
-                                                            return (
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    className={`h-7 px-3 text-[10px] sm:text-xs ${isOccupied
-                                                                        ? 'border-orange-200 text-orange-700 hover:bg-orange-50'
-                                                                        : 'border-blue-200 text-blue-700 hover:bg-blue-50'}`}
-                                                                    onClick={(e) => handleSignIn(patient.id, e)}
-                                                                >
-                                                                    {isOccupied ? 'Request' : 'Sign In'}
-                                                                </Button>
-                                                            );
-                                                        }
-                                                        return null;
-                                                    })()}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                </div>
-
-
-                {/* Clinical Orders — Tabbed Layout — Hidden for NURSE */}
-                {user?.role !== 'NURSE' && (
-                    <Card className="col-span-full mt-6 border-slate-200">
-                        <CardHeader className="bg-slate-50 border-b pb-3">
-                            <CardTitle className="text-lg flex items-center text-slate-800">
-                                <ClipboardList className="w-5 h-5 mr-2 text-blue-600" />
-                                Clinical Orders
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 bg-slate-50/50">
-                            <Tabs defaultValue="active">
-                                <TabsList className="mb-4">
-                                    <TabsTrigger value="active">Active Orders</TabsTrigger>
-                                    <TabsTrigger value="recent">Recent Orders</TabsTrigger>
-                                    <TabsTrigger value="completed">Recently Completed</TabsTrigger>
-                                </TabsList>
-
-                                <TabsContent value="active">
-                                    <PendingExecutionList onSuccess={fetchData} />
-                                </TabsContent>
-
-                                <TabsContent value="recent">
-                                    <div className="space-y-3">
-                                        {(stats as any).recentOrders?.length === 0 && (
-                                            <p className="text-slate-500 italic text-sm">No recent orders.</p>
-                                        )}
-                                        {(stats as any).recentOrders?.map((order: any) => (
-                                            <div key={order.id} className="flex items-start space-x-3 text-sm border-b pb-2 last:border-0 last:pb-0">
-                                                <div className={`mt-0.5 p-1 rounded-full ${order.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
-                                                    {order.status === 'COMPLETED' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                                                </div>
-                                                <div>
-                                                    <div className="font-medium text-slate-900 flex items-center gap-2">
-                                                        {order.title}
-                                                        {order.status === 'COMPLETED' && <span className="text-[10px] bg-green-100 text-green-800 px-1.5 rounded-full">Done</span>}
-                                                    </div>
-                                                    <div className="text-xs text-slate-500">{order.patient.name}</div>
-                                                    <div className="text-[10px] text-slate-400 mt-0.5">{new Date(order.createdAt).toLocaleString()}</div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </TabsContent>
-
-                                <TabsContent value="completed">
-                                    <CompletedOrdersList />
-                                </TabsContent>
-                            </Tabs>
-                        </CardContent>
-                    </Card>
-                )}
+              <Icon name="bell_ring" size={18} />
             </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--st-warn-fg)' }}>{dueReminders.length} due now</div>
+              <div style={{ fontSize: 12, color: 'var(--st-warn-fg)', opacity: 0.8 }}>
+                Intervention checks need your attention.
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {dueReminders.slice(0, 4).map((d: any) => (
+              <div
+                key={d.id}
+                style={{
+                  background: 'var(--surface)',
+                  border: '1px solid var(--line)',
+                  borderRadius: 10,
+                  padding: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {(d.details as any)?.notificationText || d.title}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>
+                    {(d as any).patient?.name || 'Patient'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setConfirmCheck(d)}
+                  className="icu-btn icu-btn-success icu-btn-xs"
+                >
+                  <Icon name="check" size={12} /> Complete
+                </button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
+      {/* Patients */}
+      <div>
+        <SectionTitle
+          right={
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div className="icu-tab-rail" style={{ padding: 3 }}>
+                <button
+                  type="button"
+                  className={`icu-tab ${patientTab === 'active' ? 'active' : ''}`}
+                  style={{ padding: '5px 10px', fontSize: 12 }}
+                  onClick={() => setPatientTab('active')}
+                >
+                  {t('dash.active')} · {activePatients.length}
+                </button>
+                <button
+                  type="button"
+                  className={`icu-tab ${patientTab === 'archived' ? 'active' : ''}`}
+                  style={{ padding: '5px 10px', fontSize: 12 }}
+                  onClick={() => setPatientTab('archived')}
+                >
+                  {t('dash.archived')} · {archivedPatients.length}
+                </button>
+              </div>
+              {user?.role !== 'NURSE' && (
+                <button type="button" onClick={() => setShowAdd(true)} className="icu-btn icu-btn-primary icu-btn-xs">
+                  <Icon name="plus" size={14} /> {t('dash.admit')}
+                </button>
+              )}
+            </div>
+          }
+        >
+          Patients
+        </SectionTitle>
+        {shown.length === 0 ? (
+          <Card>
+            <p style={{ textAlign: 'center', color: 'var(--ink-3)', fontSize: 13, padding: '16px 0', margin: 0 }}>
+              No {patientTab} patients.
+            </p>
+          </Card>
+        ) : (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+              gap: 12,
+            }}
+          >
+            {shown.map((p) => (
+              <PatientCard
+                key={p.id}
+                patient={p}
+                userId={user?.id}
+                userRole={user?.role}
+                isMine={myAssignments.has(p.id)}
+                onClick={() => navigate(`/patients/${p.id}`)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
-            <Dialog open={isAddPatientOpen} onOpenChange={setIsAddPatientOpen}>
-                <DialogContent>
-                    <AddPatientForm
-                        onSuccess={() => {
-                            setIsAddPatientOpen(false);
-                            fetchData();
-                        }}
-                        onCancel={() => setIsAddPatientOpen(false)}
-                    />
-                </DialogContent>
-            </Dialog>
-
-            {/* Confirm check dialog — global, for dashboard banner buttons */}
-            {confirmOrder && (
-                <ConfirmCheckDialog
-                    open={!!confirmOrder}
-                    onOpenChange={(v) => { if (!v) setConfirmOrder(null); }}
-                    title={(confirmOrder.details as any)?.notificationText || confirmOrder.title}
-                    onConfirm={() => handleDashboardCompleteCheck(confirmOrder.id)}
-                />
-            )}
-        </div>
-    );
-}
-function PendingExecutionList({ onSuccess }: { onSuccess: () => void }) {
-    const { user } = useAuthStore();
-    const [orders, setOrders] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [processingId, setProcessingId] = useState<string | null>(null);
-
-    useEffect(() => {
-        loadOrders();
-    }, []);
-
-    const loadOrders = async () => {
-        try {
-            const data = await ordersApi.getActiveOrders();
-            setOrders(data.filter((o: any) => o.type !== 'PROCEDURE'));
-        } catch (err) {
-            console.error("Failed to load active orders", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleComplete = async (order: any) => {
-        if (!user) return;
-
-        // Restrict nurses to only NURSING care orders
-        if (user.role === 'NURSE' && order.type !== 'NURSING') {
-            toast.error("Nurses can only complete Nursing Care orders. Medical orders must be verified by clinical staff.");
-            return;
-        }
-
-        setProcessingId(order.id);
-        try {
-            await ordersApi.updateStatus(order.id, 'COMPLETED', user.id);
-            await loadOrders();
-            onSuccess();
-        } catch (error) {
-            console.error("Failed to complete order", error);
-        } finally {
-            setProcessingId(null);
-        }
-    };
-
-    if (loading) return <div>Loading orders...</div>;
-    if (orders.length === 0) return <div className="text-muted-foreground p-4 text-center">No pending orders.</div>;
-
-    return (
-        <div className="space-y-3">
-            {orders.map(order => (
-                <div key={order.id} className="border rounded p-3 flex flex-col justify-between bg-white shadow-sm border-slate-200">
-                    <div>
-                        <div className="flex justify-between items-start mb-2">
-                            <div className="font-bold text-slate-800">{order.title}</div>
-                            <Badge variant={order.priority === 'STAT' ? 'destructive' : 'secondary'}>
-                                {order.priority}
-                            </Badge>
-                        </div>
-                        <div className="text-sm text-slate-600">
-                            {order.patient.name} (MRN: {order.patient.mrn})
-                        </div>
-                        <div className="text-xs text-slate-500 mt-1">
-                            Ordered by {order.author.name} • {new Date(order.createdAt).toLocaleString()}
-                        </div>
+      {/* Clinical orders + staff strip (non-NURSE) */}
+      {user?.role !== 'NURSE' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>
+          {activeOrders.length > 0 && (
+            <Card>
+              <CardHead title="Active orders" subtitle={`${activeOrders.length} open`} icon="clipboard" iconTone="info" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {activeOrders.slice(0, 6).map((o: any) => (
+                  <div
+                    key={o.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: 10,
+                      border: '1px solid var(--line)',
+                      borderRadius: 10,
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => navigate(`/patients/${o.patientId}`)}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 2 }}>
+                        <StatusBadge status={o.status} />
+                        {o.priority === 'STAT' && <Pill tone="crit">STAT</Pill>}
+                        <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>{o.type}</span>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {o.title}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>{o.patient?.name || 'Patient'}</div>
                     </div>
+                    {o.status === 'PENDING' && user?.role === 'SENIOR' && (
+                      <button type="button" onClick={(e) => { e.stopPropagation(); approveOrder(o); }} className="icu-btn icu-btn-success icu-btn-xs">
+                        <Icon name="check" size={12} />
+                      </button>
+                    )}
+                    {o.status === 'APPROVED' && (
+                      <button type="button" onClick={(e) => { e.stopPropagation(); completeOrder(o); }} className="icu-btn icu-btn-outline icu-btn-xs">
+                        Complete
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
 
-                    <Button
-                        size="sm"
-                        className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => handleComplete(order)}
-                        disabled={!!processingId}
+          {pendingAssignments.length > 0 && (
+            <Card>
+              <CardHead title="Pending assignments" subtitle={`${pendingAssignments.length} request${pendingAssignments.length === 1 ? '' : 's'}`} icon="user" iconTone="warn" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {pendingAssignments.map((a: any) => (
+                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 10, border: '1px solid var(--line)', borderRadius: 10 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, color: 'var(--ink)' }}>
+                        <b>{a.user?.name || 'Nurse'}</b> → {a.patient?.name || 'Patient'}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>MRN {a.patient?.mrn || '—'}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await assignmentApi.approve(a.id);
+                          toast.success('Assignment approved');
+                          fetchAll();
+                        } catch (e: any) { toast.error(e?.message || 'Failed'); }
+                      }}
+                      className="icu-btn icu-btn-success icu-btn-xs"
                     >
-                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                        {processingId === order.id ? 'Completing...' : 'Mark Complete'}
-                    </Button>
-                </div>
-            ))}
-            {orders.length > 5 && (
-                <p className="text-xs text-center text-muted-foreground">+{orders.length - 5} more orders. View in Orders tab.</p>
-            )}
+                      <Icon name="check" size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await assignmentApi.reject(a.id);
+                          toast.info('Rejected');
+                          fetchAll();
+                        } catch (e: any) { toast.error(e?.message || 'Failed'); }
+                      }}
+                      className="icu-btn icu-btn-ghost icu-btn-xs"
+                      style={{ color: 'var(--sig-hr)' }}
+                    >
+                      <Icon name="x" size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
         </div>
-    );
+      )}
+
+      {/* Add Patient sheet */}
+      <Sheet open={showAdd} onClose={() => setShowAdd(false)} title={t('dash.admit')}>
+        <AddPatientForm
+          onSuccess={() => { setShowAdd(false); fetchAll(); }}
+          onCancel={() => setShowAdd(false)}
+        />
+      </Sheet>
+
+      {/* Confirm intervention check */}
+      <Sheet
+        open={!!confirmCheck}
+        onClose={() => setConfirmCheck(null)}
+        title="Complete check"
+        footer={
+          <>
+            <button type="button" onClick={() => setConfirmCheck(null)} className="icu-btn icu-btn-outline">Cancel</button>
+            <button type="button" onClick={() => confirmCheck && completeCheck(confirmCheck)} className="icu-btn icu-btn-success">
+              <Icon name="check" size={14} /> Yes, complete
+            </button>
+          </>
+        }
+      >
+        {confirmCheck && (
+          <p style={{ fontSize: 14, color: 'var(--ink-2)', margin: 0 }}>
+            Mark <b style={{ color: 'var(--ink)' }}>{(confirmCheck as any).title}</b> as checked and dismiss this reminder?
+          </p>
+        )}
+      </Sheet>
+
+      {/* Nurse start-shift prompt */}
+      <Sheet
+        open={showStartShift && user?.role === 'NURSE'}
+        onClose={() => setShowStartShift(false)}
+        title="Start your shift"
+        footer={
+          <>
+            <button type="button" onClick={() => setShowStartShift(false)} className="icu-btn icu-btn-outline">Later</button>
+          </>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <p style={{ fontSize: 13, color: 'var(--ink-3)', margin: 0 }}>
+            Select your shift to begin documenting care.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {([
+              { type: 'DAY', label: 'Day Shift', sub: '08:00 – 20:00', emoji: '☀️', tint: '#f59e0b' },
+              { type: 'NIGHT', label: 'Night Shift', sub: '20:00 – 08:00', emoji: '🌙', tint: '#6366f1' },
+            ] as const).map((s) => (
+              <button
+                key={s.type}
+                type="button"
+                onClick={async () => {
+                  if (!user) return;
+                  try {
+                    await startShift(user.id, s.type);
+                    toast.success(`${s.label} started`);
+                    setShowStartShift(false);
+                  } catch (e: any) { toast.error(e?.message || 'Failed'); }
+                }}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  gap: 8, height: 104, padding: 12, cursor: 'pointer',
+                  borderRadius: 14, border: '1px solid var(--line-2)', background: 'var(--surface)',
+                  color: 'var(--ink)', fontFamily: 'inherit', transition: 'border-color .12s ease, background .12s ease',
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.borderColor = s.tint; e.currentTarget.style.background = `color-mix(in oklab, var(--surface) 88%, ${s.tint})`; }}
+                onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--line-2)'; e.currentTarget.style.background = 'var(--surface)'; }}
+              >
+                <span style={{
+                  width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 22, background: `color-mix(in oklab, var(--surface) 78%, ${s.tint})`,
+                }}>{s.emoji}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{s.label}</span>
+                <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>{s.sub}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </Sheet>
+
+    </div>
+  );
 }
 
-function CompletedOrdersList() {
-    const [orders, setOrders] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+interface PatientCardProps {
+  patient: Patient;
+  userId?: string;
+  userRole?: string;
+  isMine: boolean;
+  onClick: () => void;
+}
 
-    useEffect(() => {
-        const loadOrders = async () => {
-            try {
-                const data = await ordersApi.getCompletedOrders();
-                setOrders(data.filter((o: any) => o.type !== 'PROCEDURE'));
-            } catch (err) {
-                console.error("Failed to load completed orders", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadOrders();
-    }, []);
+function PatientCard({ patient, userRole, isMine, onClick }: PatientCardProps) {
+  const [latest, setLatest] = useState<{ hr?: number; spo?: number; sys?: number; dia?: number; temp?: number } | null>(null);
+  const [series, setSeries] = useState<number[]>([]);
 
-    if (loading) return <div>Loading history...</div>;
-    if (orders.length === 0) return <div className="text-muted-foreground p-4 text-center">No recently completed orders.</div>;
+  useEffect(() => {
+    let cancelled = false;
+    apiClient
+      .get<any[]>(`/vitals/${patient.id}`)
+      .then((vs) => {
+        if (cancelled || !vs || vs.length === 0) return;
+        const sorted = [...vs].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        const last = sorted[sorted.length - 1];
+        setLatest({
+          hr: last.heartRate,
+          spo: last.spo2,
+          sys: last.bpSys,
+          dia: last.bpDia,
+          temp: last.temp,
+        });
+        setSeries(sorted.slice(-12).map((v) => v.heartRate || 0).filter((x: number) => x > 0));
+      })
+      .catch(() => { /* ignore */ });
+    return () => { cancelled = true; };
+  }, [patient.id]);
 
-    return (
-        <div className="space-y-2 opacity-75">
-            {orders.slice(0, 5).map(order => (
-                <div key={order.id} className="border rounded p-2 bg-slate-50 border-slate-100 flex justify-between items-center">
-                    <div className="flex-1 min-w-0 pr-2">
-                        <div className="font-medium text-slate-700 line-through text-xs truncate">{order.title}</div>
-                        <div className="text-[10px] text-slate-400 mt-0.5 truncate">
-                            {order.patient.name} • ✅ {order.author.name}
-                        </div>
-                    </div>
-                </div>
-            ))}
+  const critical = (patient as any).critical ?? false;
+  const ventilated = (patient as any).ventilated ?? false;
+  const initials = initialsFromName(patient.name);
+  const color = colorFromId(patient.id);
+  const ageY = (() => {
+    if (!patient.dob) return '?';
+    const d = new Date(patient.dob);
+    if (isNaN(d.getTime())) return '?';
+    return Math.max(0, Math.floor((Date.now() - d.getTime()) / (365.25 * 24 * 3600_000))).toString();
+  })();
+  const genderCode = (patient.gender || '?').slice(0, 1).toUpperCase();
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        background: 'var(--surface)',
+        border: `1px solid ${critical ? 'color-mix(in oklab, var(--sig-hr) 50%, var(--line))' : 'var(--line)'}`,
+        borderRadius: 16,
+        padding: 14,
+        boxShadow: 'var(--shadow-sm)',
+        cursor: 'pointer',
+        position: 'relative',
+        overflow: 'hidden',
+        transition: 'transform .12s ease, box-shadow .12s ease',
+      }}
+      onMouseOver={(e) => { (e.currentTarget.style.boxShadow = 'var(--shadow-md)'); }}
+      onMouseOut={(e) => { (e.currentTarget.style.boxShadow = 'var(--shadow-sm)'); }}
+    >
+      {critical && (
+        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: 'var(--sig-hr)' }} />
+      )}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+        <Avatar initials={initials} color={color} size="lg" />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{patient.name}</span>
+            {critical ? (
+              <Pill tone="crit"><span className="icu-dot icu-blip" style={{ background: 'var(--sig-hr)' }} />Critical</Pill>
+            ) : (
+              <Pill tone="ok">Stable</Pill>
+            )}
+            {ventilated && <Pill tone="info"><Icon name="wind" size={10} />Vented</Pill>}
+            {isMine && userRole === 'NURSE' && <Pill tone="ok">Yours</Pill>}
+          </div>
+          <div className="icu-mono" style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 6 }}>
+            {patient.mrn} · {ageY}{genderCode} {(patient as any).bed ? `· ${(patient as any).bed}` : ''}
+          </div>
+          {patient.diagnosis && (
+            <div style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {patient.diagnosis}
+            </div>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto auto auto auto 1fr', gap: 12, alignItems: 'end' }}>
+            <Vital label="HR" value={latest?.hr} cls="icu-sig-hr" />
+            <Vital label="SpO₂" value={latest?.spo} unit="%" cls="icu-sig-spo" />
+            <Vital
+              label="BP"
+              value={latest?.sys && latest?.dia ? `${latest.sys}/${latest.dia}` : undefined}
+              cls="icu-sig-bp"
+              small
+            />
+            <Vital label="T" value={latest?.temp} cls="icu-sig-temp" small />
+            <div style={{ flex: 1, minWidth: 60 }}>
+              {series.length >= 2 && <Sparkline values={series} color="var(--sig-hr)" height={28} />}
+            </div>
+          </div>
+          {userRole !== 'NURSE' && (
+            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>
+                tap to open chart
+              </span>
+              <Icon name="chevR" size={14} style={{ color: 'var(--ink-3)' }} />
+            </div>
+          )}
         </div>
-    );
+      </div>
+    </div>
+  );
+}
+
+function Vital({ label, value, unit, cls, small }: { label: string; value?: number | string; unit?: string; cls: string; small?: boolean }) {
+  return (
+    <div>
+      <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--ink-3)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>{label}</div>
+      <div className={`icu-sig-val ${cls}`} style={{ fontSize: small ? 16 : 20 }}>
+        {value ?? '—'}
+        {unit && <span className="icu-sig-unit"> {unit}</span>}
+      </div>
+    </div>
+  );
 }

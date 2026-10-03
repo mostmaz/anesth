@@ -103,6 +103,13 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                 case '6': freqLabel = '6x/Day (Q4H)'; break;
             }
 
+            // Combine the chosen date with the current time-of-day. Sending a date-only
+            // value made new Date("YYYY-MM-DD") midnight UTC, which rendered as ~3 AM
+            // local — so every drug looked like it was added at 3:00 AM.
+            const [sy, sm, sd] = startedAt.split('-').map(Number);
+            const nowT = new Date();
+            const startedDateTime = new Date(sy, (sm || 1) - 1, sd || 1, nowT.getHours(), nowT.getMinutes(), nowT.getSeconds());
+
             await marApi.prescribeMedication({
                 patientId,
                 name,
@@ -113,7 +120,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                 dilution: dilution ? parseFloat(dilution) : undefined,
                 durationReminder: durationReminder ? parseInt(durationReminder, 10) : undefined,
                 otherInstructions: instructions,
-                startedAt: new Date(startedAt).toISOString()
+                startedAt: startedDateTime.toISOString()
             });
             toast.success("Medication added");
             setOpen(false);
@@ -194,9 +201,11 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                                     <SelectItem value="IV">IV (Intravenous)</SelectItem>
                                     <SelectItem value="Infusion">Infusion</SelectItem>
                                     <SelectItem value="PO">PO (Oral)</SelectItem>
+                                    <SelectItem value="NG">NG (Nasogastric)</SelectItem>
                                     <SelectItem value="IM">IM (Intramuscular)</SelectItem>
                                     <SelectItem value="SC">SC (Subcutaneous)</SelectItem>
                                     <SelectItem value="NEB">Nebulizer</SelectItem>
+                                    <SelectItem value="Intranasal">Intranasal</SelectItem>
                                     <SelectItem value="LOCAL">Local</SelectItem>
                                     <SelectItem value="EYE_DROP">Eye Drop</SelectItem>
                                 </SelectContent>

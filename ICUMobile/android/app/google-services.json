@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "270878540467",
+    "project_id": "icumobile-49487",
+    "storage_bucket": "icumobile-49487.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:270878540467:android:a713c28e77f025b371e6c6",
+        "android_client_info": {
+          "package_name": "com.icumobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLwOBrftU8aVWL2-BmRKrDFBSYMR1iJkI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

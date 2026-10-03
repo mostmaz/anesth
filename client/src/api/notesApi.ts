@@ -1,7 +1,7 @@
 
 import { apiClient } from './client';
 
-export type NoteType = 'ADMISSION' | 'PROGRESS' | 'PROCEDURE' | 'DISCHARGE' | 'NURSING' | 'CONSULT' | 'OTHER';
+export type NoteType = 'ADMISSION' | 'PROGRESS' | 'PROCEDURE' | 'DISCHARGE' | 'NURSING' | 'CONSULT' | 'EVENT' | 'OTHER';
 
 export interface ClinicalNote {
     id: string;

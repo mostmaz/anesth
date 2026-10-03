@@ -1,8 +1,22 @@
+import { useEffect, useRef, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { toast } from 'sonner';
+import { apiClient } from '../api/client';
+import { type Patient } from '../types';
+import { ordersApi, ClinicalOrder } from '../api/ordersApi';
+import { assignmentApi } from '../api/assignmentApi';
+import { useAuthStore } from '../stores/authStore';
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Skeleton } from '../components/ui/skeleton';
-import { Button } from '../components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+const RECEIVING_ITEMS = [
+  'Verify Patient Identity & MRN',
+  'Check All IV Access & Patency',
+  'Confirm Current Infusions & Rates',
+  'Review Recent Vital Signs',
+  'Check Drains, Catheters & Output',
+  'Verify Ventilator Settings (if applicable)',
+  'Confirm Pending Medications/Orders',
+];
+
 import PatientHeader from '../features/patient/PatientHeader';
 import VitalsTab from '../features/vitals/VitalsTab';
 import MARTab from '../features/medication/MARTab';
@@ -14,304 +28,311 @@ import HandoverTab from '../features/handover/HandoverTab';
 import InterventionsTab from '../features/interventions/InterventionsTab';
 import OverviewTab from '../features/patient/OverviewTab';
 import VentilatorTab from '../features/ventilator/VentilatorTab';
+import RoundsTab from '../features/rounds/RoundsTab';
 import ConsultationTab from '../features/patient/ConsultationTab';
 import NursingTab from '../features/nursing/NursingTab';
 import HistoryTab from '../features/patient/HistoryTab';
-import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { apiClient } from '../api/client';
-import { type Patient } from '../types';
-import { Bell, CheckCircle2, Clock, X } from 'lucide-react';
-import { ordersApi, ClinicalOrder } from '../api/ordersApi';
-import { useAuthStore } from '../stores/authStore';
-import { toast } from 'sonner';
+import EventsTab from '../features/events/EventsTab';
 
-function ConfirmCheckDialog({
-    open,
-    onOpenChange,
-    onConfirm,
-    title,
-}: {
-    open: boolean;
-    onOpenChange: (v: boolean) => void;
-    onConfirm: () => void;
-    title: string;
-}) {
-    return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[380px]">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        Complete Check
-                    </DialogTitle>
-                </DialogHeader>
-                <p className="text-sm text-slate-600 py-2">
-                    Are you sure you want to mark <span className="font-semibold">{title}</span> as checked and dismiss this reminder?
-                </p>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                    <Button
-                        className="bg-green-600 hover:bg-green-700"
-                        onClick={() => { onOpenChange(false); onConfirm(); }}
-                    >
-                        Yes, Complete Check
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
+import { Tabs, Icon, type TabItem, Sheet } from '../components/icu';
+import { useLang } from '../i18n';
 
 export default function PatientDetails() {
-    const { id } = useParams();
-    const { user } = useAuthStore();
-    const [patient, setPatient] = useState<Patient | null>(null);
-    const [dueReminders, setDueReminders] = useState<ClinicalOrder[]>([]);
-    const [confirmOrder, setConfirmOrder] = useState<ClinicalOrder | null>(null);
-    const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
-    const [activeTab, setActiveTab] = useState('overview');
-    const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { id } = useParams();
+  const { user } = useAuthStore();
+  const { t } = useLang();
+  const [patient, setPatient] = useState<Patient | null>(null);
+  const [dueReminders, setDueReminders] = useState<ClinicalOrder[]>([]);
+  const [confirmOrder, setConfirmOrder] = useState<ClinicalOrder | null>(null);
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState('overview');
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [checkInBusy, setCheckInBusy] = useState(false);
+  const [checklistChecks, setChecklistChecks] = useState<Set<number>>(new Set());
+  const [receivedTick, setReceivedTick] = useState(0);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const fetchPatient = () => {
-        if (id) {
-            apiClient.get<Patient>(`/patients/${id}`)
-                .then(setPatient)
-                .catch(console.error);
-        }
-    };
+  const fetchPatient = () => {
+    if (!id) return;
+    apiClient.get<Patient>(`/patients/${id}`).then(setPatient).catch(console.error);
+  };
 
-    const fetchDueReminders = async () => {
-        if (!id) return;
-        try {
-            const allOrders = await ordersApi.getOrders(id);
-            const now = new Date();
-            const due = allOrders.filter(o =>
-                o.type === 'PROCEDURE' &&
-                (o as any).reminderAt &&
-                new Date((o as any).reminderAt) <= now &&
-                o.status !== 'COMPLETED'
-            );
-            setDueReminders(due.filter(o => !dismissedIds.has(o.id)));
-        } catch (e) {
-            // silent
-        }
-    };
+  const fetchAssignments = () => {
+    assignmentApi.getActive().then((a) => setAssignments(a || [])).catch(() => setAssignments([]));
+  };
 
-    useEffect(() => {
-        fetchPatient();
-        fetchDueReminders();
-        pollRef.current = setInterval(fetchDueReminders, 60_000);
-        return () => { if (pollRef.current) clearInterval(pollRef.current); };
-    }, [id]);
+  const isNurse = user?.role === 'NURSE';
+  const checkedIn = !isNurse || assignments.some((a: any) => a.patientId === id && a.userId === user?.id && a.isActive);
+  const currentNurse = assignments.find((a: any) => a.patientId === id && a.isActive);
+  void receivedTick; // re-render dependency so the localStorage read below re-evaluates
+  const receivedDone = !!id && localStorage.getItem(`received_${id}`) === 'true';
+  const needsChecklist = isNurse && checkedIn && !receivedDone;
 
-    const handleCompleteCheck = async (orderId: string) => {
-        if (!user) return;
-        try {
-            await ordersApi.updateStatus(orderId, 'COMPLETED', user.id);
-            toast.success("Check completed");
-            setDueReminders(prev => prev.filter(o => o.id !== orderId));
-        } catch {
-            toast.error("Failed to complete check");
-        }
-    };
-
-    const handleDismiss = (orderId: string) => {
-        setDismissedIds(prev => new Set([...prev, orderId]));
-        setDueReminders(prev => prev.filter(o => o.id !== orderId));
-    };
-
-    if (!patient) {
-        return (
-            <div className="min-h-screen bg-slate-50/50 pb-20">
-                <div className="bg-white border-b border-slate-200 py-8">
-                    <div className="max-w-7xl mx-auto px-4 flex items-center space-x-6">
-                        <Skeleton className="h-24 w-24 rounded-full" />
-                        <div className="space-y-2">
-                            <Skeleton className="h-8 w-64" />
-                            <Skeleton className="h-4 w-32" />
-                        </div>
-                    </div>
-                </div>
-                <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-6 sm:space-y-8">
-                    <Skeleton className="h-10 w-full sm:w-[600px]" />
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                        <Skeleton className="h-24 sm:h-32" />
-                        <Skeleton className="h-24 sm:h-32" />
-                        <Skeleton className="h-24 sm:h-32" />
-                        <Skeleton className="h-24 sm:h-32" />
-                    </div>
-                    <Skeleton className="h-[300px] sm:h-[400px] w-full" />
-                </main>
-            </div>
-        );
+  const doCheckIn = async () => {
+    if (!user || !id) return;
+    setCheckInBusy(true);
+    try {
+      const res: any = await assignmentApi.assign(id, user.id);
+      const displaced = res?.displaced?.length ? ` · checked out ${res.displaced.join(', ')}` : '';
+      toast.success(`Checked in${displaced}`);
+      fetchAssignments();
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to check in');
+    } finally {
+      setCheckInBusy(false);
     }
+  };
 
-    const visibleReminders = dueReminders.filter(o => !dismissedIds.has(o.id));
+  const completeReceiving = () => {
+    if (id) localStorage.setItem(`received_${id}`, 'true');
+    setReceivedTick((t) => t + 1);
+    toast.success('Handover complete — you have the patient');
+  };
 
+  const fetchReminders = async () => {
+    if (!id) return;
+    try {
+      const orders = await ordersApi.getOrders(id);
+      const now = new Date();
+      const due = orders.filter((o) =>
+        o.type === 'PROCEDURE' &&
+        (o as any).reminderAt &&
+        new Date((o as any).reminderAt) <= now &&
+        o.status !== 'COMPLETED',
+      );
+      setDueReminders(due.filter((o) => !dismissed.has(o.id)));
+    } catch {
+      /* silent */
+    }
+  };
+
+  useEffect(() => {
+    fetchPatient();
+    fetchReminders();
+    fetchAssignments();
+    pollRef.current = setInterval(fetchReminders, 60_000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  const handleCompleteCheck = async (orderId: string) => {
+    if (!user) return;
+    try {
+      await ordersApi.updateStatus(orderId, 'COMPLETED', user.id);
+      toast.success('Check completed');
+      setDueReminders((prev) => prev.filter((o) => o.id !== orderId));
+      setConfirmOrder(null);
+    } catch {
+      toast.error('Failed to complete');
+    }
+  };
+
+  const handleDismiss = (orderId: string) => {
+    setDismissed((prev) => new Set([...prev, orderId]));
+    setDueReminders((prev) => prev.filter((o) => o.id !== orderId));
+  };
+
+  if (!patient) {
     return (
-        <div className="min-h-screen bg-slate-50/50 pb-20">
-            <PatientHeader patient={patient} onUpdate={fetchPatient} />
-
-            {/* ── Sticky Intervention Reminder Banner ── */}
-            {visibleReminders.length > 0 && (
-                <div className="sticky top-0 z-40 shadow-lg">
-                    {visibleReminders.map(order => (
-                        <div
-                            key={order.id}
-                            className="bg-amber-500 border-b border-amber-600"
-                        >
-                            <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    <Bell className="w-5 h-5 text-white animate-pulse shrink-0" />
-                                    <div className="text-white min-w-0">
-                                        <p className="font-bold text-[11px] sm:text-sm truncate">
-                                            ⏰ Intervention Check Due: {(order.details as any)?.notificationText || order.title}
-                                        </p>
-                                        <p className="text-[10px] sm:text-xs text-amber-100 flex items-center gap-1 mt-0.5">
-                                            <Clock className="w-3 h-3" />
-                                            Due: {new Date((order as any).reminderAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                    <Button
-                                        size="sm"
-                                        className="bg-white text-green-700 hover:bg-green-50 font-semibold h-8 text-xs"
-                                        onClick={() => setConfirmOrder(order)}
-                                    >
-                                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                                        Complete Check
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="text-white hover:bg-amber-600 h-8 w-8 p-0"
-                                        onClick={() => handleDismiss(order.id)}
-                                        title="Dismiss for this session"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-                {(() => {
-                    return (
-                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                            <TabsList className="mb-6 sm:mb-8 w-full p-1 bg-muted rounded-lg overflow-x-auto flex flex-nowrap scrollbar-hide">
-                                <TabsTrigger value="overview" className="whitespace-nowrap px-3 sm:px-4">Overview</TabsTrigger>
-                                <TabsTrigger value="vitals" className="whitespace-nowrap px-3 sm:px-4">Vitals</TabsTrigger>
-                                <TabsTrigger value="mar" className="whitespace-nowrap px-3 sm:px-4">MAR</TabsTrigger>
-                                <TabsTrigger value="nursing" className="whitespace-nowrap px-3 sm:px-4">Nursing</TabsTrigger>
-                                <TabsTrigger value="ventilator" className="whitespace-nowrap px-3 sm:px-4">Ventilator</TabsTrigger>
-                                <TabsTrigger value="orders" className="whitespace-nowrap px-3 sm:px-4">Orders</TabsTrigger>
-                                <TabsTrigger value="io" className="whitespace-nowrap px-3 sm:px-4">I/O</TabsTrigger>
-                                {user?.role !== 'NURSE' && <TabsTrigger value="investigations" className="whitespace-nowrap px-3 sm:px-4">Labs</TabsTrigger>}
-                                {user?.role !== 'NURSE' && <TabsTrigger value="radiology" className="whitespace-nowrap px-3 sm:px-4">Radiology</TabsTrigger>}
-                                {user?.role !== 'NURSE' && <TabsTrigger value="cardiology" className="whitespace-nowrap px-3 sm:px-4">Cardiology</TabsTrigger>}
-                                <TabsTrigger value="interventions" className="relative whitespace-nowrap px-3 sm:px-4">
-                                    Interventions
-                                    {visibleReminders.length > 0 && (
-                                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full" />
-                                    )}
-                                </TabsTrigger>
-                                {user?.role !== 'NURSE' && <TabsTrigger value="consultation" className="whitespace-nowrap px-3 sm:px-4">Consultation</TabsTrigger>}
-                                <TabsTrigger value="notes" className="whitespace-nowrap px-3 sm:px-4">Notes</TabsTrigger>
-                                <TabsTrigger value="history" className="whitespace-nowrap px-3 sm:px-4">History</TabsTrigger>
-                                {user?.role !== 'NURSE' && <TabsTrigger value="handover" className="whitespace-nowrap px-3 sm:px-4">Handover</TabsTrigger>}
-                            </TabsList>
-
-                            <TabsContent value="overview" className="space-y-6">
-                                <OverviewTab
-                                    patientId={patient.id}
-                                    patient={patient}
-                                    onLoadHistory={() => setActiveTab('history')}
-                                />
-                            </TabsContent>
-
-                            <TabsContent value="vitals">
-                                <VitalsTab patientId={patient.id} />
-                            </TabsContent>
-
-                            <TabsContent value="mar">
-                                <MARTab patientId={patient.id} />
-                            </TabsContent>
-
-                            <TabsContent value="orders">
-                                <OrdersTab patientId={patient.id} />
-                            </TabsContent>
-
-                            <TabsContent value="io">
-                                <IOTab patientId={patient.id} />
-                            </TabsContent>
-
-                            <TabsContent value="investigations">
-                                <InvestigationsTab
-                                    patientId={patient.id}
-                                    defaultTab="labs"
-                                />
-                            </TabsContent>
-
-                            <TabsContent value="radiology">
-                                <InvestigationsTab
-                                    patientId={patient.id}
-                                    defaultTab="imaging"
-                                />
-                            </TabsContent>
-
-                            <TabsContent value="cardiology">
-                                <InvestigationsTab
-                                    patientId={patient.id}
-                                    defaultTab="cardiology"
-                                />
-                            </TabsContent>
-
-                            <TabsContent value="interventions">
-                                <InterventionsTab patientId={patient.id} diagnosis={patient.diagnosis || undefined} />
-                            </TabsContent>
-
-                            <TabsContent value="nursing">
-                                <NursingTab patientId={patient.id} />
-                            </TabsContent>
-
-                            <TabsContent value="ventilator">
-                                <VentilatorTab patientId={patient.id} />
-                            </TabsContent>
-
-                            <TabsContent value="consultation">
-                                <ConsultationTab patientId={patient.id} />
-                            </TabsContent>
-
-                            <TabsContent value="notes">
-                                <NotesTab patientId={patient.id} />
-                            </TabsContent>
-
-                            <TabsContent value="handover">
-                                <HandoverTab patient={patient} />
-                            </TabsContent>
-
-                            <TabsContent value="history">
-                                <HistoryTab patientId={patient.id} />
-                            </TabsContent>
-                        </Tabs>
-                    );
-                })()}
-            </main>
-
-            {/* Confirmation Dialog */}
-            {confirmOrder && (
-                <ConfirmCheckDialog
-                    open={!!confirmOrder}
-                    onOpenChange={(v) => { if (!v) setConfirmOrder(null); }}
-                    title={(confirmOrder.details as any)?.notificationText || confirmOrder.title}
-                    onConfirm={() => handleCompleteCheck(confirmOrder.id)}
-                />
-            )}
-        </div>
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-3)' }}>
+        Loading patient…
+      </div>
     );
+  }
+
+  // Nurse must check in (and complete the receiving checklist) before charting.
+  if (isNurse && !checkedIn) {
+    return (
+      <div style={{ maxWidth: 460, margin: '60px auto', padding: 24, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
+        <div style={{ width: 72, height: 72, borderRadius: 20, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="shield" size={30} style={{ color: 'var(--accent-ink)' }} />
+        </div>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Check in to this patient</h2>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+          Check in to {patient.name} to receive and chart.
+          {currentNurse ? ` ${currentNurse.user?.name || 'The previous-shift nurse'} will be checked out.` : ' This patient is currently unassigned.'}
+        </p>
+        <button type="button" className="icu-btn icu-btn-primary" style={{ width: '100%' }} disabled={checkInBusy} onClick={doCheckIn}>
+          <Icon name="check" size={14} /> {currentNurse ? 'Check in · check out previous nurse' : 'Check in to patient'}
+        </button>
+        <a href="#/dashboard" className="icu-btn icu-btn-outline" style={{ width: '100%', textDecoration: 'none' }}>Back to dashboard</a>
+      </div>
+    );
+  }
+
+  if (needsChecklist) {
+    const allDone = checklistChecks.size >= RECEIVING_ITEMS.length;
+    return (
+      <div style={{ maxWidth: 560, margin: '30px auto', padding: 20 }}>
+        <h2 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>Patient Receiving Checklist</h2>
+        <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--ink-3)' }}>
+          Complete this checklist while receiving <b style={{ color: 'var(--ink)' }}>{patient.name}</b> from the previous nurse.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {RECEIVING_ITEMS.map((item, i) => {
+            const on = checklistChecks.has(i);
+            return (
+              <button key={i} type="button" className="icu-row"
+                onClick={() => setChecklistChecks((prev) => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n; })}
+                style={{ width: '100%', padding: 12, gap: 12, cursor: 'pointer', background: 'var(--surface)', textAlign: 'left', fontFamily: 'inherit', fontSize: 13, color: 'var(--ink-2)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center' }}>
+                <span style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${on ? 'var(--accent)' : 'var(--line-2)'}`, background: on ? 'var(--accent)' : 'var(--surface)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-fg)', flexShrink: 0 }}>
+                  {on && <Icon name="check" size={14} stroke={3} />}
+                </span>
+                <span style={{ flex: 1 }}>{item}</span>
+              </button>
+            );
+          })}
+        </div>
+        <button type="button" className="icu-btn icu-btn-success" style={{ width: '100%', marginTop: 16 }} disabled={!allDone} onClick={completeReceiving}>
+          <Icon name="check" size={14} /> {allDone ? 'Complete handover' : `Complete handover (${checklistChecks.size} / ${RECEIVING_ITEMS.length})`}
+        </button>
+      </div>
+    );
+  }
+
+  const tabs: TabItem[] = [
+    { value: 'overview', label: t('tab.overview') },
+    ...(user?.role !== 'NURSE' ? [{ value: 'rounds', label: t('tab.rounds') }] : []),
+    { value: 'vitals', label: t('tab.vitals') },
+    { value: 'events', label: t('tab.events') },
+    { value: 'mar', label: t('tab.mar') },
+    { value: 'nursing', label: t('tab.nursing') },
+    { value: 'ventilator', label: t('tab.ventilator') },
+    { value: 'orders', label: t('tab.orders') },
+    { value: 'io', label: t('tab.io') },
+    ...(user?.role !== 'NURSE' ? [
+      { value: 'investigations', label: t('tab.labs') },
+      { value: 'radiology', label: t('tab.radiology') },
+      { value: 'cardiology', label: t('tab.cardiology') },
+    ] : []),
+    { value: 'interventions', label: t('tab.interventions'), dot: dueReminders.length > 0 },
+    ...(user?.role !== 'NURSE' ? [
+      { value: 'consultation', label: t('tab.consultation') },
+    ] : []),
+    { value: 'notes', label: t('tab.notes') },
+    { value: 'history', label: t('tab.history') },
+    ...(user?.role !== 'NURSE' ? [
+      { value: 'handover', label: t('tab.handover') },
+    ] : []),
+  ];
+
+  return (
+    <div style={{ background: 'var(--bg)', minHeight: '100%' }}>
+      <PatientHeader patient={patient} onUpdate={fetchPatient} />
+
+      {/* Tab bar */}
+      <div
+        style={{
+          background: 'var(--surface)',
+          borderBottom: '1px solid var(--line)',
+          padding: '6px 16px',
+          position: 'sticky',
+          top: 0,
+          zIndex: 15,
+        }}
+      >
+        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+          <Tabs value={activeTab} onChange={setActiveTab} items={tabs} />
+        </div>
+      </div>
+
+      {/* Due reminder banner (under tabs) */}
+      {dueReminders.length > 0 && dueReminders.map((order) => (
+        <div
+          key={order.id}
+          style={{
+            background: 'var(--st-warn-bg)',
+            color: 'var(--st-warn-fg)',
+            borderBottom: '1px solid color-mix(in oklab, var(--sig-temp) 50%, var(--line))',
+            padding: '10px 16px',
+          }}
+        >
+          <div
+            style={{
+              maxWidth: 1400, margin: '0 auto',
+              display: 'flex', alignItems: 'center', gap: 12,
+            }}
+          >
+            <Icon name="bell_ring" size={18} className="icu-pulse-soft" />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {(order.details as any)?.notificationText || order.title}
+              </div>
+              <div style={{ fontSize: 11 }}>
+                Due {new Date((order as any).reminderAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setConfirmOrder(order)}
+              className="icu-btn icu-btn-xs"
+              style={{ background: 'white', color: 'var(--st-warn-fg)' }}
+            >
+              <Icon name="check" size={12} /> Complete
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDismiss(order.id)}
+              className="icu-btn icu-btn-icon-sm icu-btn-ghost"
+              style={{ color: 'var(--st-warn-fg)' }}
+              aria-label="Dismiss"
+            >
+              <Icon name="x" size={14} />
+            </button>
+          </div>
+        </div>
+      ))}
+
+      <main style={{ maxWidth: 1400, margin: '0 auto', padding: '20px 16px 40px' }}>
+        {activeTab === 'overview' && (
+          <OverviewTab patientId={patient.id} patient={patient} onLoadHistory={() => setActiveTab('history')} />
+        )}
+        {activeTab === 'rounds' && <RoundsTab patientId={patient.id} patient={patient} />}
+        {activeTab === 'vitals' && <VitalsTab patientId={patient.id} />}
+        {activeTab === 'mar' && <MARTab patientId={patient.id} />}
+        {activeTab === 'orders' && <OrdersTab patientId={patient.id} />}
+        {activeTab === 'io' && <IOTab patientId={patient.id} />}
+        {activeTab === 'investigations' && <InvestigationsTab patientId={patient.id} defaultTab="labs" />}
+        {activeTab === 'radiology' && <InvestigationsTab patientId={patient.id} defaultTab="imaging" />}
+        {activeTab === 'cardiology' && <InvestigationsTab patientId={patient.id} defaultTab="cardiology" />}
+        {activeTab === 'interventions' && (
+          <InterventionsTab patientId={patient.id} diagnosis={patient.diagnosis || undefined} />
+        )}
+        {activeTab === 'nursing' && <NursingTab patientId={patient.id} />}
+        {activeTab === 'ventilator' && <VentilatorTab patientId={patient.id} />}
+        {activeTab === 'consultation' && <ConsultationTab patientId={patient.id} />}
+        {activeTab === 'events' && <EventsTab patientId={patient.id} />}
+        {activeTab === 'notes' && <NotesTab patientId={patient.id} />}
+        {activeTab === 'handover' && <HandoverTab patient={patient} />}
+        {activeTab === 'history' && <HistoryTab patientId={patient.id} />}
+      </main>
+
+      {/* Confirm dialog */}
+      <Sheet
+        open={!!confirmOrder}
+        onClose={() => setConfirmOrder(null)}
+        title="Complete check"
+        footer={
+          <>
+            <button type="button" onClick={() => setConfirmOrder(null)} className="icu-btn icu-btn-outline">Cancel</button>
+            <button
+              type="button"
+              onClick={() => confirmOrder && handleCompleteCheck(confirmOrder.id)}
+              className="icu-btn icu-btn-success"
+            >
+              <Icon name="check" size={14} /> Yes, complete
+            </button>
+          </>
+        }
+      >
+        {confirmOrder && (
+          <p style={{ fontSize: 14, color: 'var(--ink-2)', margin: 0 }}>
+            Mark <b style={{ color: 'var(--ink)' }}>
+              {(confirmOrder.details as any)?.notificationText || confirmOrder.title}
+            </b> as checked and dismiss this reminder?
+          </p>
+        )}
+      </Sheet>
+    </div>
+  );
 }

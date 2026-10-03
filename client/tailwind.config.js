@@ -36,8 +36,8 @@ export default {
     				foreground: 'hsl(var(--muted-foreground))'
     			},
     			accent: {
-    				DEFAULT: 'hsl(var(--accent))',
-    				foreground: 'hsl(var(--accent-foreground))'
+    				DEFAULT: 'hsl(var(--sh-accent))',
+    				foreground: 'hsl(var(--sh-accent-foreground))'
     			},
     			destructive: {
     				DEFAULT: 'hsl(var(--destructive))',
