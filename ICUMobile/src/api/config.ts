@@ -1,6 +1,6 @@
 // Backend config. Switchable at runtime via Tweaks screen.
 
-let _baseUrl = 'http://161.35.216.33:3001/api';
+let _baseUrl = 'http://167.172.101.215:3001/api';
 
 export function getBaseUrl(): string {
   return _baseUrl;

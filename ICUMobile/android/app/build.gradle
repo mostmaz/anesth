@@ -85,7 +85,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
-        // Allow cleartext HTTP to the prod backend (no HTTPS yet on 161.35.216.33)
+        // Allow cleartext HTTP to the prod backend (no HTTPS yet on 167.172.101.215)
         manifestPlaceholders = [usesCleartextTraffic: "true"]
     }
     signingConfigs {
