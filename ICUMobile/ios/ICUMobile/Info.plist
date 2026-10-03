@@ -28,7 +28,7 @@
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-	  <!-- The backend is served over plain HTTP on an IP (http://161.35.216.33:3001),
+	  <!-- The backend is served over plain HTTP on an IP (http://167.172.101.215:3001),
 	       so cleartext must be allowed for live mode to work on iOS — this mirrors the
 	       Android network_security_config (cleartextTrafficPermitted=true).
 	       NOTE: before any App Store submission, move the backend to HTTPS and set
@@ -39,7 +39,7 @@
 		<true/>
 		<key>NSExceptionDomains</key>
 		<dict>
-			<key>161.35.216.33</key>
+			<key>167.172.101.215</key>
 			<dict>
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>
 				<true/>
