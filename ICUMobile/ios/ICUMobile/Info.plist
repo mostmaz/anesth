@@ -28,25 +28,15 @@
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-	  <!-- The backend is served over plain HTTP on an IP (http://167.172.101.215:3001),
-	       so cleartext must be allowed for live mode to work on iOS — this mirrors the
-	       Android network_security_config (cleartextTrafficPermitted=true).
-	       NOTE: before any App Store submission, move the backend to HTTPS and set
-	       NSAllowsArbitraryLoads back to false (Apple rejects arbitrary cleartext). -->
+	  <!-- Backend is plain HTTP on an IP, so allow all cleartext (matches Android's
+	       global cleartextTrafficPermitted=true). This survives a backend IP change
+	       without an Info.plist edit.
+	       ⚠️ Do NOT add NSAllowsLocalNetworking / NSAllowsArbitraryLoadsInWebContent /
+	       ...ForMedia here: iOS IGNORES NSAllowsArbitraryLoads whenever any of those keys
+	       is present, which silently blocks HTTP to any host not in NSExceptionDomains.
+	       Move the backend to HTTPS before any App Store submission. -->
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
-		<key>NSAllowsLocalNetworking</key>
-		<true/>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>167.172.101.215</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-				<key>NSIncludesSubdomains</key>
-				<false/>
-			</dict>
-		</dict>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
