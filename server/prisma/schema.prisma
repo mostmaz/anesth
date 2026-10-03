@@ -40,6 +40,7 @@ model User {
   assignments  PatientAssignment[]
   dismissedLabs String[] @default([])
   skinAssessments SkinAssessment[]
+  fcmTokens    String[] @default([])
 }
 
 model PatientAssignment {
@@ -162,6 +163,7 @@ enum NoteType {
   DISCHARGE
   NURSING
   CONSULT
+  EVENT
   OTHER
 }
 
@@ -231,7 +233,8 @@ model MedicationAdministration {
   status       String   // Scheduled, Given, Held, NotGiven
   dose         String?
   dilution     Float?   // Dilution volume in mL at time of administration
-  timestamp    DateTime @default(now())
+  timestamp    DateTime @default(now())  // actual administration time (nurse may back-date late entries)
+  // chartedAt DateTime? — audit column for late entries; pending explicit prod-migration approval
   userId       String?  // Nurse who administered
   
   patient      Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)

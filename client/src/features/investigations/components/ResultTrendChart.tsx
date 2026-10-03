@@ -69,16 +69,39 @@ export function ResultTrendChart({ patientId, parameterName, testName, onClose }
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="date" fontSize={12} />
+                                <XAxis
+                                    type="number"
+                                    dataKey="timestamp"
+                                    domain={['dataMin', 'dataMax']}
+                                    scale="time"
+                                    tickFormatter={(ts: number) => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                    fontSize={12}
+                                />
                                 <YAxis fontSize={12} />
-                                <Tooltip />
+                                <Tooltip
+                                    labelFormatter={(label) => {
+                                        const ts = typeof label === 'number' ? label : Number(label);
+                                        return Number.isFinite(ts)
+                                            ? new Date(ts).toLocaleString([], {
+                                                month: 'short', day: 'numeric',
+                                                hour: '2-digit', minute: '2-digit',
+                                            })
+                                            : String(label);
+                                    }}
+                                    formatter={(value, _name, item: any) => [
+                                        String(item?.payload?.originalValue ?? value ?? ''),
+                                        parameterName,
+                                    ]}
+                                />
                                 <Line
                                     type="monotone"
                                     dataKey="value"
+                                    name={parameterName}
                                     stroke="#2563eb"
                                     strokeWidth={2}
                                     dot={{ r: 4 }}
                                     activeDot={{ r: 6 }}
+                                    isAnimationActive={false}
                                 />
                             </LineChart>
                         </ResponsiveContainer>

@@ -1,193 +1,268 @@
 import { useState } from 'react';
-import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '../../components/ui/dialog';
-import { Label } from '../../components/ui/label';
-import { Input } from '../../components/ui/input';
-import { Checkbox } from '../../components/ui/checkbox';
-import { checkinApi } from '../../api/checkinApi';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useAuthStore } from '../../stores/authStore';
 import { useShiftStore } from '../../stores/shiftStore';
 import { Patient } from '../../types';
-import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
-import { Avatar, AvatarFallback } from '../../components/ui/avatar';
-import { Separator } from '../../components/ui/separator';
-import { Bed, Stethoscope, Printer, Activity, LogOut } from 'lucide-react';
 import { calculateAge } from '../../lib/utils';
+import { checkinApi } from '../../api/checkinApi';
 import { assignmentApi } from '../../api/assignmentApi';
-import { useNavigate } from 'react-router-dom';
+import { apiClient } from '../../api/client';
+import {
+  Icon, Pill, Sheet, Avatar, initialsFromName, colorFromId,
+} from '../../components/icu';
+import { useLang } from '../../i18n';
 
-import EditPatientDialog from './EditPatientDialog';
-
-interface PatientHeaderProps {
-    patient: Patient;
-    onUpdate?: () => void;
+interface Props {
+  patient: Patient;
+  onUpdate?: () => void;
 }
 
-export default function PatientHeader({ patient, onUpdate }: PatientHeaderProps) {
-    const { user } = useAuthStore();
-    const { activeShift } = useShiftStore();
-    const navigate = useNavigate();
-    const [open, setOpen] = useState(false);
-    const [notes, setNotes] = useState('');
-    const [checks, setChecks] = useState({
-        airwaySafe: true,
-        breathingOk: true,
-        circulationOk: true
-    });
+export default function PatientHeader({ patient }: Props) {
+  const { user } = useAuthStore();
+  const { t } = useLang();
+  const { activeShift } = useShiftStore();
+  const navigate = useNavigate();
+  const [checkinOpen, setCheckinOpen] = useState(false);
+  const [dischargeOpen, setDischargeOpen] = useState(false);
+  const [dischargeBusy, setDischargeBusy] = useState(false);
+  const [airwaySafe, setAirwaySafe] = useState(true);
+  const [breathingOk, setBreathingOk] = useState(true);
+  const [circulationOk, setCirculationOk] = useState(true);
+  const [notes, setNotes] = useState('');
 
-    const handleCheckIn = async () => {
-        if (!user) return;
-        try {
-            await checkinApi.create({
-                patientId: patient.id,
-                userId: user.id,
-                shiftId: activeShift?.id,
-                airwaySafe: checks.airwaySafe,
-                breathingOk: checks.breathingOk,
-                circulationOk: checks.circulationOk,
-                notes
-            });
-            toast.success("Check-in recorded successfully");
-            setOpen(false);
-            setNotes('');
-        } catch (error) {
-            toast.error("Failed to record check-in");
-        }
-    };
+  const code = (patient as any).codeStatus || 'Full Code';
+  const bed = (patient as any).bed || 'ICU-?';
+  const critical = !!(patient as any).critical;
+  const ventilated = !!(patient as any).ventilated;
+  const admittedAt = (patient as any).admittedAt || (patient as any).createdAt;
+  const dayN = admittedAt ? Math.max(1, Math.floor((Date.now() - new Date(admittedAt).getTime()) / (24 * 60 * 60_000)) + 1) : 1;
 
-    const handleSignOut = async () => {
-        if (!user || user.role !== 'NURSE') return;
-        try {
-            await assignmentApi.unassign(patient.id, user.id);
-            toast.success("Signed out of patient completely.");
-            navigate('/');
-        } catch (error) {
-            toast.error("Failed to sign out from patient");
-        }
-    };
+  const handleCheckIn = async () => {
+    if (!user) return;
+    try {
+      await checkinApi.create({
+        patientId: patient.id,
+        userId: user.id,
+        shiftId: activeShift?.id,
+        airwaySafe,
+        breathingOk,
+        circulationOk,
+        notes,
+      });
+      toast.success('Check-in recorded');
+      setCheckinOpen(false);
+      setNotes('');
+    } catch {
+      toast.error('Failed to record check-in');
+    }
+  };
 
-    // Mock clinical data...
-    const clinicalData = {
-        weight: '75 kg',
-        admissionDate: '2023-10-15',
-        diagnosis: 'Septic Shock',
-        codeStatus: 'Full Code',
-        allergies: ['Penicillin', 'Latex'],
-        isolation: 'Contact',
-        bed: 'ICU-bed-1'
-    };
+  const handleSignOut = async () => {
+    if (!user || user.role !== 'NURSE') return;
+    try {
+      await assignmentApi.unassign(patient.id, user.id);
+      toast.success('Signed out of patient');
+      navigate('/');
+    } catch {
+      toast.error('Failed to sign out');
+    }
+  };
 
-    return (
-        <div className="bg-background border-b sticky top-0 z-30 shadow-sm print:hidden">
-            <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
+  const handleDischarge = async () => {
+    setDischargeBusy(true);
+    try {
+      await apiClient.patch(`/patients/${patient.id}/discharge`, {});
+      toast.success('Patient discharged');
+      setDischargeOpen(false);
+      navigate('/dashboard');
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to discharge');
+    } finally {
+      setDischargeBusy(false);
+    }
+  };
 
-                    {/* Patient Identity */}
-                    <div className="flex items-center space-x-3 sm:space-x-4">
-                        <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-2 border-muted shrink-0">
-                            <AvatarFallback className="bg-blue-100 text-blue-700 font-bold text-sm sm:text-base">
-                                {patient.name.substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                                <h1 className="text-lg sm:text-xl font-bold text-foreground truncate max-w-[150px] sm:max-w-none">
-                                    {patient.name}
-                                </h1>
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                    <Badge variant="outline" className="text-muted-foreground text-[10px] sm:text-xs px-1.5 py-0">
-                                        {calculateAge(patient.dob)} / {patient.gender.charAt(0)}
-                                    </Badge>
-                                    {onUpdate && <EditPatientDialog patient={patient} onUpdate={onUpdate} />}
-                                    <Badge className="bg-red-100 text-red-800 hover:bg-red-200 border-red-200 text-[10px] sm:text-xs px-1.5 py-0">
-                                        {clinicalData.codeStatus}
-                                    </Badge>
-                                </div>
-                            </div>
-                            <div className="text-[11px] sm:text-sm text-muted-foreground flex items-center space-x-2 mt-0.5">
-                                <span className="font-mono">MRN: {patient.mrn}</span>
-                                <Separator orientation="vertical" className="h-3" />
-                                <span className="flex items-center">
-                                    <Bed className="w-3 h-3 mr-1" /> {clinicalData.bed}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+  const initials = initialsFromName(patient.name);
+  const color = colorFromId(patient.id);
 
-                    {/* Clinical Actions */}
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 lg:justify-end">
-                        <Button variant="outline" size="sm" className="gap-1.5 sm:gap-2 h-8 sm:h-9 text-[11px] sm:text-xs px-2 sm:px-3" onClick={() => window.open(`/print-chart/${patient.id}`, '_blank')}>
-                            <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                            <span className="inline sm:hidden lg:inline">Print</span>
-                            <span className="hidden sm:inline lg:hidden">Print Chart</span>
-                        </Button>
-                        <Button variant="outline" size="sm" className="gap-1.5 sm:gap-2 h-8 sm:h-9 text-[11px] sm:text-xs px-2 sm:px-3" onClick={() => window.open(`#/discharge/${patient.id}`, '_blank')}>
-                            <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                            Discharge
-                        </Button>
-                        <Dialog open={open} onOpenChange={setOpen}>
-                            <DialogTrigger asChild>
-                                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 sm:gap-2 h-8 sm:h-9 text-[11px] sm:text-xs px-2 sm:px-3">
-                                    <Stethoscope className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                    Check-in
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-[425px]">
-                                <DialogHeader>
-                                    <DialogTitle>Bedside Check-in</DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-4 py-4">
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id="airway"
-                                            checked={checks.airwaySafe}
-                                            onCheckedChange={(c: boolean) => setChecks(prev => ({ ...prev, airwaySafe: c }))}
-                                        />
-                                        <Label htmlFor="airway" className="text-sm">Airway Safe / Patent</Label>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id="breathing"
-                                            checked={checks.breathingOk}
-                                            onCheckedChange={(c: boolean) => setChecks(prev => ({ ...prev, breathingOk: c }))}
-                                        />
-                                        <Label htmlFor="breathing" className="text-sm">Breathing / Vent OK</Label>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id="circulation"
-                                            checked={checks.circulationOk}
-                                            onCheckedChange={(c: boolean) => setChecks(prev => ({ ...prev, circulationOk: c }))}
-                                        />
-                                        <Label htmlFor="circulation" className="text-sm">Circulation / Hemodynamics</Label>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-sm">Quick Note</Label>
-                                        <Input
-                                            value={notes}
-                                            onChange={(e) => setNotes(e.target.value)}
-                                            placeholder="Any concerns?"
-                                            className="h-9 text-sm"
-                                        />
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <Button className="w-full sm:w-auto" onClick={handleCheckIn}>Confirm Check-in</Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                        {user?.role === 'NURSE' && (
-                            <Button variant="destructive" size="sm" className="gap-1.5 sm:gap-2 h-8 sm:h-9 text-[11px] sm:text-xs px-2 sm:px-3" onClick={handleSignOut}>
-                                <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                <span className="inline sm:hidden lg:inline">Leave</span>
-                                <span className="hidden sm:inline lg:hidden">Leave Patient</span>
-                            </Button>
-                        )}
-                    </div>
-
-                </div>
+  return (
+    <div
+      style={{
+        background: 'var(--surface)',
+        borderBottom: '1px solid var(--line)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 20,
+        boxShadow: 'var(--shadow-sm)',
+      }}
+      className="print:hidden"
+    >
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '12px 16px 0' }}>
+        {/* Top row: identity + actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <Avatar initials={initials} color={color} size="md" />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: 'var(--ink)' }}>{patient.name}</h1>
+              <Pill tone="muted">{calculateAge(patient.dob)} / {(patient.gender || '?').charAt(0).toUpperCase()}</Pill>
+              <Pill tone={code === 'DNR' ? 'warn' : 'crit'}>
+                <Icon name="shield" size={10} /> {code === 'DNR' ? t('hdr.dnr') : t('hdr.fullCode')}
+              </Pill>
+              <Pill tone={critical ? 'crit' : 'ok'}>
+                <span className="icu-dot icu-blip" style={{ background: critical ? 'var(--sig-hr)' : 'var(--st-ok-line)' }} />
+                {critical ? t('hdr.critical') : t('hdr.stable')}
+              </Pill>
+              {ventilated && <Pill tone="info"><Icon name="wind" size={10} /> {t('hdr.vented')}</Pill>}
             </div>
+            <div className="icu-mono" style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>{t('hdr.mrn')}: {patient.mrn}</span>
+              <span>·</span>
+              <span>{bed}</span>
+              <span>·</span>
+              <span>{t('hdr.day')} {dayN}</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={() => setDischargeOpen(true)}
+              className="icu-btn icu-btn-outline icu-btn-sm"
+              title="Quick discharge — moves patient to Archived"
+            >
+              <Icon name="logout" size={14} /> <span className="hidden sm:inline">{t('hdr.discharge')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => window.open(`#/discharge/${patient.id}`, '_blank')}
+              className="icu-btn icu-btn-ghost icu-btn-sm"
+              title="Full discharge summary form"
+            >
+              <Icon name="fileText" size={14} /> <span className="hidden lg:inline">{t('hdr.summary')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCheckinOpen(true)}
+              className="icu-btn icu-btn-success icu-btn-sm"
+            >
+              <Icon name="stetho" size={14} /> {t('hdr.checkIn')}
+            </button>
+            {user?.role === 'NURSE' && (
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="icu-btn icu-btn-danger icu-btn-sm"
+              >
+                <Icon name="logout" size={14} /> <span className="hidden sm:inline">{t('hdr.leave')}</span>
+              </button>
+            )}
+          </div>
         </div>
-    );
+
+        <div style={{ height: 12 }} />
+      </div>
+
+      <Sheet
+        open={checkinOpen}
+        onClose={() => setCheckinOpen(false)}
+        title="Bedside check-in"
+        footer={
+          <>
+            <button type="button" onClick={() => setCheckinOpen(false)} className="icu-btn icu-btn-outline">Cancel</button>
+            <button type="button" onClick={handleCheckIn} className="icu-btn icu-btn-success">
+              <Icon name="check" size={14} /> Confirm
+            </button>
+          </>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <p style={{ fontSize: 12, color: 'var(--ink-3)', margin: 0 }}>Quick ABC bedside assessment.</p>
+          <CheckRow checked={airwaySafe} setChecked={setAirwaySafe} label="Airway safe / patent" />
+          <CheckRow checked={breathingOk} setChecked={setBreathingOk} label="Breathing / Vent OK" />
+          <CheckRow checked={circulationOk} setChecked={setCirculationOk} label="Circulation / Hemodynamics" />
+          <div>
+            <label className="icu-fld">Quick note</label>
+            <textarea
+              className="icu-textarea"
+              rows={3}
+              placeholder="Optional note…"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              style={{ resize: 'vertical' }}
+            />
+          </div>
+        </div>
+      </Sheet>
+
+      <Sheet
+        open={dischargeOpen}
+        onClose={() => !dischargeBusy && setDischargeOpen(false)}
+        title="Discharge patient"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setDischargeOpen(false)}
+              disabled={dischargeBusy}
+              className="icu-btn icu-btn-outline"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDischarge}
+              disabled={dischargeBusy}
+              className="icu-btn icu-btn-danger"
+            >
+              <Icon name="logout" size={14} /> {dischargeBusy ? 'Discharging…' : 'Discharge'}
+            </button>
+          </>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-2)' }}>
+            Discharge <b style={{ color: 'var(--ink)' }}>{patient.name}</b> (MRN {patient.mrn})?
+          </p>
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-3)' }}>
+            The patient will move to the <b>Archived</b> tab on the Dashboard. Their chart stays accessible from there.
+            Use <b>Summary</b> instead if you want to write a full discharge note first.
+          </p>
+        </div>
+      </Sheet>
+    </div>
+  );
+}
+
+function CheckRow({ checked, setChecked, label }: { checked: boolean; setChecked: (v: boolean) => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={() => setChecked(!checked)}
+      className="icu-row"
+      style={{
+        padding: 12,
+        gap: 10,
+        cursor: 'pointer',
+        background: 'var(--surface)',
+        textAlign: 'left',
+        fontFamily: 'inherit',
+        fontSize: 13,
+        color: 'var(--ink-2)',
+      }}
+    >
+      <span
+        style={{
+          width: 22, height: 22, borderRadius: 6,
+          border: `2px solid ${checked ? 'var(--accent)' : 'var(--line-2)'}`,
+          background: checked ? 'var(--accent)' : 'var(--surface)',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          color: 'var(--accent-fg)',
+          flexShrink: 0,
+        }}
+      >
+        {checked && <Icon name="check" size={14} stroke={3} />}
+      </span>
+      {label}
+    </button>
+  );
 }

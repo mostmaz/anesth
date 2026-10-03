@@ -23,6 +23,9 @@ import { Button } from '../../components/ui/button';
 import { Progress } from "../../components/ui/progress";
 import { marApi, type Medication } from '../../api/marApi';
 import { patientApi, type TimelineEvent } from '../../api/patientApi';
+import { userApi } from '../../api/userApi';
+import { useAuthStore } from '../../stores/authStore';
+import { toast } from 'sonner';
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import type { Patient } from '../../types';
@@ -34,6 +37,7 @@ interface OverviewTabProps {
 }
 
 export default function OverviewTab({ patientId, patient, onLoadHistory }: OverviewTabProps) {
+    const { user } = useAuthStore();
     const [lastVitals, setLastVitals] = useState<VitalSign | null>(null);
     const [ioHistory, setIoHistory] = useState<IOEntry[]>([]);
     const [latestOrders, setLatestOrders] = useState<ClinicalOrder[]>([]);
@@ -43,11 +47,27 @@ export default function OverviewTab({ patientId, patient, onLoadHistory }: Overv
     const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const [now, setNow] = useState(new Date());
+    const [dismissedLabs, setDismissedLabs] = useState<Set<string>>(new Set());
+    const [dismissedLoaded, setDismissedLoaded] = useState(false);
+    const [acknowledging, setAcknowledging] = useState(false);
 
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 60000);
         return () => clearInterval(timer);
     }, []);
+
+    // Load user's previously-dismissed lab IDs so acknowledged alerts stay dismissed.
+    useEffect(() => {
+        if (!user) return;
+        let cancelled = false;
+        userApi.getPreferences(user.id)
+            .then(prefs => {
+                if (!cancelled) setDismissedLabs(new Set(prefs?.dismissedLabs || []));
+            })
+            .catch(() => { /* silent — alert just won't be remembered across reload */ })
+            .finally(() => { if (!cancelled) setDismissedLoaded(true); });
+        return () => { cancelled = true; };
+    }, [user]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -62,7 +82,20 @@ export default function OverviewTab({ patientId, patient, onLoadHistory }: Overv
                     patientApi.getTimeline(patientId).catch(() => [])
                 ]);
 
-                if (v && v.length > 0) setLastVitals(v[v.length - 1]);
+                if (v && v.length > 0) {
+                    // Show the latest *actual* value per metric — skip rows where a metric
+                    // wasn't recorded (null/0), e.g. an infusion-rate-only entry that leaves
+                    // the core vitals empty. Otherwise a recent blank row blanks the summary.
+                    const newest = v[v.length - 1];
+                    const pick = (key: keyof VitalSign) => {
+                        for (let i = v.length - 1; i >= 0; i--) {
+                            const val = v[i][key] as any;
+                            if (val != null && Number.isFinite(Number(val)) && Number(val) !== 0) return val;
+                        }
+                        return newest[key];
+                    };
+                    setLastVitals({ ...newest, heartRate: pick('heartRate'), bpSys: pick('bpSys'), bpDia: pick('bpDia'), spo2: pick('spo2'), temp: pick('temp') } as VitalSign);
+                }
                 setIoHistory(io || []);
                 setLatestOrders((o || []).filter((order: any) => order.type !== 'PROCEDURE').slice(0, 5));
                 setCompletedInterventions((o || [])
@@ -109,9 +142,9 @@ export default function OverviewTab({ patientId, patient, onLoadHistory }: Overv
     const vitalsDelayed = !lastVitals || checkDelay(lastVitals.timestamp);
     const ioDelayed = ioHistory.length === 0 || checkDelay(ioHistory[0].timestamp);
 
-    // Support Status (Filter from active prescriptions with infusion rates)
+    // Active support = any drug whose MAR route of administration is "Infusion".
     const activeSupport = medications
-        .filter(m => m.isActive && m.infusionRate && m.dilution)
+        .filter(m => m.isActive && (m.route === 'Infusion' || m.frequency === 'Infusion'))
         .map(m => {
             let day = 1;
             if (m.startedAt) {
@@ -134,8 +167,35 @@ export default function OverviewTab({ patientId, patient, onLoadHistory }: Overv
 
     const abnormalLabs = latestLabs.filter(lab => {
         if (!lab.result) return false;
+        if (dismissedLabs.has(lab.id)) return false;
         return Object.values(lab.result).some(val => checkAbnormal(val));
     });
+
+    const handleAcknowledge = async () => {
+        if (!user || abnormalLabs.length === 0 || acknowledging) return;
+        setAcknowledging(true);
+        const ids = abnormalLabs.map(l => l.id);
+        // Optimistic dismiss
+        setDismissedLabs(prev => {
+            const next = new Set(prev);
+            ids.forEach(id => next.add(id));
+            return next;
+        });
+        try {
+            await Promise.all(ids.map(id => userApi.dismissLab(user.id, id)));
+            toast.success(`Acknowledged ${ids.length} abnormal result${ids.length === 1 ? '' : 's'}`);
+        } catch (e: any) {
+            // Roll back optimistic update on failure
+            setDismissedLabs(prev => {
+                const next = new Set(prev);
+                ids.forEach(id => next.delete(id));
+                return next;
+            });
+            toast.error(e?.message || 'Failed to acknowledge — try again');
+        } finally {
+            setAcknowledging(false);
+        }
+    };
 
     if (loading) {
         return <div className="p-8 text-center text-slate-500 animate-pulse">Loading dashboard...</div>;
@@ -143,11 +203,12 @@ export default function OverviewTab({ patientId, patient, onLoadHistory }: Overv
 
     return (
         <div className="space-y-4 sm:space-y-6 pb-8">
-            {/* Abnormal Labs Alert */}
-            {abnormalLabs.length > 0 && (
-                <Alert variant="destructive" className="bg-rose-50 border-rose-200 text-rose-800 shadow-sm animate-in fade-in slide-in-from-top-4">
-                    <AlertTriangle className="h-5 w-5 text-rose-600" />
-                    <div className="ml-3">
+            {/* Abnormal Labs Alert — only after the dismissed set has loaded, so
+                already-acknowledged results don't flash back and get re-acknowledged. */}
+            {dismissedLoaded && abnormalLabs.length > 0 && (
+                <Alert variant="destructive" className="bg-rose-50 border-rose-200 text-rose-800 shadow-sm animate-in fade-in slide-in-from-top-4 flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
                         <AlertTitle className="text-sm font-bold flex items-center gap-2">
                             Abnormal Investigation Results Detected
                         </AlertTitle>
@@ -155,6 +216,16 @@ export default function OverviewTab({ patientId, patient, onLoadHistory }: Overv
                             Recent results for <span className="font-bold underline">{abnormalLabs.map(l => l.title).join(", ")}</span> show values outside normal ranges. Please review and acknowledge.
                         </AlertDescription>
                     </div>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="bg-white border-rose-300 text-rose-700 hover:bg-rose-100 hover:text-rose-800 shrink-0"
+                        onClick={handleAcknowledge}
+                        disabled={acknowledging}
+                    >
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                        {acknowledging ? 'Acknowledging…' : `Acknowledge${abnormalLabs.length > 1 ? ` (${abnormalLabs.length})` : ''}`}
+                    </Button>
                 </Alert>
             )}
 
@@ -260,7 +331,7 @@ export default function OverviewTab({ patientId, patient, onLoadHistory }: Overv
                     </CardHeader>
                     <CardContent className="py-1.5 sm:py-2 px-3 sm:px-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {activeSupport.length > 0 ? activeSupport.slice(0, 4).map((s, i) => (
+                            {activeSupport.length > 0 ? activeSupport.map((s, i) => (
                                 <div key={i} className="flex items-center justify-between p-1.5 sm:p-2 bg-slate-50 rounded border border-slate-100">
                                     <div className="min-w-0 pr-1">
                                         <div className="flex items-center gap-1">

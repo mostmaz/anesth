@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import prisma from '../prisma';
 import { broadcastNotification } from './notifications.routes';
+import { sendToAll } from '../services/pushService';
 
 const router = Router();
 
@@ -180,6 +181,7 @@ router.post('/', async (req, res) => {
             diagnosis: patient.diagnosis,
             message: `New admission: ${patient.name} (MRN: ${patient.mrn})`
         });
+        sendToAll('New admission', `${patient.name} (MRN ${patient.mrn}) admitted to ICU`, { type: 'new_admission', patientId: patient.id });
 
         res.status(201).json(patient);
     } catch (error) {
@@ -252,6 +254,8 @@ router.patch('/:id/discharge', async (req, res) => {
                     dischargedAt: dischargedAt ? new Date(dischargedAt) : new Date()
                 }
             });
+            const dp = await prisma.patient.findUnique({ where: { id }, select: { name: true, mrn: true } });
+            sendToAll('Patient discharged', `${dp?.name || 'Patient'} (MRN ${dp?.mrn || '—'}) has been discharged`, { type: 'discharge', patientId: id });
             res.json({ success: true, message: 'Patient discharged' });
         } else {
             // If no active admission, maybe they are already discharged?
@@ -409,6 +413,9 @@ router.post('/:id/consultations', async (req, res) => {
                 data: { status: 'COMPLETED' }
             });
         }
+
+        const cp = await prisma.patient.findUnique({ where: { id }, select: { name: true } });
+        sendToAll('New consultation', `${specialty} consult added for ${cp?.name || 'patient'} by ${doctorName}`, { type: 'new_consultation', patientId: id });
 
         res.status(201).json(consultation);
     } catch (error) {

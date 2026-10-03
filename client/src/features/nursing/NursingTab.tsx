@@ -26,6 +26,11 @@ interface NursingTabProps {
     patientId: string;
 }
 
+// Uploaded files are served by the API server (port 3001), not the web app (port 80),
+// so a stored relative path like "/uploads/x.jpg" must be prefixed with the server origin.
+const FILE_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '');
+const fileUrl = (u: string) => (/^https?:\/\//i.test(u) ? u : `${FILE_BASE}${u.startsWith('/') ? '' : '/'}${u}`);
+
 export default function NursingTab({ patientId }: NursingTabProps) {
     const { user } = useAuthStore();
     const [assessments, setAssessments] = useState<SkinAssessment[]>([]);
@@ -106,8 +111,8 @@ export default function NursingTab({ patientId }: NursingTabProps) {
                                         <div className="flex gap-4">
                                             {assessment.imageUrl && (
                                                 <div className="w-24 h-24 rounded border overflow-hidden flex-shrink-0">
-                                                    <a href={assessment.imageUrl} target="_blank" rel="noreferrer">
-                                                        <img src={assessment.imageUrl} alt="Skin" className="w-full h-full object-cover hover:scale-110 transition-transform cursor-pointer" />
+                                                    <a href={fileUrl(assessment.imageUrl)} target="_blank" rel="noreferrer">
+                                                        <img src={fileUrl(assessment.imageUrl)} alt="Skin" className="w-full h-full object-cover hover:scale-110 transition-transform cursor-pointer" />
                                                     </a>
                                                 </div>
                                             )}

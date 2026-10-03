@@ -1,263 +1,299 @@
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { useAuthStore } from '../../stores/authStore';
-import ShiftRibbon from '../../features/shift/ShiftRibbon';
-import {
-    Dna,
-    LayoutDashboard,
-    Users,
-    ClipboardList,
-    LogOut,
-    Menu
-} from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useShiftStore } from '../../stores/shiftStore';
-import { cn } from '../../lib/utils';
-import { Toaster } from '../ui/sonner';
 import { toast } from 'sonner';
+import { useAuthStore } from '../../stores/authStore';
+import { useShiftStore } from '../../stores/shiftStore';
+import { Toaster } from '../ui/sonner';
+import { Icon } from '../icu';
+import { Avatar, initialsFromName, colorFromId } from '../icu/Avatar';
+import { TweaksDrawer } from './TweaksDrawer';
+import { useLang } from '../../i18n';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
+interface MenuItem {
+  icon: 'activity' | 'clock' | 'settings' | 'users';
+  label: string;
+  path: string;
+}
+
 export default function AppShell() {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { user, logout } = useAuthStore();
-    const [sidebarOpen, setSidebarOpen] = useState(false);
-    const { checkActiveShift, endShift } = useShiftStore();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, logout } = useAuthStore();
+  const { t, lang, setLang } = useLang();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+  const { checkActiveShift, endShift } = useShiftStore();
 
-    useEffect(() => {
-        if (user) {
-            checkActiveShift(user.id);
-        }
-    }, [user, checkActiveShift]);
+  useEffect(() => {
+    if (user) checkActiveShift(user.id);
+  }, [user, checkActiveShift]);
 
-    // Request Native Browser Notification Permission
-    useEffect(() => {
-        if ("Notification" in window) {
-            Notification.requestPermission();
-        }
-    }, []);
+  // Browser notifications permission
+  useEffect(() => {
+    if ('Notification' in window) {
+      Notification.requestPermission().catch(() => { /* ignore */ });
+    }
+  }, []);
 
-    // SSE Real-time Notifications Listener
-    useEffect(() => {
-        if (!user) return;
+  // SSE
+  useEffect(() => {
+    if (!user) return;
+    const src = new EventSource(`${API_URL}/notifications/stream`);
 
-        const eventSource = new EventSource(`${API_URL}/notifications/stream`);
+    const ring = (title: string, body: string, tone: 'info' | 'warning' | 'success' | 'error', action?: any) => {
+      if (tone === 'warning') toast.warning(title, { description: body, duration: 10000, action });
+      else if (tone === 'error') toast.error(title, { description: body });
+      else if (tone === 'success') toast.success(title, { description: body });
+      else toast.info(title, { description: body });
 
-        const triggerNotification = (title: string, options: { body: string; type: 'info' | 'warning' | 'success' | 'error'; action?: any }) => {
-            // 1. Show in-app Toast
-            if (options.type === 'warning') toast.warning(title, { description: options.body, duration: 10000, action: options.action });
-            else if (options.type === 'error') toast.error(title, { description: options.body, duration: 7000 });
-            else if (options.type === 'success') toast.success(title, { description: options.body, duration: 5000 });
-            else toast.info(title, { description: options.body, duration: 5000 });
-
-            // 2. Show Native Browser Notification
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(title, {
-                    body: options.body,
-                    icon: "/favicon.ico",
-                    tag: title // Prevent duplicates for same title
-                });
-            }
-        };
-
-        eventSource.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                const { type, patientName, title, message, patientId } = data;
-
-                switch (type) {
-                    case 'new_investigation':
-                        triggerNotification(`New Lab Result for ${patientName}`, {
-                            body: title,
-                            type: 'info'
-                        });
-                        break;
-
-                    case 'intervention_reminder':
-                        triggerNotification(`Intervention Reminder`, {
-                            body: `${patientName}: ${title}`,
-                            type: 'warning',
-                            action: {
-                                label: 'View',
-                                onClick: () => navigate(`/patients/${patientId}`)
-                            }
-                        });
-                        break;
-
-                    case 'new_order':
-                        triggerNotification(`New Clinical Order`, {
-                            body: `${patientName}: ${title}`,
-                            type: 'info'
-                        });
-                        break;
-
-                    case 'new_admission':
-                        triggerNotification(`New Patient Admission`, {
-                            body: `${patientName} has been admitted.`,
-                            type: 'success'
-                        });
-                        break;
-
-                    case 'system_update':
-                        triggerNotification(`System Update`, {
-                            body: message || "New updates are available.",
-                            type: 'info'
-                        });
-                        break;
-
-                    default:
-                        // Fallback for legacy or untyped messages
-                        if (patientName && title) {
-                            triggerNotification(`Notification: ${patientName}`, {
-                                body: title,
-                                type: 'info'
-                            });
-                        }
-                        break;
-                }
-            } catch (err) {
-                console.error("Failed to parse SSE notification:", err);
-            }
-        };
-
-        eventSource.onerror = (error) => {
-            console.error("SSE Connection Error:", error);
-            eventSource.close();
-            // Reconnect after 5 seconds
-            setTimeout(() => {
-                // The useEffect cleanup will close the old one, but we might need a more robust reconnect.
-                // For simplicity, EventSource auto-reconnects by default in most browsers unless explicitly closed.
-            }, 5000);
-        };
-
-        return () => {
-            eventSource.close();
-        };
-    }, [user]);
-
-    const handleLogout = async () => {
-        await endShift().catch(() => { });
-        logout();
-        navigate('/login');
-        toast.success("Signed out successfully");
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try { new Notification(title, { body, icon: '/favicon.ico', tag: title }); } catch { /* ignore */ }
+      }
     };
 
-    const menuItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-        { icon: Users, label: 'My Shift', path: '/shift' },
-        ...(user?.role === 'SENIOR' ? [{ icon: ClipboardList, label: 'Admin', path: '/admin' }] : []),
-    ];
+    src.onmessage = (ev) => {
+      try {
+        const data = JSON.parse(ev.data);
+        const { type, patientName, title, message, patientId } = data;
+        switch (type) {
+          case 'new_investigation': ring(`New Lab — ${patientName}`, title, 'info'); break;
+          case 'intervention_reminder':
+            ring('Intervention Reminder', `${patientName}: ${title}`, 'warning',
+              { label: 'View', onClick: () => navigate(`/patients/${patientId}`) });
+            break;
+          case 'new_order': ring('New Clinical Order', `${patientName}: ${title}`, 'info'); break;
+          case 'new_admission': ring('New Admission', `${patientName} admitted.`, 'success'); break;
+          case 'system_update': ring('System Update', message || 'Updates available.', 'info'); break;
+        }
+      } catch (e) {
+        console.error('SSE parse failed:', e);
+      }
+    };
+    src.onerror = () => { src.close(); };
+    return () => { src.close(); };
+  }, [user, navigate]);
 
-    return (
-        <div className="min-h-screen bg-slate-50 flex">
-            {/* Mobile Sidebar Overlay */}
-            {sidebarOpen && (
-                <div
-                    className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-                    onClick={() => setSidebarOpen(false)}
-                />
-            )}
+  const handleLogout = async () => {
+    await endShift().catch(() => { /* ignore */ });
+    logout();
+    navigate('/login');
+    toast.success('Signed out');
+  };
 
-            {/* Sidebar */}
-            <aside className={cn(
-                "fixed lg:relative inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-200 ease-in-out lg:transform-none flex flex-col h-screen print:hidden",
-                sidebarOpen ? "translate-x-0" : "-translate-x-full"
-            )}>
-                <div className="h-16 flex items-center px-6 border-b border-slate-800">
-                    <Dna className="w-8 h-8 text-blue-500 mr-3" />
-                    <span className="text-lg font-bold">ICU Manager</span>
-                </div>
+  const menuItems: MenuItem[] = [
+    { icon: 'activity', label: t('nav.dashboard'), path: '/dashboard' },
+    { icon: 'clock', label: t('nav.myShift'), path: '/shift' },
+    ...(user?.role === 'SENIOR' ? [{ icon: 'users' as const, label: t('nav.admin'), path: '/admin' }] : []),
+  ];
 
-                <nav className="p-4 space-y-1 flex-1 overflow-y-auto">
-                    {menuItems.map((item) => {
-                        const Icon = item.icon;
-                        const isActive = location.pathname === item.path;
+  const avatarColor = colorFromId(user?.id);
 
-                        return (
-                            <button
-                                key={item.path}
-                                onClick={() => {
-                                    navigate(item.path);
-                                    setSidebarOpen(false);
-                                }}
-                                className={cn(
-                                    "w-full flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors",
-                                    isActive
-                                        ? "bg-blue-600 text-white"
-                                        : "text-slate-400 hover:bg-slate-800 hover:text-white"
-                                )}
-                            >
-                                <Icon className="w-5 h-5 mr-3" />
-                                {item.label}
-                            </button>
-                        );
-                    })}
-                </nav>
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--bg)' }}>
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)',
+            zIndex: 40,
+          }}
+          className="lg:hidden"
+        />
+      )}
 
-                <div className="mt-auto w-full p-4 border-t border-slate-800">
-                    <div className="flex items-center mb-4 px-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-sm font-bold">
-                            {user?.name.charAt(0)}
-                        </div>
-                        <div className="ml-3">
-                            <p className="text-sm font-medium text-white">{user?.name}</p>
-                            <p className="text-xs text-slate-400 capitalize">{user?.role.toLowerCase()}</p>
-                        </div>
-                    </div>
-                    <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors"
-                    >
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Sign Out
-                    </button>
-                </div>
-            </aside>
-
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                {/* Universal Header */}
-                <header className="sticky top-0 z-30 h-16 bg-white border-b border-slate-200 flex items-center px-4 shadow-sm print:hidden">
-                    <button
-                        onClick={() => setSidebarOpen(true)}
-                        className="lg:hidden text-slate-500 hover:text-slate-700 p-2 -ml-2 rounded-md hover:bg-slate-100 transition-colors"
-                        aria-label="Open Sidebar"
-                    >
-                        <Menu className="w-6 h-6" />
-                    </button>
-                    <div className="flex-1 flex items-center justify-between ml-2">
-                        <div className="flex lg:hidden items-center gap-2">
-                            <Dna className="w-6 h-6 text-blue-600" />
-                            <span className="font-bold text-slate-900 tracking-tight">ICU Manager</span>
-                        </div>
-                        <div className="hidden lg:block" /> {/* Desktop Spacer */}
-
-                        <div className="flex items-center gap-3">
-                            <div className="hidden sm:flex flex-col items-end mr-1">
-                                <span className="text-sm font-bold text-slate-800 leading-tight">{user?.name}</span>
-                                <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">{user?.role}</span>
-                            </div>
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-[13px] font-bold text-white uppercase shadow-sm border-2 border-white ring-1 ring-slate-200">
-                                {user?.name.charAt(0)}
-                            </div>
-                            <button
-                                onClick={handleLogout}
-                                className="flex items-center gap-2 px-3 py-1.5 text-xs sm:text-sm font-semibold text-slate-700 hover:text-red-600 hover:bg-red-50 border border-slate-200 rounded-lg transition-all active:scale-95 shadow-sm"
-                            >
-                                <LogOut className="w-4 h-4" />
-                                <span className="hidden xs:inline">Sign Out</span>
-                            </button>
-                        </div>
-                    </div>
-                </header>
-
-                {/* Page Content */}
-                <main className="flex-1 overflow-auto flex flex-col">
-                    <ShiftRibbon />
-                    <Outlet />
-                </main>
+      {/* Sidebar */}
+      <aside
+        className="icu-sidebar"
+        style={{
+          position: 'fixed',
+          top: 0, bottom: 0, left: 0, width: 260,
+          background: 'var(--surface)',
+          borderRight: '1px solid var(--line)',
+          zIndex: 50,
+          transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform .2s ease',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <div
+          style={{
+            height: 64, display: 'flex', alignItems: 'center', padding: '0 20px',
+            borderBottom: '1px solid var(--line)',
+            gap: 12,
+          }}
+        >
+          <div
+            style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: 'linear-gradient(135deg, var(--accent), color-mix(in oklab, var(--accent) 50%, #000))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <Icon name="dna" size={20} style={{ color: 'white' }} />
+          </div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{t('app.name')}</div>
+            <div style={{ fontSize: 10, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>
+              {t('app.tagline')}
             </div>
-            <Toaster />
+          </div>
         </div>
-    );
+
+        <nav style={{ padding: 12, flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {menuItems.map((item) => {
+            const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+            return (
+              <button
+                key={item.path}
+                type="button"
+                onClick={() => {
+                  navigate(item.path);
+                  setSidebarOpen(false);
+                }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 14px',
+                  fontSize: 14, fontWeight: 600,
+                  borderRadius: 10,
+                  background: isActive ? 'var(--accent-soft)' : 'transparent',
+                  color: isActive ? 'var(--accent-ink)' : 'var(--ink-3)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'background .15s',
+                  fontFamily: 'inherit',
+                  textAlign: 'left',
+                }}
+              >
+                <Icon name={item.icon} size={18} />
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div style={{ padding: 12, borderTop: '1px solid var(--line)' }}>
+          <button
+            type="button"
+            onClick={() => setTweaksOpen(true)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 14px', marginBottom: 6,
+              fontSize: 13, fontWeight: 600,
+              borderRadius: 10,
+              background: 'var(--surface-3)',
+              color: 'var(--ink-2)',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              textAlign: 'left',
+            }}
+          >
+            <Icon name="settings" size={16} />
+            {t('nav.tweaks')}
+          </button>
+          <div
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 4px',
+              marginBottom: 6,
+            }}
+          >
+            <Avatar initials={initialsFromName(user?.name)} color={avatarColor} size="sm" />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user?.name}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--accent-ink)', fontWeight: 700, letterSpacing: '0.06em' }}>{user?.role}</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="icu-btn icu-btn-outline icu-btn-sm"
+            style={{ width: '100%', justifyContent: 'flex-start' }}
+          >
+            <Icon name="logout" size={14} />
+            {t('nav.signOut')}
+          </button>
+        </div>
+      </aside>
+
+      {/* Main column */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', marginLeft: 0 }} className="icu-main">
+        <header
+          style={{
+            position: 'sticky', top: 0, zIndex: 30,
+            height: 56,
+            background: 'var(--surface)',
+            borderBottom: '1px solid var(--line)',
+            display: 'flex', alignItems: 'center', padding: '0 16px',
+            gap: 10,
+            boxShadow: 'var(--shadow-sm)',
+          }}
+          className="print:hidden"
+        >
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden icu-btn icu-btn-icon-sm icu-btn-ghost"
+            aria-label="Open menu"
+          >
+            <Icon name="menu" size={18} />
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} className="lg:hidden">
+            <Icon name="dna" size={18} style={{ color: 'var(--accent)' }} />
+            <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{t('app.name')}</span>
+          </div>
+          <div style={{ flex: 1 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="hidden sm:flex" style={{ flexDirection: 'column', alignItems: 'flex-end' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{user?.name}</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                {user?.role}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
+              className="icu-btn icu-btn-outline icu-btn-xs"
+              title={t('lang.language')}
+              aria-label={t('lang.language')}
+              style={{ minWidth: 40, fontWeight: 700 }}
+            >
+              {lang === 'ar' ? 'EN' : 'ع'}
+            </button>
+            <Avatar initials={initialsFromName(user?.name)} color={avatarColor} size="sm" />
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="icu-btn icu-btn-outline icu-btn-xs"
+              aria-label={t('nav.signOut')}
+            >
+              <Icon name="logout" size={14} />
+              <span className="hidden sm:inline">{t('nav.signOut')}</span>
+            </button>
+          </div>
+        </header>
+
+        <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+          <Outlet />
+        </main>
+      </div>
+
+      <TweaksDrawer open={tweaksOpen} onClose={() => setTweaksOpen(false)} />
+      <Toaster richColors />
+
+      {/* Inline responsive styles */}
+      <style>{`
+        @media (min-width: 1024px) {
+          .icu-sidebar { position: relative !important; transform: none !important; }
+          .icu-main { margin-left: 0 !important; }
+        }
+      `}</style>
+    </div>
+  );
 }

@@ -67,76 +67,52 @@ router.patch('/:id/reject', async (req, res) => {
     }
 });
 
-// Create assignment (Sign In)
+// Check in a nurse to a patient. Checking in force-hands-over the patient:
+// the incoming nurse's other assignments end, and any other nurse currently on
+// this patient is checked out + signed out. No pending/approval step.
 router.post('/', async (req, res) => {
     try {
         const { patientId, userId } = req.body;
+        if (!patientId || !userId) {
+            return res.status(400).json({ success: false, message: 'patientId and userId are required' });
+        }
 
-        // 1. Check if Nurse is already assigned to ANY patient (active, non-pending)
-        const existingNurseAssignment = await prisma.patientAssignment.findFirst({
-            where: { userId, isActive: true }
+        // 1. A nurse holds one patient at a time — end their other active check-ins.
+        await prisma.patientAssignment.updateMany({
+            where: { userId, isActive: true, patientId: { not: patientId } },
+            data: { isActive: false, isPending: false, endedAt: new Date() }
         });
 
-        if (existingNurseAssignment) {
-            return res.status(400).json({
-                success: false,
-                message: 'You are already signed in on another patient. Please sign out first.'
+        // 2. Check out (and sign out) any other nurse currently on this patient.
+        const displaced = await prisma.patientAssignment.findMany({
+            where: { patientId, isActive: true, userId: { not: userId } },
+            include: { user: { select: { id: true, name: true } } }
+        });
+        if (displaced.length > 0) {
+            await prisma.patientAssignment.updateMany({
+                where: { patientId, isActive: true, userId: { not: userId } },
+                data: { isActive: false, isPending: false, endedAt: new Date() }
             });
         }
 
-        // Removed pending delete logic because it is not supported in db fields
-
-        // 3. Check if Patient already has an assigned nurse (active, non-pending)
-        const existingPatientAssignments = await prisma.patientAssignment.findMany({
-            where: { patientId, isActive: true }
+        // 3. If already checked in here, reuse it; otherwise create the active check-in.
+        const existing = await prisma.patientAssignment.findFirst({
+            where: { patientId, userId, isActive: true }
+        });
+        const assignment = existing || await prisma.patientAssignment.create({
+            data: { patientId, userId, isPending: false, isActive: true }
         });
 
-        if (existingPatientAssignments.length > 0) {
-            // Check if the signing-in user is Senior or Resident (can self-assign directly)
-            const userSigningIn = await prisma.user.findUnique({ where: { id: userId } });
-            const { assignerId } = req.body;
-
-            let isAuthorized = userSigningIn?.role === 'SENIOR' || userSigningIn?.role === 'RESIDENT';
-
-            if (!isAuthorized && assignerId) {
-                const assigner = await prisma.user.findUnique({ where: { id: assignerId } });
-                isAuthorized = assigner?.role === 'SENIOR' || assigner?.role === 'RESIDENT';
-            }
-
-            if (!isAuthorized) {
-                // Create a PENDING assignment request — nurse waits for approval
-                const pending = await prisma.patientAssignment.create({
-                    data: {
-                        patientId,
-                        userId,
-                        isPending: true,
-                        isActive: false
-                    }
-                });
-                return res.status(202).json({
-                    success: true,
-                    pending: true,
-                    data: pending,
-                    message: 'Assignment request submitted. Waiting for senior/resident approval.'
-                });
-            }
-        }
-
-        // Direct assignment
-        const assignment = await prisma.patientAssignment.create({
-            data: {
-                patientId,
-                userId,
-                isPending: false,
-                isActive: true
-            }
+        res.json({
+            success: true,
+            pending: false,
+            data: assignment,
+            displaced: displaced.map(d => d.user?.name).filter(Boolean),
         });
-
-        res.json({ success: true, pending: false, data: assignment });
 
     } catch (error) {
         console.error("Error creating assignment:", error);
-        res.status(500).json({ success: false, message: 'Failed to assign nurse' });
+        res.status(500).json({ success: false, message: 'Failed to check in' });
     }
 });
 

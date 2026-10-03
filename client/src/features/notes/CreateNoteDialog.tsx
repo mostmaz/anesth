@@ -23,6 +23,7 @@ const TEMPLATES: Record<NoteType, string> = {
     DISCHARGE: "Diagnosis:\n\nHospital Course:\n\nDischarge Meds:\n\nFollow-up:",
     NURSING: "Shift Summary:\n\nSkin/Wound Care:\n\nLines/Drains:",
     CONSULT: "Reason for Consult:\n\nRecommendations:",
+    EVENT: "Event:\n\nDetails:",
     OTHER: ""
 };
 

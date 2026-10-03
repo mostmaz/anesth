@@ -84,13 +84,19 @@ router.post('/start', async (req, res) => {
     try {
         const { userId, type } = req.body; // 'DAY' or 'NIGHT'
 
-        // Check if already active
+        // Idempotent: if the user already has an active shift, don't error — return it
+        // (this is what caused intermittent "Failed to start shift" when a shift from a
+        // previous session was still active). If they picked a different type, switch it.
         const existing = await prisma.shift.findFirst({
             where: { userId, isActive: true }
         });
 
         if (existing) {
-            return res.status(400).json({ error: 'User already has an active shift' });
+            if (type && existing.type !== type) {
+                const updated = await prisma.shift.update({ where: { id: existing.id }, data: { type } });
+                return res.json(updated);
+            }
+            return res.json(existing);
         }
 
         // If the user is a SENIOR, end all other active SENIOR shifts to ensure exclusivity

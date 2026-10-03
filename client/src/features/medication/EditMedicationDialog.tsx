@@ -112,10 +112,15 @@ export function EditMedicationDialog({ medication, onMedicationEdited }: EditMed
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="IV">IV (Intravenous)</SelectItem>
+                                    <SelectItem value="Infusion">Infusion</SelectItem>
                                     <SelectItem value="PO">PO (Oral)</SelectItem>
+                                    <SelectItem value="NG">NG (Nasogastric)</SelectItem>
                                     <SelectItem value="IM">IM (Intramuscular)</SelectItem>
                                     <SelectItem value="SC">SC (Subcutaneous)</SelectItem>
                                     <SelectItem value="NEB">Nebulizer</SelectItem>
+                                    <SelectItem value="Intranasal">Intranasal</SelectItem>
+                                    <SelectItem value="LOCAL">Local</SelectItem>
+                                    <SelectItem value="EYE_DROP">Eye Drop</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

@@ -21,6 +21,8 @@ import authRoutes from './auth.routes';
 import doctorRoutes from './doctor.routes';
 import ventilatorRoutes from './ventilator.routes';
 import skinRoutes from './skin.routes';
+import reportRoutes from './report.routes';
+import devicesRoutes from './devices.routes';
 
 const router = Router();
 
@@ -46,5 +48,7 @@ router.use('/assignments', assignmentRoutes);
 router.use('/doctors', doctorRoutes);
 router.use('/ventilator', ventilatorRoutes);
 router.use('/skin', skinRoutes);
+router.use('/reports', reportRoutes);
+router.use('/devices', devicesRoutes);
 
 export default router;

@@ -4,7 +4,8 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900;
+    background: var(--bg);
+    color: var(--ink);
   }
   :root {
 

@@ -7,7 +7,12 @@ import { Textarea } from '../../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Upload, X } from 'lucide-react';
 import { apiClient } from '../../api/client';
+import { uploadApi } from '../../api/uploadApi';
 import { toast } from 'sonner';
+
+// Uploaded files are served by the API server (port 3001), not the web app (port 80).
+const FILE_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '');
+const fileUrl = (u: string) => (/^https?:\/\//i.test(u) ? u : `${FILE_BASE}${u.startsWith('/') ? '' : '/'}${u}`);
 
 interface SkinAssessmentDialogProps {
     open: boolean;
@@ -38,14 +43,14 @@ export default function SkinAssessmentDialog({
         if (!file) return;
 
         setUploading(true);
-        const formData = new FormData();
-        formData.append('file', file);
-
         try {
-            const res = await apiClient.post<{ url: string }>('/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            } as any);
-            setImageUrl(res.url);
+            // The /upload endpoint takes a multipart field named "files" and returns an
+            // array of { url, filename }. (Appending "file" silently uploaded nothing, so
+            // the assessment was saved with a null imageUrl and no image ever showed.)
+            const res = await uploadApi.uploadImages([file]);
+            const url = res?.[0]?.url ?? null;
+            if (!url) throw new Error('No URL returned');
+            setImageUrl(url);
             toast.success("Image uploaded successfully");
         } catch (error) {
             console.error(error);
@@ -114,7 +119,7 @@ export default function SkinAssessmentDialog({
                         <Label>Image (Optional)</Label>
                         {imageUrl ? (
                             <div className="relative group rounded-lg overflow-hidden border">
-                                <img src={imageUrl} alt="Skin assessment" className="w-full h-32 object-cover" />
+                                <img src={fileUrl(imageUrl)} alt="Skin assessment" className="w-full h-32 object-cover" />
                                 <button
                                     onClick={() => setImageUrl(null)}
                                     className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"

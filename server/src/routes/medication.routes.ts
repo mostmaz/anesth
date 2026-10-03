@@ -113,13 +113,27 @@ router.post('/prescribe', async (req, res) => {
 // POST /administer
 router.post('/administer', async (req, res) => {
     try {
-        const { patientId, medicationId, status, dose, userId } = req.body;
+        const { patientId, medicationId, status, dose, userId, administeredAt } = req.body;
 
         if (!userId) {
             console.warn("Administer called without userId");
         }
 
         const dilutionValue = req.body.dilution ? parseFloat(req.body.dilution) : null;
+
+        // Late entries: the drug may have been given at the bedside before it was charted,
+        // so the client can back-date the actual give time — but only within the last 24h
+        // and never into the future (5 min clock-skew allowance). chartedAt keeps the audit.
+        const now = new Date();
+        let actualTime = now;
+        if (administeredAt) {
+            const parsed = new Date(administeredAt);
+            if (!isNaN(parsed.getTime())
+                && parsed.getTime() <= now.getTime() + 5 * 60 * 1000
+                && parsed.getTime() >= now.getTime() - 24 * 60 * 60 * 1000) {
+                actualTime = parsed;
+            }
+        }
 
         const admin = await prisma.medicationAdministration.create({
             data: {
@@ -129,15 +143,17 @@ router.post('/administer', async (req, res) => {
                 dose,
                 dilution: dilutionValue,
                 userId: userId || undefined, // Nurse ID
-                timestamp: new Date()
-            }
+                timestamp: actualTime
+                // chartedAt: now — enable once the audit column is migrated on prod
+            } as any
         });
 
-        // 1. Handle "Once Only" frequency auto-discontinue
         if (status === 'Given') {
             const med = await prisma.medication.findUnique({
                 where: { id: medicationId }
             });
+
+            // 1. Handle "Once Only" frequency auto-discontinue
             if (med && med.frequency?.includes('Once Only')) {
                 await prisma.medication.update({
                     where: { id: medicationId },
@@ -147,21 +163,20 @@ router.post('/administer', async (req, res) => {
                     } as any
                 });
             }
-        }
 
-        // 2. Automatically create IO Input if there's a dilution volume
-        if (dilutionValue && dilutionValue > 0) {
-            // Get medication name for category (already fetched if Once Only, otherwise fetch)
-            const med = await prisma.medication.findUnique({ where: { id: medicationId } });
-            if (med) {
+            // 2. IV drugs: the dilution volume entered at administration is a fluid intake,
+            // so record it as an I/O Input. Infusion-route drugs are excluded — their intake
+            // is derived from the ml/hr rates charted in the vitals records instead (so they
+            // don't double-count).
+            if (med && med.route === 'IV' && dilutionValue && dilutionValue > 0) {
                 await prisma.intakeOutput.create({
                     data: {
                         patientId,
-                        userId: userId || 'system', // Fallback to avoid error if missing
+                        userId: userId || 'system',
                         type: 'INPUT',
-                        category: `Medication: ${med.name}`,
+                        category: `IV · ${med.name}`,
                         amount: dilutionValue,
-                        notes: `Auto-recorded from MAR administration (Dose: ${dose || '1'})`,
+                        notes: `Dilution volume from MAR administration${dose ? ` (${dose})` : ''}`,
                         timestamp: new Date(),
                         status: 'APPROVED'
                     } as any
