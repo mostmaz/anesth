@@ -8,6 +8,16 @@ import { ocrService } from './ocrService';
 const pdfCache = new Map<string, Buffer>();
 const aiCache = new Map<string, any[]>();
 
+// Lab portal credentials come from the environment only — never from the code.
+export function labCredentials(): { username: string; password: string } {
+    const username = process.env.LAB_USER;
+    const password = process.env.LAB_PASSWORD;
+    if (!username || !password) {
+        throw new Error('Lab portal credentials are not configured (set LAB_USER and LAB_PASSWORD)');
+    }
+    return { username, password };
+}
+
 export class LabImportService {
     private prisma = new PrismaClient();
 
@@ -225,8 +235,7 @@ export class LabImportService {
     }
 
     async syncAndSavePatientLabs(mrn: string, patientId: string, authorId: string, patientName: string, browserInstance?: any) {
-        const username = process.env.LAB_USER || 'icu@amrlab.net';
-        const password = process.env.LAB_PASSWORD || '1989';
+        const { username, password } = labCredentials();
 
         const browser = browserInstance || await this.launchBrowser();
         const page = await browser.newPage();

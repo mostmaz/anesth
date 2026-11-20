@@ -1,6 +1,7 @@
 
 import { Router } from 'express';
 import prisma from '../prisma';
+import { requireRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -53,10 +54,8 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { amount, userId } = req.body;
-
-        const user = await prisma.user.findUnique({ where: { id: userId } });
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        const { amount } = req.body;
+        const user = req.user!;
 
         if (user.role === 'NURSE') {
             // Nurse edit requires approval
@@ -89,7 +88,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Approve Pending Edit
-router.patch('/:id/approve', async (req, res) => {
+router.patch('/:id/approve', requireRole('SENIOR', 'RESIDENT'), async (req, res) => {
     try {
         const { id } = req.params;
         const entry = await prisma.intakeOutput.findUnique({ where: { id } });
@@ -111,7 +110,7 @@ router.patch('/:id/approve', async (req, res) => {
 });
 
 // Reject Pending Edit
-router.patch('/:id/reject', async (req, res) => {
+router.patch('/:id/reject', requireRole('SENIOR', 'RESIDENT'), async (req, res) => {
     try {
         const { id } = req.params;
         const updated = await prisma.intakeOutput.update({

@@ -9,10 +9,8 @@ import { Upload, X } from 'lucide-react';
 import { apiClient } from '../../api/client';
 import { uploadApi } from '../../api/uploadApi';
 import { toast } from 'sonner';
+import { fileUrl } from '../../api/client';
 
-// Uploaded files are served by the API server (port 3001), not the web app (port 80).
-const FILE_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '');
-const fileUrl = (u: string) => (/^https?:\/\//i.test(u) ? u : `${FILE_BASE}${u.startsWith('/') ? '' : '/'}${u}`);
 
 interface SkinAssessmentDialogProps {
     open: boolean;

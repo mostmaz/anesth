@@ -1,10 +1,11 @@
 import { Shift } from '../types';
+import { authFetch } from './client';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export const shiftApi = {
     startShift: async (userId: string, type: 'DAY' | 'NIGHT'): Promise<Shift> => {
-        const response = await fetch(`${API_URL}/shifts/start`, {
+        const response = await authFetch(`${API_URL}/shifts/start`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, type }),
@@ -14,7 +15,7 @@ export const shiftApi = {
     },
 
     endShift: async (shiftId: string): Promise<Shift> => {
-        const response = await fetch(`${API_URL}/shifts/${shiftId}/end`, {
+        const response = await authFetch(`${API_URL}/shifts/${shiftId}/end`, {
             method: 'PATCH',
         });
         if (!response.ok) throw new Error('Failed to end shift');
@@ -22,7 +23,7 @@ export const shiftApi = {
     },
 
     endAllShifts: async (): Promise<{ success: boolean; message: string }> => {
-        const response = await fetch(`${API_URL}/shifts/end-all`, {
+        const response = await authFetch(`${API_URL}/shifts/end-all`, {
             method: 'POST',
         });
         if (!response.ok) throw new Error('Failed to end all shifts');
@@ -30,13 +31,13 @@ export const shiftApi = {
     },
 
     getActiveShift: async (userId: string): Promise<Shift | null> => {
-        const response = await fetch(`${API_URL}/shifts/active/${userId}`);
+        const response = await authFetch(`${API_URL}/shifts/active/${userId}`);
         if (!response.ok) return null; // 404 or other error means no active shift usually
         return response.json();
     },
 
     getStaffOnDuty: async () => {
-        const response = await fetch(`${API_URL}/shifts/staff-on-duty`);
+        const response = await authFetch(`${API_URL}/shifts/staff-on-duty`);
         if (!response.ok) throw new Error('Failed to fetch staff on duty');
         return response.json();
     }

@@ -1,6 +1,6 @@
 
 import { Router } from 'express';
-import { LabImportService } from '../services/labImportService';
+import { LabImportService, labCredentials } from '../services/labImportService';
 import { PrismaClient } from '@prisma/client';
 
 const router = Router();
@@ -11,9 +11,7 @@ import { ocrService } from '../services/ocrService';
 
 router.get('/patients', async (req, res) => {
     try {
-        // Hardcoded credentials for now as per user request
-        const username = 'icu@amrlab.net';
-        const password = process.env.LAB_PASSWORD || '1989';
+        const { username, password } = labCredentials();
         const force = req.query.refresh === 'true';
 
         const patients = await labService.getPatients(username, password, force);
@@ -44,8 +42,7 @@ router.post('/import', async (req, res) => {
         const { patient } = req.body;
         if (!patient) return res.status(400).json({ success: false, message: 'Patient data required' });
 
-        const username = 'icu@amrlab.net';
-        const password = process.env.LAB_PASSWORD || '1989';
+        const { username, password } = labCredentials();
 
         // 1. Get Screenshot/File
         const { absolutePath, imageUrl } = await labService.importReport(username, password, patient);

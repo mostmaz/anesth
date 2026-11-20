@@ -1,3 +1,4 @@
+import { authFetch } from './client';
 
 export interface VitalSign {
     id: string;
@@ -26,13 +27,13 @@ export const vitalsApi = {
             url += `?${params.toString()}`;
         }
 
-        const response = await fetch(url);
+        const response = await authFetch(url);
         if (!response.ok) throw new Error('Failed to fetch vitals');
         return response.json();
     },
 
     addVitals: async (data: any): Promise<VitalSign> => {
-        const response = await fetch(`${API_URL}/vitals`, {
+        const response = await authFetch(`${API_URL}/vitals`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),

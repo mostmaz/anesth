@@ -53,3 +53,6 @@ server/update_prod_key.js
 server/test_local_ocr.js
 server/test_prod_gemini.js
 server/update_prod_key.js
+
+# TypeScript incremental build info
+*.tsbuildinfo

@@ -54,6 +54,17 @@ export function TweaksScreen() {
           </Text>
         </Card>
 
+        {dataMode === 'live' ? (
+          <>
+            <SectionTitle>ACCOUNT</SectionTitle>
+            <Card>
+              <Button variant="outline" icon="shield" onPress={() => ICU.setView('password')}>
+                Change password
+              </Button>
+            </Card>
+          </>
+        ) : null}
+
         <SectionTitle>BACKEND URL</SectionTitle>
         <Card>
           <Field
@@ -61,7 +72,7 @@ export function TweaksScreen() {
             onChangeText={setUrl}
             autoCapitalize="none"
             autoCorrect={false}
-            placeholder="http://example.com/api"
+            placeholder="https://example.com/api"
           />
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
             <Button variant="outline" onPress={() => { setUrl(getBaseUrl()); }}>Reset</Button>

@@ -1,6 +1,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Investigation } from '@/api/investigationsApi';
+import { fileUrl } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, FileText } from 'lucide-react';
 import { useState } from 'react';
@@ -60,14 +61,14 @@ export function InvestigationDetailDialog({ investigation, onClose, patientId }:
                             {result.imageUrl.toLowerCase().endsWith('.pdf') ? (
                                 <div className="text-center py-10">
                                     <p className="mb-4 text-muted-foreground">This report is a PDF document.</p>
-                                    <Button onClick={() => window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${result.imageUrl}`, '_blank')}>
+                                    <Button onClick={() => window.open(fileUrl(result.imageUrl), '_blank')}>
                                         <FileText className="w-4 h-4 mr-2" />
                                         Click here to open PDF in a new tab
                                     </Button>
                                 </div>
                             ) : (
                                 <img
-                                    src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${result.imageUrl}`}
+                                    src={fileUrl(result.imageUrl)}
                                     alt="Investigation Result"
                                     className="max-h-[300px] w-auto rounded shadow-sm"
                                 />

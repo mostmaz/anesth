@@ -11,7 +11,7 @@ export function LoginScreen() {
   const t = useTokens();
   const ICU = useICU();
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('password');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
 
@@ -31,8 +31,8 @@ export function LoginScreen() {
       } else {
         const target = ICU.users.find(x => x.name.toLowerCase().includes(u.toLowerCase())
           || u.toLowerCase() === x.role.toLowerCase());
-        if (!target || p !== 'password') {
-          throw new Error('Invalid credentials (demo mode).');
+        if (!target) {
+          throw new Error('No such demo user — use the buttons below.');
         }
         ICU.signIn(target);
         ICU.pushToast({ tone: 'ok', msg: `Demo · ${target.role.toLowerCase()}` });
@@ -44,18 +44,13 @@ export function LoginScreen() {
     }
   };
 
-  // Role shortcut button. In live mode it hits the real backend using
-  // the seeded username for that role (nurse / resident / senior, pwd "password").
-  // In demo mode it uses the local mock fixtures.
-  const quickLogin = (role: 'NURSE' | 'RESIDENT' | 'SENIOR') => {
-    if (ICU.mode === 'live') {
-      submit(role.toLowerCase(), 'password');
-    } else {
-      const u = ICU.users.find(x => x.role === role);
-      if (u) {
-        ICU.signIn(u);
-        ICU.pushToast({ tone: 'ok', msg: `Demo · ${u.role.toLowerCase()}` });
-      }
+  // Role shortcuts exist in demo mode only, where they open the local sample
+  // data. Live sign-in always needs the person's own username and password.
+  const demoLogin = (role: 'NURSE' | 'RESIDENT' | 'SENIOR') => {
+    const u = ICU.users.find(x => x.role === role);
+    if (u) {
+      ICU.signIn(u);
+      ICU.pushToast({ tone: 'ok', msg: `Demo · ${u.role.toLowerCase()}` });
     }
   };
 
@@ -90,37 +85,32 @@ export function LoginScreen() {
           </Button>
         </View>
 
-        {/* Quick-login shortcuts */}
-        <View style={{ marginTop: 22 }}>
-          <Text style={[styles.demoLabel, { color: t.ink3 }]}>
-            {ICU.mode === 'live' ? 'QUICK SIGN-IN AS' : 'DEMO · SIGN IN AS'}
-          </Text>
-          <View style={styles.demoRow}>
-            {(['NURSE', 'RESIDENT', 'SENIOR'] as const).map(role => {
-              const fixture = ICU.users.find(x => x.role === role);
-              return (
-                <Button
-                  key={role}
-                  variant="outline"
-                  onPress={() => quickLogin(role)}
-                  style={styles.demoBtn}
-                  disabled={loading}
-                >
-                  <View style={{ alignItems: 'center', gap: 4 }}>
-                    <Avatar initials={fixture?.initials || role.slice(0, 2)} color={fixture?.color} size="sm" />
-                    <Text style={[styles.demoRole, { color: t.ink3 }]}>{role}</Text>
-                  </View>
-                </Button>
-              );
-            })}
+        {/* Demo-mode shortcuts (sample data only) */}
+        {ICU.mode === 'demo' ? (
+          <View style={{ marginTop: 22 }}>
+            <Text style={[styles.demoLabel, { color: t.ink3 }]}>DEMO · SIGN IN AS</Text>
+            <View style={styles.demoRow}>
+              {(['NURSE', 'RESIDENT', 'SENIOR'] as const).map(role => {
+                const fixture = ICU.users.find(x => x.role === role);
+                return (
+                  <Button
+                    key={role}
+                    variant="outline"
+                    onPress={() => demoLogin(role)}
+                    style={styles.demoBtn}
+                    disabled={loading}
+                  >
+                    <View style={{ alignItems: 'center', gap: 4 }}>
+                      <Avatar initials={fixture?.initials || role.slice(0, 2)} color={fixture?.color} size="sm" />
+                      <Text style={[styles.demoRole, { color: t.ink3 }]}>{role}</Text>
+                    </View>
+                  </Button>
+                );
+              })}
+            </View>
+            <Text style={[styles.hint, { color: t.ink4 }]}>Demo mode uses sample patients only.</Text>
           </View>
-          <Text style={[styles.hint, { color: t.ink4 }]}>
-            {ICU.mode === 'live'
-              ? `Live · ${ICU.users[0]?.name ? 'real users' : 'prod backend'} · default password: `
-              : 'Default password: '}
-            <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>password</Text>
-          </Text>
-        </View>
+        ) : null}
       </ScrollView>
     </KeyboardAvoidingView>
   );

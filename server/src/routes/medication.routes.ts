@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import prisma from '../prisma';
+import { requireRole } from '../middleware/auth';
 
 const router = Router();
 
@@ -42,7 +43,7 @@ router.get('/catalog', async (req, res) => {
 });
 
 // POST /catalog - Add new drug to catalog
-router.post('/catalog', async (req, res) => {
+router.post('/catalog', requireRole('SENIOR'), async (req, res) => {
     try {
         const { name, defaultDose, defaultRoute } = req.body;
         const drug = await prisma.drugCatalog.create({
@@ -55,7 +56,7 @@ router.post('/catalog', async (req, res) => {
 });
 
 // DELETE /catalog/:id - Remove drug from catalog
-router.delete('/catalog/:id', async (req, res) => {
+router.delete('/catalog/:id', requireRole('SENIOR'), async (req, res) => {
     try {
         const { id } = req.params;
         await prisma.drugCatalog.delete({ where: { id } });
@@ -236,14 +237,7 @@ router.put('/:id/status', async (req, res) => {
 router.delete('/administration/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const userId = req.headers['x-user-id'] as string;
-
-        if (!userId) {
-            return res.status(401).json({ error: 'User ID is required' });
-        }
-
-        const user = await prisma.user.findUnique({ where: { id: userId } });
-        if (!user || user.role !== 'SENIOR') {
+        if (req.user?.role !== 'SENIOR') {
             return res.status(403).json({ error: 'Only a SENIOR can delete an administration record' });
         }
 

@@ -6,9 +6,9 @@ const router = Router();
 // Register (or move) an FCM device token to a user.
 router.post('/register', async (req, res) => {
     try {
-        const { userId, token } = req.body;
-        if (!userId || !token) return res.status(400).json({ error: 'userId and token are required' });
-        await registerToken(userId, token);
+        const { token } = req.body;
+        if (!token) return res.status(400).json({ error: 'token is required' });
+        await registerToken(req.user!.id, token);
         res.json({ success: true });
     } catch (error) {
         console.error('Device register error:', error);

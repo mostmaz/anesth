@@ -12,7 +12,7 @@ export default function Login() {
   const { t } = useLang();
 
   const [username, setUsername] = React.useState('');
-  const [password, setPassword] = React.useState('password');
+  const [password, setPassword] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState('');
 
@@ -21,7 +21,7 @@ export default function Login() {
     setErrorMsg('');
     try {
       const res = await authApi.login(uname.trim(), pwd.trim());
-      login(res.token, res.user);
+      login(res.token, res.user, res.fileToken ?? null, !!res.mustChangePassword);
       toast.success(`Welcome back, ${res.user.name}`);
       navigate('/dashboard');
     } catch (e: any) {
@@ -38,6 +38,8 @@ export default function Login() {
     submit(username, password);
   };
 
+  // One-tap role sign-in exists only in local development builds. It is never
+  // shipped: a production login page must not offer a way in without credentials.
   const quickLogin = (role: 'NURSE' | 'RESIDENT' | 'SENIOR') => {
     const uname = role.toLowerCase();
     setUsername(uname);
@@ -145,41 +147,40 @@ export default function Login() {
           </button>
         </form>
 
-        <div style={{ marginTop: 22 }}>
-          <div
-            style={{
-              fontSize: 11,
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              textAlign: 'center',
-              marginBottom: 10,
-              color: 'var(--ink-3)',
-              fontWeight: 700,
-            }}
-          >
-            {t('login.quickSignIn')}
+        {import.meta.env.DEV && (
+          <div style={{ marginTop: 22 }}>
+            <div
+              style={{
+                fontSize: 11,
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
+                textAlign: 'center',
+                marginBottom: 10,
+                color: 'var(--ink-3)',
+                fontWeight: 700,
+              }}
+            >
+              Dev only · quick sign-in
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+              {(['NURSE', 'RESIDENT', 'SENIOR'] as const).map((role) => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => quickLogin(role)}
+                  disabled={isLoading}
+                  className="icu-btn icu-btn-outline"
+                  style={{ flexDirection: 'column', padding: '12px 6px', gap: 6, height: 76 }}
+                >
+                  <Icon name="user" size={16} />
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--ink-3)' }}>
+                    {t('login.role.' + role.toLowerCase())}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-            {(['NURSE', 'RESIDENT', 'SENIOR'] as const).map((role) => (
-              <button
-                key={role}
-                type="button"
-                onClick={() => quickLogin(role)}
-                disabled={isLoading}
-                className="icu-btn icu-btn-outline"
-                style={{ flexDirection: 'column', padding: '12px 6px', gap: 6, height: 76 }}
-              >
-                <Icon name="user" size={16} />
-                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--ink-3)' }}>
-                  {t('login.role.' + role.toLowerCase())}
-                </span>
-              </button>
-            ))}
-          </div>
-          <p style={{ fontSize: 11, color: 'var(--ink-4)', textAlign: 'center', marginTop: 16 }}>
-            {t('login.defaultPassword')}: <span className="icu-mono">password</span>
-          </p>
-        </div>
+        )}
       </div>
     </div>
   );

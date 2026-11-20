@@ -7,6 +7,7 @@ import SkinAssessmentDialog from './SkinAssessmentDialog';
 import { apiClient } from '../../api/client';
 import { useAuthStore } from '../../stores/authStore';
 import { Calendar, User, MapPin } from 'lucide-react';
+import { fileUrl } from '../../api/client';
 
 interface SkinAssessment {
     id: string;
@@ -26,10 +27,6 @@ interface NursingTabProps {
     patientId: string;
 }
 
-// Uploaded files are served by the API server (port 3001), not the web app (port 80),
-// so a stored relative path like "/uploads/x.jpg" must be prefixed with the server origin.
-const FILE_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '');
-const fileUrl = (u: string) => (/^https?:\/\//i.test(u) ? u : `${FILE_BASE}${u.startsWith('/') ? '' : '/'}${u}`);
 
 export default function NursingTab({ patientId }: NursingTabProps) {
     const { user } = useAuthStore();

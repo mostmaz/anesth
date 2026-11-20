@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The prod backend (167.172.101.215:3001) is plain HTTP, and Android release builds
-  block cleartext traffic by default. A network security config takes precedence
-  over the usesCleartextTraffic manifest attribute, so this reliably permits it.
+  The backend is HTTPS, so plain HTTP is blocked everywhere except the local
+  development hosts below (Metro bundler, or a backend running on this machine
+  and reached from the emulator). Patient data never travels unencrypted.
 -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="true" />
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="false">10.0.3.2</domain>
+    </domain-config>
 </network-security-config>

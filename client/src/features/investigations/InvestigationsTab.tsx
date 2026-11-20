@@ -10,6 +10,7 @@ import { investigationsApi, Investigation } from '../../api/investigationsApi';
 import { FileText, Microscope, Search, Filter, Trash2, RotateCw } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { patientApi } from '../../api/patientApi';
+import { fileUrl } from '../../api/client';
 
 import { UploadExternalResultDialog } from './components/UploadExternalResultDialog';
 import { Dialog, DialogContent, DialogTrigger } from '../../components/ui/dialog';
@@ -329,14 +330,14 @@ export default function InvestigationsTab({ patientId, defaultTab }: Investigati
                                                                         {lab.result.imageUrl.toLowerCase().endsWith('.pdf') ? (
                                                                             <div className="text-center py-20 px-10">
                                                                                 <p className="mb-4 text-muted-foreground text-lg">This report is a PDF document.</p>
-                                                                                <Button size="lg" onClick={() => window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`, '_blank')}>
+                                                                                <Button size="lg" onClick={() => window.open(fileUrl(lab.result.imageUrl), '_blank')}>
                                                                                     <FileText className="w-5 h-5 mr-3" />
                                                                                     Click here to open PDF in a new tab
                                                                                 </Button>
                                                                             </div>
                                                                         ) : (
                                                                             <img
-                                                                                src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${lab.result.imageUrl}`}
+                                                                                src={fileUrl(lab.result.imageUrl)}
                                                                                 alt="Result"
                                                                                 className="max-w-full h-auto rounded shadow-sm"
                                                                             />
@@ -350,7 +351,7 @@ export default function InvestigationsTab({ patientId, defaultTab }: Investigati
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 className="h-8 px-2 text-red-600 hover:text-red-800 hover:bg-rose-50"
-                                                                onClick={() => window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}/uploads/${lab.pdfFilename}.pdf`, '_blank')}
+                                                                onClick={() => window.open(fileUrl(`/uploads/${lab.pdfFilename}.pdf`), '_blank')}
                                                                 title="View Original PDF"
                                                             >
                                                                 <FileText className="w-4 h-4 mr-1" />
@@ -454,14 +455,14 @@ export default function InvestigationsTab({ patientId, defaultTab }: Investigati
                                                         {img.result.imageUrl.toLowerCase().endsWith('.pdf') ? (
                                                             <div className="text-center py-20 px-10">
                                                                 <p className="mb-4 text-muted-foreground text-lg">This report is a PDF document.</p>
-                                                                <Button size="lg" onClick={() => window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${img.result.imageUrl}`, '_blank')}>
+                                                                <Button size="lg" onClick={() => window.open(fileUrl(img.result.imageUrl), '_blank')}>
                                                                     <FileText className="w-5 h-5 mr-3" />
                                                                     Click here to open PDF in a new tab
                                                                 </Button>
                                                             </div>
                                                         ) : (
                                                             <img
-                                                                src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${img.result.imageUrl}`}
+                                                                src={fileUrl(img.result.imageUrl)}
                                                                 alt="Investigation result"
                                                                 className="max-w-full h-auto rounded shadow-sm"
                                                             />
@@ -540,14 +541,14 @@ export default function InvestigationsTab({ patientId, defaultTab }: Investigati
                                                         {img.result.imageUrl.toLowerCase().endsWith('.pdf') ? (
                                                             <div className="text-center py-20 px-10">
                                                                 <p className="mb-4 text-muted-foreground text-lg">This report is a PDF document.</p>
-                                                                <Button size="lg" onClick={() => window.open(`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${img.result.imageUrl}`, '_blank')}>
+                                                                <Button size="lg" onClick={() => window.open(fileUrl(img.result.imageUrl), '_blank')}>
                                                                     <FileText className="w-5 h-5 mr-3" />
                                                                     Click here to open PDF in a new tab
                                                                 </Button>
                                                             </div>
                                                         ) : (
                                                             <img
-                                                                src={`${(import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace('/api', '')}${img.result.imageUrl}`}
+                                                                src={fileUrl(img.result.imageUrl)}
                                                                 alt="Investigation result"
                                                                 className="max-w-full h-auto rounded shadow-sm"
                                                             />

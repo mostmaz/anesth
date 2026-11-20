@@ -1,8 +1,9 @@
+import { authFetch } from './client';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export const fetchLabPatients = async (refresh: boolean = false) => {
-    const response = await fetch(`${API_URL}/lab/patients${refresh ? '?refresh=true' : ''}`);
+    const response = await authFetch(`${API_URL}/lab/patients${refresh ? '?refresh=true' : ''}`);
     if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to fetch patients');
@@ -11,7 +12,7 @@ export const fetchLabPatients = async (refresh: boolean = false) => {
 };
 
 export const importLabReport = async (patient: any) => {
-    const response = await fetch(`${API_URL}/lab/import`, {
+    const response = await authFetch(`${API_URL}/lab/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patient })
@@ -25,7 +26,7 @@ export const importLabReport = async (patient: any) => {
 };
 
 export const syncAllLabs = async () => {
-    const response = await fetch(`${API_URL}/lab/sync-all`, {
+    const response = await authFetch(`${API_URL}/lab/sync-all`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
     });
@@ -38,7 +39,7 @@ export const syncAllLabs = async () => {
 };
 
 export const syncPatientLabs = async (data: { patientId: string, mrn: string, name: string, authorId: string }) => {
-    const response = await fetch(`${API_URL}/lab/sync`, {
+    const response = await authFetch(`${API_URL}/lab/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)

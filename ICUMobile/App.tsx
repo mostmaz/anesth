@@ -11,6 +11,7 @@ import { LoginScreen } from './src/screens/LoginScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { PatientDetailScreen } from './src/screens/PatientDetailScreen';
 import { TweaksScreen } from './src/screens/TweaksScreen';
+import { ChangePasswordScreen } from './src/screens/ChangePasswordScreen';
 import { Toasts } from './src/components/Toasts';
 import { initFcm } from './src/notifications/fcm';
 
@@ -20,6 +21,7 @@ function AppShell() {
   const isAuthed = useICU(s => !!s.user);
   const user = useICU(s => s.user);
   const mode = useICU(s => s.mode);
+  const mustChangePassword = useICU(s => s.mustChangePassword);
   const pushToast = useICU(s => s.pushToast);
   const tickVitals = useICU(s => s.tickVitals);
   const insets = useSafeAreaInsets();
@@ -46,6 +48,10 @@ function AppShell() {
       />
       {(() => {
         if (!isAuthed) return <LoginScreen />;
+        // An account still on the shared default password must set its own
+        // before anything else is shown.
+        if (mode === 'live' && mustChangePassword) return <ChangePasswordScreen forced />;
+        if (mode === 'live' && view === 'password') return <ChangePasswordScreen />;
         if (view === 'patient') return <PatientDetailScreen />;
         if (view === 'tweaks') return <TweaksScreen />;
         return <DashboardScreen />;

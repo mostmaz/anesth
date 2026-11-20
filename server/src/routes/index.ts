@@ -13,7 +13,6 @@ import noteRoutes from './note.routes';
 import specialistRoutes from './specialist.routes';
 import uploadRoutes from './upload.routes';
 import ocrRoutes from './ocr.routes';
-import seedRoutes from './seed.routes';
 import labRoutes from './lab.routes';
 import assignmentRoutes from './assignment.routes';
 import userRoutes from './user.routes';
@@ -23,10 +22,14 @@ import ventilatorRoutes from './ventilator.routes';
 import skinRoutes from './skin.routes';
 import reportRoutes from './report.routes';
 import devicesRoutes from './devices.routes';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
+// Sign-in is public; every route below this line needs a valid session token.
 router.use('/auth', authRoutes);
+router.use(requireAuth);
+
 router.use('/users', userRoutes);
 
 router.use('/patients', patientRoutes);
@@ -42,7 +45,6 @@ router.use('/notes', noteRoutes);
 router.use('/specialist', specialistRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/ocr', ocrRoutes);
-router.use('/seed', seedRoutes);
 router.use('/lab', labRoutes);
 router.use('/assignments', assignmentRoutes);
 router.use('/doctors', doctorRoutes);

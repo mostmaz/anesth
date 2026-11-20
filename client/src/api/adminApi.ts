@@ -29,6 +29,10 @@ export const adminApi = {
         return apiClient.delete(`/users/${id}`);
     },
 
+    resetPassword: async (id: string, newPassword: string) => {
+        return apiClient.put<{ success: boolean }>(`/users/${id}/password`, { newPassword });
+    },
+
     // Drug Catalog
     getCatalog: async (query: string = '') => {
         return apiClient.get<DrugCatalogItem[]>(`/medications/catalog?q=${encodeURIComponent(query)}`);

@@ -1,4 +1,16 @@
-version: '3.8'
+# Production stack.
+#
+# Caddy is the only service published to the internet. It terminates HTTPS
+# (certificate obtained and renewed automatically) and forwards /api and
+# /uploads to the API and everything else to the web app. The API and the
+# database are reachable only from this machine.
+#
+# The droplet is too small to build images, so code is built on a workstation
+# and synced here: the API runs from ./server/src and the web app is served
+# from ./client/dist, both mounted read-only over what the images contain.
+# After syncing new server code: docker restart icu_server_prod
+#
+# Required in .env (same directory): JWT_SECRET, SITE_HOST, CORS_ORIGINS.
 
 services:
   db:
@@ -18,17 +30,25 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+    image: anesth-server
     container_name: icu_server_prod
     restart: always
     environment:
       - DATABASE_URL=postgresql://postgres:${DB_PASSWORD:-postgres}@db:5432/icu_db?schema=public
       - PORT=3001
-      - JWT_SECRET=${JWT_SECRET:-fallback_secret_for_dev_only}
+      # No fallback on purpose: the stack refuses to start without a real secret.
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env (openssl rand -hex 32)}
+      - CORS_ORIGINS=${CORS_ORIGINS:?Set CORS_ORIGINS in .env, e.g. https://203-0-113-10.sslip.io}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - FIREBASE_SERVICE_ACCOUNT_B64=${FIREBASE_SERVICE_ACCOUNT_B64:-}
+      - LAB_USER=${LAB_USER:-}
+      - LAB_PASSWORD=${LAB_PASSWORD:-}
     ports:
-      - "3001:3001"
+      # Local access only (debugging over SSH). The public route is Caddy.
+      - "127.0.0.1:3001:3001"
     volumes:
       - uploads_data:/app/uploads
+      - ./server/src:/app/src:ro
     depends_on:
       - db
 
@@ -37,14 +57,34 @@ services:
       context: ./client
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=${VITE_API_URL:-http://167.172.101.215:3001/api}
+        - VITE_API_URL=${VITE_API_URL:-/api}
+    image: anesth-client
     container_name: icu_client_prod
     restart: always
-    ports:
-      - "80:80"
+    volumes:
+      - ./client/dist:/usr/share/nginx/html:ro
     depends_on:
       - server
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: icu_caddy_prod
+    restart: always
+    environment:
+      - SITE_HOST=${SITE_HOST:?Set SITE_HOST in .env, e.g. 203-0-113-10.sslip.io}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - server
+      - client
 
 volumes:
   postgres_data:
   uploads_data:
+  caddy_data:
+  caddy_config:

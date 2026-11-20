@@ -4,18 +4,19 @@ import { User } from '../types';
 
 interface LoginResponse {
     token: string;
+    fileToken?: string;
+    mustChangePassword?: boolean;
     user: User;
 }
 
 export const authApi = {
-    login: async (username: string, password?: string) => {
-        // If password is not provided (legacy mock UI), use "password" or empty
-        const payload = { username, password: password || 'password' }; // 'password' matches the default/seed password usually
-        // However, seeded users have hash.
-        // We need to handle the case where user types just username in the old UI.
-        // But the NEW UI in Login.tsx has a password field (defaulting to "password").
+    login: async (username: string, password: string) => {
+        return apiClient.post<LoginResponse>('/auth/login', { username, password });
+    },
 
-        const response = await apiClient.post<LoginResponse>('/auth/login', payload);
-        return response;
-    }
+    changePassword: async (currentPassword: string, newPassword: string) => {
+        // The server ends every session issued under the old password and returns
+        // fresh tokens for this one.
+        return apiClient.post<{ success: boolean; token?: string; fileToken?: string }>('/auth/change-password', { currentPassword, newPassword });
+    },
 };

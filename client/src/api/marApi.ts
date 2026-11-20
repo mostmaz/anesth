@@ -1,3 +1,4 @@
+import { authFetch } from './client';
 export interface Medication {
     id: string;
     name: string;
@@ -31,13 +32,13 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export const marApi = {
     getMAR: async (patientId: string): Promise<Medication[]> => {
-        const response = await fetch(`${API_URL}/medications/${patientId}/mar`);
+        const response = await authFetch(`${API_URL}/medications/${patientId}/mar`);
         if (!response.ok) throw new Error('Failed to fetch MAR');
         return response.json();
     },
 
     searchDrugs: async (query: string) => {
-        const response = await fetch(`${API_URL}/medications/catalog?q=${encodeURIComponent(query)}`);
+        const response = await authFetch(`${API_URL}/medications/catalog?q=${encodeURIComponent(query)}`);
         if (!response.ok) throw new Error('Failed to search drugs');
         return response.json();
     },
@@ -54,7 +55,7 @@ export const marApi = {
         durationReminder?: number;
         startedAt?: string;
     }): Promise<Medication> => {
-        const response = await fetch(`${API_URL}/medications/prescribe`, {
+        const response = await authFetch(`${API_URL}/medications/prescribe`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
@@ -64,7 +65,7 @@ export const marApi = {
     },
 
     administerMedication: async (data: { patientId: string; medicationId: string; status: string; dose?: string; dilution?: number; userId?: string; administeredAt?: string }): Promise<MedicationAdministration> => {
-        const response = await fetch(`${API_URL}/medications/administer`, {
+        const response = await authFetch(`${API_URL}/medications/administer`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
@@ -74,7 +75,7 @@ export const marApi = {
     },
 
     editMedication: async (id: string, data: { dose: string; route: string; frequency?: string; infusionRate?: string; otherInstructions?: string; dilution?: number; durationReminder?: number; }): Promise<Medication> => {
-        const response = await fetch(`${API_URL}/medications/${id}`, {
+        const response = await authFetch(`${API_URL}/medications/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
@@ -84,7 +85,7 @@ export const marApi = {
     },
 
     discontinueMedication: async (id: string): Promise<Medication> => {
-        const response = await fetch(`${API_URL}/medications/${id}/status`, {
+        const response = await authFetch(`${API_URL}/medications/${id}/status`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ isActive: false }),
@@ -94,7 +95,7 @@ export const marApi = {
     },
 
     deleteAdministration: async (id: string, userId: string): Promise<void> => {
-        const response = await fetch(`${API_URL}/medications/administration/${id}`, {
+        const response = await authFetch(`${API_URL}/medications/administration/${id}`, {
             method: 'DELETE',
             headers: { 'X-User-Id': userId }
         });

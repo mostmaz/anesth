@@ -2,6 +2,8 @@
 import { Router } from 'express';
 import prisma from '../prisma';
 import bcrypt from 'bcryptjs';
+import { forgetUser, requireRole } from '../middleware/auth';
+import { passwordProblem } from '../controllers/auth.controller';
 
 const router = Router();
 
@@ -29,6 +31,7 @@ router.get('/', async (req, res) => {
 // GET current user details
 router.get('/:id/preferences', async (req, res) => {
     try {
+        if (req.user!.id !== req.params.id) return res.status(403).json({ error: 'You can only read your own preferences' });
         const user = await prisma.user.findUnique({
             where: { id: req.params.id },
             select: { dismissedLabs: true }
@@ -42,6 +45,7 @@ router.get('/:id/preferences', async (req, res) => {
 // DISMISS a lab notification
 router.post('/:id/dismiss-lab', async (req, res) => {
     try {
+        if (req.user!.id !== req.params.id) return res.status(403).json({ error: 'You can only change your own preferences' });
         const { labId } = req.body;
         if (!labId) return res.status(400).json({ error: 'labId required' });
 
@@ -60,13 +64,18 @@ router.post('/:id/dismiss-lab', async (req, res) => {
 });
 
 // CREATE user
-router.post('/', async (req, res) => {
+router.post('/', requireRole('SENIOR'), async (req, res) => {
     try {
         const { name, username, password, role } = req.body;
 
         if (!name || !username || !password || !role) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
+        if (!['SENIOR', 'RESIDENT', 'NURSE'].includes(role)) {
+            return res.status(400).json({ error: 'Invalid role' });
+        }
+        const problem = passwordProblem(password);
+        if (problem) return res.status(400).json({ error: problem });
 
         const existingUser = await prisma.user.findUnique({ where: { username } });
         if (existingUser) {
@@ -97,11 +106,32 @@ router.post('/', async (req, res) => {
     }
 });
 
+// RESET a user's password (SENIOR only)
+router.put('/:id/password', requireRole('SENIOR'), async (req, res) => {
+    try {
+        const { newPassword } = req.body || {};
+        const problem = passwordProblem(newPassword);
+        if (problem) return res.status(400).json({ error: problem });
+
+        const target = await prisma.user.findUnique({ where: { id: req.params.id }, select: { id: true } });
+        if (!target) return res.status(404).json({ error: 'User not found' });
+
+        await prisma.user.update({ where: { id: target.id }, data: { passwordHash: await bcrypt.hash(newPassword, 10) } });
+        forgetUser(target.id);
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Error resetting password:", (error as Error)?.message || error);
+        res.status(500).json({ error: 'Failed to reset password' });
+    }
+});
+
 // DELETE user
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireRole('SENIOR'), async (req, res) => {
     try {
         const { id } = req.params;
+        if (id === req.user!.id) return res.status(400).json({ error: 'You cannot delete your own account' });
         await prisma.user.delete({ where: { id } });
+        forgetUser(id);
         res.json({ success: true, message: 'User deleted' });
     } catch (error) {
         console.error("Error deleting user:", error);

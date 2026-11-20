@@ -1,0 +1,33 @@
+# Public entry point for the ICU Manager stack.
+#
+# Caddy obtains and renews the HTTPS certificate for SITE_HOST automatically
+# and redirects plain HTTP to HTTPS. SITE_HOST comes from .env, for example
+# 203-0-113-10.sslip.io (the droplet's IP with dashes, which resolves to it).
+
+{$SITE_HOST} {
+	# Compress responses, except the live notification stream, which must
+	# reach the browser event by event.
+	@compressible not path /api/notifications/stream
+	encode @compressible zstd gzip
+
+	header {
+		# Browsers remember to use HTTPS only for this host.
+		Strict-Transport-Security "max-age=31536000"
+		# "?" = only when the service behind did not already set it.
+		?X-Content-Type-Options "nosniff"
+		?X-Frame-Options "DENY"
+		?Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	# API and uploaded files: the Node server (not published to the internet).
+	@backend path /api/* /uploads/*
+	handle @backend {
+		reverse_proxy server:3001
+	}
+
+	# Everything else: the web app.
+	handle {
+		reverse_proxy client:80
+	}
+}

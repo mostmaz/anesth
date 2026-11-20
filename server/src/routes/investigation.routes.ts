@@ -1,6 +1,7 @@
 
 import { Router } from 'express';
 import prisma from '../prisma';
+import { requireRole } from '../middleware/auth';
 import { sendToAll } from '../services/pushService';
 
 const router = Router();
@@ -128,7 +129,7 @@ router.patch('/:id', async (req, res) => {
 });
 
 // Delete All Investigations for a Patient
-router.delete('/patient/:patientId/all', async (req, res) => {
+router.delete('/patient/:patientId/all', requireRole('SENIOR', 'RESIDENT'), async (req, res) => {
     try {
         const { patientId } = req.params;
         await prisma.investigation.deleteMany({
@@ -142,7 +143,7 @@ router.delete('/patient/:patientId/all', async (req, res) => {
 });
 
 // Delete Investigation
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireRole('SENIOR', 'RESIDENT'), async (req, res) => {
     try {
         const { id } = req.params;
         await prisma.investigation.delete({

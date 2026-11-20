@@ -5,6 +5,11 @@ let _token: string | null = null;
 export function setToken(t: string | null) { _token = t; }
 export function getToken(): string | null { return _token; }
 
+// Called when the server rejects our session (expired, or the account was
+// removed). The store registers a handler that returns the app to sign-in.
+let _onUnauthorized: (() => void) | null = null;
+export function setUnauthorizedHandler(fn: (() => void) | null) { _onUnauthorized = fn; }
+
 interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
   auth?: boolean;
@@ -53,6 +58,8 @@ export async function apiFetch<T = unknown>(
   const text = await res.text();
   let json: unknown = null;
   try { json = text ? JSON.parse(text) : null; } catch { /* not json */ }
+
+  if (res.status === 401 && auth && _token) _onUnauthorized?.();
 
   if (!res.ok) {
     const message =

@@ -8,8 +8,9 @@ import { Icon } from '../icu';
 import { Avatar, initialsFromName, colorFromId } from '../icu/Avatar';
 import { TweaksDrawer } from './TweaksDrawer';
 import { useLang } from '../../i18n';
+import { notificationStreamUrl } from '../../api/client';
+import { ChangePasswordDialog } from './ChangePasswordDialog';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 interface MenuItem {
   icon: 'activity' | 'clock' | 'settings' | 'users';
@@ -20,7 +21,8 @@ interface MenuItem {
 export default function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuthStore();
+  const { user, logout, mustChangePassword, fileToken } = useAuthStore();
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const { t, lang, setLang } = useLang();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tweaksOpen, setTweaksOpen] = useState(false);
@@ -37,10 +39,10 @@ export default function AppShell() {
     }
   }, []);
 
-  // SSE
+  // SSE. Reconnects when the file token changes (after a password change).
   useEffect(() => {
     if (!user) return;
-    const src = new EventSource(`${API_URL}/notifications/stream`);
+    const src = new EventSource(notificationStreamUrl());
 
     const ring = (title: string, body: string, tone: 'info' | 'warning' | 'success' | 'error', action?: any) => {
       if (tone === 'warning') toast.warning(title, { description: body, duration: 10000, action });
@@ -73,7 +75,7 @@ export default function AppShell() {
     };
     src.onerror = () => { src.close(); };
     return () => { src.close(); };
-  }, [user, navigate]);
+  }, [user, fileToken, navigate]);
 
   const handleLogout = async () => {
     await endShift().catch(() => { /* ignore */ });
@@ -266,6 +268,15 @@ export default function AppShell() {
             >
               {lang === 'ar' ? 'EN' : 'ع'}
             </button>
+            <button
+              type="button"
+              onClick={() => setPasswordOpen(true)}
+              className="icu-btn icu-btn-outline icu-btn-xs"
+              title={t('password.title')}
+              aria-label={t('password.title')}
+            >
+              <Icon name="shield" size={14} />
+            </button>
             <Avatar initials={initialsFromName(user?.name)} color={avatarColor} size="sm" />
             <button
               type="button"
@@ -285,6 +296,11 @@ export default function AppShell() {
       </div>
 
       <TweaksDrawer open={tweaksOpen} onClose={() => setTweaksOpen(false)} />
+      <ChangePasswordDialog
+        open={passwordOpen || mustChangePassword}
+        forced={mustChangePassword}
+        onClose={() => setPasswordOpen(false)}
+      />
       <Toaster richColors />
 
       {/* Inline responsive styles */}

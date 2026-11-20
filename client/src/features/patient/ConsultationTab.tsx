@@ -9,6 +9,7 @@ import { patientApi } from '../../api/patientApi';
 import { uploadApi } from '../../api/uploadApi';
 import { toast } from 'sonner';
 import { useAuthStore } from '../../stores/authStore';
+import { fileUrl } from '../../api/client';
 
 export interface Consultation {
     id: string;
@@ -173,7 +174,7 @@ export default function ConsultationTab({ patientId }: ConsultationTabProps) {
                                 {c.imageUrl && (
                                     <div className="mt-4 flex gap-4">
                                         <a
-                                            href={(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3001') + c.imageUrl}
+                                            href={fileUrl(c.imageUrl)}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                         >

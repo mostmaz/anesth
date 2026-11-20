@@ -83,8 +83,8 @@ android {
         applicationId "com.icumobile"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.1"
         // Allow cleartext HTTP to the prod backend (no HTTPS yet on 167.172.101.215)
         manifestPlaceholders = [usesCleartextTraffic: "true"]
     }

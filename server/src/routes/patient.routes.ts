@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import prisma from '../prisma';
+import { requireRole } from '../middleware/auth';
 import { broadcastNotification } from './notifications.routes';
 import { sendToAll } from '../services/pushService';
 
@@ -358,7 +359,7 @@ router.get('/:id/timeline', async (req, res) => {
     }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireRole('SENIOR'), async (req, res) => {
     try {
         const { id } = req.params;
         console.log(`[DELETE] Deleting patient ${id}`);

@@ -49,7 +49,20 @@ const en: Record<string, string> = {
     'login.username': 'Username',
     'login.password': 'Password',
     'login.signIn': 'Sign In',
-    'login.quickSignIn': 'Quick sign-in as',
+
+    // Password
+    'password.title': 'Change password',
+    'password.current': 'Current password',
+    'password.enterCurrent': 'Enter your current password',
+    'password.new': 'New password (at least 8 characters)',
+    'password.confirm': 'Confirm new password',
+    'password.save': 'Save password',
+    'password.changed': 'Password changed',
+    'password.failed': 'Could not change password',
+    'password.tooShort': 'Password must be at least 8 characters',
+    'password.notDefault': 'Choose a password other than "password"',
+    'password.mismatch': 'The two new passwords do not match',
+    'password.forcedNotice': 'This account still uses the shared default password. Set your own password to continue.',
 };
 
 const ar: Record<string, string> = {
@@ -95,7 +108,19 @@ const ar: Record<string, string> = {
     'login.username': 'اسم المستخدم',
     'login.password': 'كلمة المرور',
     'login.signIn': 'تسجيل الدخول',
-    'login.quickSignIn': 'دخول سريع بصفة',
+
+    'password.title': 'تغيير كلمة المرور',
+    'password.current': 'كلمة المرور الحالية',
+    'password.enterCurrent': 'أدخل كلمة المرور الحالية',
+    'password.new': 'كلمة المرور الجديدة (٨ أحرف على الأقل)',
+    'password.confirm': 'تأكيد كلمة المرور الجديدة',
+    'password.save': 'حفظ كلمة المرور',
+    'password.changed': 'تم تغيير كلمة المرور',
+    'password.failed': 'تعذّر تغيير كلمة المرور',
+    'password.tooShort': 'يجب ألا تقل كلمة المرور عن ٨ أحرف',
+    'password.notDefault': 'اختر كلمة مرور غير «password»',
+    'password.mismatch': 'كلمتا المرور الجديدتان غير متطابقتين',
+    'password.forcedNotice': 'هذا الحساب ما زال يستخدم كلمة المرور الافتراضية المشتركة. عيّن كلمة مرور خاصة بك للمتابعة.',
 };
 
 const dicts: Record<Lang, Record<string, string>> = { en, ar };

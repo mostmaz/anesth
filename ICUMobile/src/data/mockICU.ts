@@ -3,7 +3,8 @@
 
 import { create } from 'zustand';
 import * as api from '../api/endpoints';
-import { setToken } from '../api/client';
+import { setToken, setUnauthorizedHandler } from '../api/client';
+import { setFileToken } from '../api/config';
 import { unregisterFcm } from '../notifications/fcm';
 import {
   realPatientToDesign, realUserToDesign, realVitalToDesign, realMedToDesign,
@@ -447,7 +448,9 @@ export interface ICUState {
 
   user: MockUser | null;
   shift: { type: 'DAY' | 'NIGHT'; startTime: Date } | null;
-  view: 'login' | 'dashboard' | 'patient' | 'tweaks';
+  view: 'login' | 'dashboard' | 'patient' | 'tweaks' | 'password';
+  // True while the signed-in account still uses the shared default password.
+  mustChangePassword: boolean;
   patientId: string | null;
   patientTab: string;
   alarmsOn: boolean;
@@ -474,6 +477,7 @@ export interface ICUState {
 
   // Live API actions
   realLogin: (username: string, password: string) => Promise<void>;
+  changePasswordLive: (currentPassword: string, newPassword: string) => Promise<void>;
   loadPatients: () => Promise<void>;
   loadPatient: (id: string) => Promise<void>;
   loadVitals: (id: string) => Promise<void>;
@@ -538,6 +542,7 @@ export const useICU = create<ICUState>((set, get) => {
     user: null,
     shift: null,
     view: 'login',
+    mustChangePassword: false,
     patientId: null,
     patientTab: 'overview',
     alarmsOn: true,
@@ -558,8 +563,9 @@ export const useICU = create<ICUState>((set, get) => {
       // Stop this device from receiving pushes while signed out.
       unregisterFcm().catch(() => {});
       setToken(null);
+      setFileToken(null);
       set({
-        user: null, view: 'login', patientId: null,
+        user: null, view: 'login', patientId: null, mustChangePassword: false,
         patients: [], liveReadings: {}, loadedTabs: {},
       });
     },
@@ -636,9 +642,11 @@ export const useICU = create<ICUState>((set, get) => {
     realLogin: async (username, password) => {
       const res = await api.login(username, password);
       setToken(res.token);
+      setFileToken(res.fileToken ?? null);
       const u = realUserToDesign(res.user);
       set({
         user: u,
+        mustChangePassword: !!res.mustChangePassword,
         view: 'dashboard',
         shift: { type: 'DAY', startTime: new Date() },
         mode: 'live',
@@ -647,6 +655,15 @@ export const useICU = create<ICUState>((set, get) => {
         loadedTabs: {},
       });
       await get().loadPatients();
+    },
+
+    changePasswordLive: async (currentPassword, newPassword) => {
+      // The server ends every session issued under the old password and hands
+      // back fresh tokens for this device.
+      const res = await api.changePassword(currentPassword, newPassword);
+      if (res.token) setToken(res.token);
+      if (res.fileToken) setFileToken(res.fileToken);
+      set({ mustChangePassword: false, view: 'dashboard' });
     },
 
     loadPatients: async () => {
@@ -1159,6 +1176,15 @@ export function getDueInterventions(p: Patient, alarmsOn: boolean): Intervention
   const cutoff = Date.now();
   return p.interventions.filter(i => i.status !== 'COMPLETED' && new Date(i.reminderAt).getTime() <= cutoff);
 }
+
+// When the server rejects the session (expired, or the account was removed),
+// return to the sign-in screen instead of failing request after request.
+setUnauthorizedHandler(() => {
+  const s = useICU.getState();
+  if (!s.user || s.mode !== 'live') return;
+  s.signOut();
+  s.pushToast({ tone: 'warn', msg: 'Session expired — please sign in again' });
+});
 
 export const fmtTime = (d: Date | string) => {
   const dt = typeof d === 'string' ? new Date(d) : d;

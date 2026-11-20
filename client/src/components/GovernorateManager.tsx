@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trash2, Plus, MapPin } from 'lucide-react';
+import { authFetch } from '../api/client';
 
 const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/governorates`;
 
@@ -11,7 +12,7 @@ export function GovernorateManager() {
     const { data: governorates, isLoading, isError } = useQuery({
         queryKey: ['governorates'],
         queryFn: async () => {
-            const res = await fetch(API_URL);
+            const res = await authFetch(API_URL);
             if (!res.ok) throw new Error('Failed to fetch governorates');
             return res.json();
         }
@@ -19,7 +20,7 @@ export function GovernorateManager() {
 
     const addMutation = useMutation({
         mutationFn: async (name: string) => {
-            const res = await fetch(API_URL, {
+            const res = await authFetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name })
@@ -35,7 +36,7 @@ export function GovernorateManager() {
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
-            const res = await fetch(`${API_URL}/${id}`, {
+            const res = await authFetch(`${API_URL}/${id}`, {
                 method: 'DELETE'
             });
             if (!res.ok) throw new Error('Failed to delete governorate');

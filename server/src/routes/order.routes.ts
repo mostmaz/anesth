@@ -234,10 +234,8 @@ router.post('/', async (req, res) => {
 router.patch('/:id/status', async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, userId } = req.body; // userId of who is performing the action
-
-        const user = await prisma.user.findUnique({ where: { id: userId } });
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        const { status } = req.body;
+        const user = req.user!; // who is performing the action
 
         // Logic: Only Seniors can Approve
         if (status === 'APPROVED' && user.role !== 'SENIOR') {
@@ -246,7 +244,7 @@ router.patch('/:id/status', async (req, res) => {
 
         const updateData: any = { status };
         if (status === 'APPROVED') {
-            updateData.approverId = userId;
+            updateData.approverId = user.id;
         }
 
         const order = await prisma.clinicalOrder.update({

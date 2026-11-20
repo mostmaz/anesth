@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { adminApi, User } from '../../api/adminApi';
 import { Button } from '../../components/ui/button';
 import { toast } from 'sonner';
-import { Trash2, UserPlus } from 'lucide-react';
+import { KeyRound, Trash2, UserPlus } from 'lucide-react';
 
 export default function UserManagementTab() {
     const [users, setUsers] = useState<User[]>([]);
@@ -41,14 +41,26 @@ export default function UserManagementTab() {
         }
     };
 
+    // A senior can set a new password for any account (e.g. one still on the old shared default).
+    const handleResetPassword = async (user: User) => {
+        const newPassword = prompt(`New password for ${user.name} (at least 8 characters):`);
+        if (newPassword === null) return;
+        try {
+            await adminApi.resetPassword(user.id, newPassword);
+            toast.success(`Password updated for ${user.name}`);
+        } catch (error: any) {
+            toast.error(error.message || "Failed to reset password");
+        }
+    };
+
     const handleDeleteUser = async (id: string) => {
         if (!confirm("Are you sure you want to delete this user?")) return;
         try {
             await adminApi.deleteUser(id);
             toast.success("User deleted");
             fetchUsers();
-        } catch (error) {
-            toast.error("Failed to delete user");
+        } catch (error: any) {
+            toast.error(error.message || "Failed to delete user");
         }
     };
 
@@ -68,7 +80,7 @@ export default function UserManagementTab() {
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Password</label>
-                        <input className="w-full p-2 border rounded" required type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="******" />
+                        <input className="w-full p-2 border rounded" required type="password" minLength={8} value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="At least 8 characters" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Role</label>
@@ -107,6 +119,9 @@ export default function UserManagementTab() {
                                     </span>
                                 </td>
                                 <td className="p-3 text-right">
+                                    <Button variant="ghost" size="sm" title="Reset password" onClick={() => handleResetPassword(user)}>
+                                        <KeyRound className="w-4 h-4" />
+                                    </Button>
                                     <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteUser(user.id)}>
                                         <Trash2 className="w-4 h-4" />
                                     </Button>

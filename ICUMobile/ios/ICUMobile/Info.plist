@@ -28,14 +28,10 @@
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-	  <!-- Backend is plain HTTP on an IP, so allow all cleartext (matches Android's
-	       global cleartextTrafficPermitted=true). This survives a backend IP change
-	       without an Info.plist edit.
-	       ⚠️ Do NOT add NSAllowsLocalNetworking / NSAllowsArbitraryLoadsInWebContent /
-	       ...ForMedia here: iOS IGNORES NSAllowsArbitraryLoads whenever any of those keys
-	       is present, which silently blocks HTTP to any host not in NSExceptionDomains.
-	       Move the backend to HTTPS before any App Store submission. -->
-		<key>NSAllowsArbitraryLoads</key>
+	  <!-- The backend is HTTPS, so App Transport Security stays fully on and
+	       patient data never travels unencrypted. Only local networking is
+	       exempt, which the Metro bundler needs in Debug builds. -->
+		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>

@@ -14,6 +14,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Printer, Image as ImageIcon, ExternalLink } from 'lucide-react';
 import { UploadVitalsDialog } from './UploadVitalsDialog';
+import { fileUrl } from '../../api/client';
 
 // Any drug whose MAR route of administration is "Infusion" is charted alongside the
 // vitals: its ml/hr rate is recorded, and the volume infused since the last charted
@@ -443,7 +444,7 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                             })}
                                             <TableCell>
                                                 {entry.imageUrl && (
-                                                    <a href={entry.imageUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800" title="View attached image">
+                                                    <a href={fileUrl(entry.imageUrl)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800" title="View attached image">
                                                         <ExternalLink className="w-4 h-4" />
                                                     </a>
                                                 )}

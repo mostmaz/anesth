@@ -182,10 +182,16 @@ export interface RealInvestigationFeed extends RealInvestigation {
 // ── Endpoint functions ─────────────────────────────────────
 
 export const login = (username: string, password: string) =>
-  apiFetch<{ token: string; user: RealUser }>('/auth/login', {
+  apiFetch<{ token: string; fileToken?: string; mustChangePassword?: boolean; user: RealUser }>('/auth/login', {
     method: 'POST',
     auth: false,
     body: { username, password },
+  });
+
+export const changePassword = (currentPassword: string, newPassword: string) =>
+  apiFetch<{ success: boolean; token?: string; fileToken?: string }>('/auth/change-password', {
+    method: 'POST',
+    body: { currentPassword, newPassword },
   });
 
 export const listPatients = () => apiFetch<RealPatient[]>('/patients');

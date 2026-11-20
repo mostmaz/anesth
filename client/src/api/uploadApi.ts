@@ -1,3 +1,4 @@
+import { authFetch } from './client';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export const uploadApi = {
@@ -7,7 +8,7 @@ export const uploadApi = {
             formData.append('files', file);
         });
 
-        const response = await fetch(`${API_URL}/upload`, {
+        const response = await authFetch(`${API_URL}/upload`, {
             method: 'POST',
             body: formData,
         });
@@ -26,7 +27,7 @@ export const uploadApi = {
         // Wait, I should check if apiClient is available to use standard auth headers etc if needed. 
         // But for now, let's just use fetch to be consistent with this file.
 
-        const response = await fetch(`${API_URL}/ocr/analyze`, {
+        const response = await authFetch(`${API_URL}/ocr/analyze`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
