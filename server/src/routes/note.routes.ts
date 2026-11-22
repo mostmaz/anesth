@@ -1,10 +1,12 @@
 
 import { Router } from 'express';
 import prisma from '../prisma';
-import { sendToAll } from '../services/pushService';
+import { notifyPatient, recipientsFor } from '../services/pushService';
 import { broadcastNotification } from './notifications.routes';
 
 const router = Router();
+
+const NOTE_TYPES = ['ADMISSION', 'PROGRESS', 'PROCEDURE', 'DISCHARGE', 'NURSING', 'CONSULT', 'EVENT', 'ROUND', 'OTHER'];
 
 // Global recent-events feed (across all patients) for the dashboard.
 // Declared before /:patientId so the two-segment path matches first.
@@ -52,12 +54,18 @@ router.get('/:patientId', async (req, res) => {
 // Create Note
 router.post('/', async (req, res) => {
     try {
-        const { patientId, authorId, type, title, content, data } = req.body;
+        const { patientId, type, title, content, data } = req.body;
+        if (!patientId || !type || !title) {
+            return res.status(400).json({ error: 'Patient, type and title are required' });
+        }
+        if (!NOTE_TYPES.includes(type)) {
+            return res.status(400).json({ error: 'Unknown note type' });
+        }
 
         const note = await prisma.clinicalNote.create({
             data: {
                 patientId,
-                authorId,
+                authorId: req.user!.id,
                 type,
                 title,
                 content,
@@ -72,11 +80,13 @@ router.post('/', async (req, res) => {
         if (type === 'EVENT') {
             const ep = await prisma.patient.findUnique({ where: { id: patientId }, select: { name: true } });
             const sev = (data && data.severity) ? String(data.severity).toUpperCase() : 'EVENT';
+            // An event concerns the patient's team: the bedside nurse(s) and the doctors.
             broadcastNotification('new_event', {
+                _to: await recipientsFor(patientId, 'team'),
                 patientId, patientName: ep?.name, title, severity: data?.severity,
                 message: `${title} — ${ep?.name || 'patient'}`
             });
-            sendToAll(`${sev}: ${title}`, `${ep?.name || 'Patient'}${content ? ` — ${content}` : ''}`, { type: 'event', patientId });
+            notifyPatient(patientId, 'team', `${sev}: ${title}`, `${ep?.name || 'Patient'}${content ? ` — ${content}` : ''}`, { type: 'event' });
         }
 
         res.status(201).json(note);

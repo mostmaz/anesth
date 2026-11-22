@@ -56,3 +56,15 @@ server/update_prod_key.js
 
 # TypeScript incremental build info
 *.tsbuildinfo
+
+# Patient data and server state must never be committed
+server/uploads/
+server/lab_session_data/
+*.sql
+!server/prisma/migrations/**/migration.sql
+*.dump
+*.sql.gz
+server/dist/
+server/*.png
+server/*.txt
+server/*.log

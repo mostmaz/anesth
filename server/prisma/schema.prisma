@@ -27,35 +27,45 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  shifts       Shift[]
-  notes        ClinicalNote[]
-  audits       AuditLog[]
-  ioEntries    IntakeOutput[]
-  checkIns     NurseCheckIn[]
-  createdOrders ClinicalOrder[] @relation("CreatedOrders")
-  approvedOrders ClinicalOrder[] @relation("ApprovedOrders")
-  investigations Investigation[]
-  specialistNotes SpecialistNote[]
-  administeredMeds MedicationAdministration[]
-  assignments  PatientAssignment[]
-  dismissedLabs String[] @default([])
-  skinAssessments SkinAssessment[]
-  fcmTokens    String[] @default([])
+  shifts            Shift[]
+  notes             ClinicalNote[]
+  audits            AuditLog[]
+  ioEntries         IntakeOutput[]
+  checkIns          NurseCheckIn[]
+  createdOrders     ClinicalOrder[]            @relation("CreatedOrders")
+  approvedOrders    ClinicalOrder[]            @relation("ApprovedOrders")
+  investigations    Investigation[]
+  specialistNotes   SpecialistNote[]
+  administeredMeds  MedicationAdministration[]
+  assignments       PatientAssignment[]
+  dismissedLabs     String[]                   @default([])
+  skinAssessments   SkinAssessment[]
+  fcmTokens         String[]                   @default([])
+  lastLoginAt       DateTime?
+  // When the password was last set by its owner or reset by a senior.
+  passwordChangedAt DateTime?
+
+  vitals         VitalSign[]
+  linesInserted  PatientLine[]     @relation("LineInsertedBy")
+  linesRemoved   PatientLine[]     @relation("LineRemovedBy")
+  lineChecks     LineBundleCheck[]
+  clinicalScores ClinicalScore[]
+  marSignOffs    MarSignOff[]
 }
 
 model PatientAssignment {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   patientId String
   userId    String
   shiftId   String?
-  isActive   Boolean  @default(true)
-  isPending  Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  endedAt    DateTime?
+  isActive  Boolean   @default(true)
+  isPending Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  endedAt   DateTime?
 
-  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id])
-  shift     Shift?   @relation(fields: [shiftId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+  shift   Shift?  @relation(fields: [shiftId], references: [id])
 }
 
 model Shift {
@@ -66,94 +76,104 @@ model Shift {
   endTime   DateTime?
   isActive  Boolean   @default(true)
 
-  user      User      @relation(fields: [userId], references: [id])
-  ioEntries IntakeOutput[]
-  checkIns  NurseCheckIn[]
+  user        User                @relation(fields: [userId], references: [id])
+  ioEntries   IntakeOutput[]
+  checkIns    NurseCheckIn[]
   assignments PatientAssignment[]
 }
 
 model Patient {
-  id        String   @id @default(uuid())
-  mrn       String   @unique
+  id  String @id @default(uuid())
+  mrn String @unique
 
-  name      String
-  dob       DateTime
-  gender    String
+  name          String
+  dob           DateTime
+  gender        String
   comorbidities String[] @default([])
   diagnosis     String?
-  
-  admissions  Admission[]
-  notes       ClinicalNote[]
-  vitals      VitalSign[]
-  medications MedicationAdministration[]
-  prescriptions Medication[]
-  ioEntries   IntakeOutput[]
-  checkIns    NurseCheckIn[]
-  orders      ClinicalOrder[]
-  investigations Investigation[]
-  assignments    PatientAssignment[]
-  specialistNotes SpecialistNote[]
+
+  // Basics used for dosing, tidal-volume targets and prescribing warnings.
+  weightKg         Float?
+  heightCm         Float?
+  allergies        String[] @default([])
+  // true = asked and none known; false with an empty list = not recorded yet.
+  noKnownAllergies Boolean  @default(false)
+
+  admissions         Admission[]
+  notes              ClinicalNote[]
+  vitals             VitalSign[]
+  medications        MedicationAdministration[]
+  prescriptions      Medication[]
+  ioEntries          IntakeOutput[]
+  checkIns           NurseCheckIn[]
+  orders             ClinicalOrder[]
+  investigations     Investigation[]
+  assignments        PatientAssignment[]
+  specialistNotes    SpecialistNote[]
   ventilatorSettings VentilatorSetting[]
-  consultations  Consultation[]
-  skinAssessments SkinAssessment[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  consultations      Consultation[]
+  skinAssessments    SkinAssessment[]
+  lines              PatientLine[]
+  scores             ClinicalScore[]
+  marSignOffs        MarSignOff[]
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
 }
 
 model Admission {
-  id        String   @id @default(uuid())
+  id        String  @id @default(uuid())
   patientId String
   bed       String?
   diagnosis String?
-  
-  doctorId  String?
+
+  doctorId    String?
   specialtyId String?
-  
-  admittedAt DateTime @default(now())
+
+  admittedAt   DateTime  @default(now())
   dischargedAt DateTime?
 
-  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  doctor    Doctor?  @relation(fields: [doctorId], references: [id])
+  patient   Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor    Doctor?    @relation(fields: [doctorId], references: [id])
   specialty Specialty? @relation(fields: [specialtyId], references: [id])
 }
 
 model Doctor {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   name        String
   specialtyId String?
-  
-  specialty   Specialty? @relation(fields: [specialtyId], references: [id])
-  admissions  Admission[]
-  
-  createdAt   DateTime @default(now())
+
+  specialty  Specialty?  @relation(fields: [specialtyId], references: [id])
+  admissions Admission[]
+
+  createdAt DateTime @default(now())
 }
 
 model Specialty {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  
-  doctors     Doctor[]
-  admissions  Admission[]
-  
-  createdAt   DateTime @default(now())
+  id   String @id @default(uuid())
+  name String @unique
+
+  doctors    Doctor[]
+  admissions Admission[]
+
+  createdAt DateTime @default(now())
 }
 
 // Clinical Notes
 model ClinicalNote {
-  id        String   @id @default(uuid())
+  id        String @id @default(uuid())
   patientId String
   authorId  String
-  
-  type      NoteType
-  title     String
-  content   String   @db.Text
-  data      Json?    // Structured data for procedures
-  
+
+  type    NoteType
+  title   String
+  content String   @db.Text
+  data    Json? // Structured data for procedures
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  author    User     @relation(fields: [authorId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id])
 }
 
 enum NoteType {
@@ -164,9 +184,9 @@ enum NoteType {
   NURSING
   CONSULT
   EVENT
+  ROUND
   OTHER
 }
-
 
 model AuditLog {
   id        String   @id @default(uuid())
@@ -175,108 +195,130 @@ model AuditLog {
   userId    String
   timestamp DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id])
+  // Filled in for API requests (never the request body).
+  method    String?
+  path      String?
+  status    Int?
+  patientId String?
+  ip        String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([timestamp])
+  @@index([patientId])
+  @@index([userId])
 }
 
 model VitalSign {
-  id        String   @id @default(uuid())
+  id        String @id @default(uuid())
   patientId String
-  
+
   heartRate Int?
   bpSys     Int?
   bpDia     Int?
   spo2      Int?
   temp      Float?
-  rr        Int?   // Respiratory Rate
+  rr        Int? // Respiratory Rate
   rbs       Float? // Random Blood Sugar
   imageUrl  String? // Uploaded monitor image
-  
+
+  // Neurological, sedation and pain scores charted with the observation.
+  gcsEye       Int? // 1-4
+  gcsVerbal    Int? // 1-5 (null with gcsIntubated = not testable, "T")
+  gcsMotor     Int? // 1-6
+  gcsIntubated Boolean @default(false)
+  rass         Int? // -5 .. +4
+  painScore    Int?
+  painScale    String? // NRS (0-10) | CPOT (0-8) | BPS (3-12)
+
+  userId    String? // who charted it
   timestamp DateTime @default(now())
-  
-  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id])
 }
 
 model Medication {
-  id          String   @id @default(uuid())
-  name        String
-  defaultDose String
-  route       String   // e.g., IV, PO
-  frequency   String?  // e.g., Q4H
-  infusionRate String? // e.g., 5ml/hr
+  id                String    @id @default(uuid())
+  name              String
+  defaultDose       String
+  route             String // e.g., IV, PO
+  frequency         String? // e.g., Q4H
+  infusionRate      String? // e.g., 5ml/hr
   otherInstructions String? // e.g., "Take with food"
-  isActive    Boolean  @default(true)
-  patientId   String?
-  startedAt   DateTime @default(now())
-  discontinuedAt DateTime?
-  
-  patient     Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  administrations MedicationAdministration[]
-  dilution    Float?   // Dilution volume in mL
+  isActive          Boolean   @default(true)
+  patientId         String?
+  startedAt         DateTime  @default(now())
+  discontinuedAt    DateTime?
+
+  patient          Patient?                   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  administrations  MedicationAdministration[]
+  dilution         Float? // Dilution volume in mL
   durationReminder Int? // Reminder after X days
-  updatedAt   DateTime @default(now()) @updatedAt
+  // The due time the nurse has already been alerted about (so one alert per missed dose).
+  overdueAlertFor  DateTime?
+  updatedAt        DateTime                   @default(now()) @updatedAt
 }
 
 model DrugCatalog {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  defaultDose String?
+  id           String   @id @default(uuid())
+  name         String   @unique
+  defaultDose  String?
   defaultRoute String?
-  createdAt DateTime @default(now())
+  createdAt    DateTime @default(now())
 }
-
 
 model MedicationAdministration {
-  id           String   @id @default(uuid())
+  id           String @id @default(uuid())
   patientId    String
   medicationId String
-  
-  status       String   // Scheduled, Given, Held, NotGiven
-  dose         String?
-  dilution     Float?   // Dilution volume in mL at time of administration
-  timestamp    DateTime @default(now())  // actual administration time (nurse may back-date late entries)
-  // chartedAt DateTime? — audit column for late entries; pending explicit prod-migration approval
-  userId       String?  // Nurse who administered
-  
-  patient      Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  medication   Medication @relation(fields: [medicationId], references: [id])
-  user         User?      @relation(fields: [userId], references: [id])
+
+  status    String // Scheduled, Given, Held, NotGiven
+  dose      String?
+  dilution  Float? // Dilution volume in mL at time of administration
+  timestamp DateTime  @default(now()) // actual administration time (nurse may back-date late entries)
+  chartedAt DateTime? // when the entry was typed in (differs from timestamp for late entries)
+  userId    String? // Nurse who administered
+
+  patient    Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  medication Medication @relation(fields: [medicationId], references: [id])
+  user       User?      @relation(fields: [userId], references: [id])
 }
 
-
 model IntakeOutput {
-  id        String   @id @default(uuid())
+  id        String  @id @default(uuid())
   patientId String
   userId    String
   shiftId   String?
 
-  type      String   // INPUT or OUTPUT
-  category  String   // e.g., "IV Fluid", "Urine"
-  amount    Float    // mL
-  notes     String?
-  timestamp DateTime @default(now())
-  status    String   @default("APPROVED") // APPROVED, PENDING_EDIT
+  type         String // INPUT or OUTPUT
+  category     String // e.g., "IV Fluid", "Urine"
+  amount       Float // mL
+  notes        String?
+  timestamp    DateTime @default(now())
+  status       String   @default("APPROVED") // APPROVED, PENDING_EDIT
   pendingValue Float? // If edited by nurse, the proposed new amount
 
-  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  user      User    @relation(fields: [userId], references: [id])
-  shift     Shift?  @relation(fields: [shiftId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+  shift   Shift?  @relation(fields: [shiftId], references: [id])
 }
 
 model NurseCheckIn {
-  id        String   @id @default(uuid())
+  id        String  @id @default(uuid())
   patientId String
   userId    String
   shiftId   String?
 
-  airwaySafe    Boolean @default(true)
-  breathingOk   Boolean @default(true)
-  circulationOk Boolean @default(true)
+  airwaySafe    Boolean  @default(true)
+  breathingOk   Boolean  @default(true)
+  circulationOk Boolean  @default(true)
   notes         String?
   timestamp     DateTime @default(now())
 
-  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  user      User    @relation(fields: [userId], references: [id])
-  shift     Shift?  @relation(fields: [shiftId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+  shift   Shift?  @relation(fields: [shiftId], references: [id])
 }
 
 model Governorate {
@@ -313,28 +355,28 @@ enum Priority {
 }
 
 model ClinicalOrder {
-  id        String      @id @default(uuid())
-  patientId String
-  authorId  String      // Creator
-  approverId String?    // Senior who approved
-  
-  type      OrderType
-  status    OrderStatus @default(PENDING)
-  priority  Priority    @default(ROUTINE)
-  
-  title     String      // e.g., "Furosemide 40mg IV"
-  details   Json?       // Flexible data: { dose: "40mg", route: "IV" }
-  notes     String?
-  
+  id         String  @id @default(uuid())
+  patientId  String
+  authorId   String // Creator
+  approverId String? // Senior who approved
+
+  type     OrderType
+  status   OrderStatus @default(PENDING)
+  priority Priority    @default(ROUTINE)
+
+  title   String // e.g., "Furosemide 40mg IV"
+  details Json? // Flexible data: { dose: "40mg", route: "IV" }
+  notes   String?
+
   reminderAt   DateTime? // Optional time to trigger a dashboard/browser notification
   reminderSent Boolean   @default(false)
-  
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
 
-  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  author    User    @relation("CreatedOrders", fields: [authorId], references: [id])
-  approver  User?   @relation("ApprovedOrders", fields: [approverId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  author         User            @relation("CreatedOrders", fields: [authorId], references: [id])
+  approver       User?           @relation("ApprovedOrders", fields: [approverId], references: [id])
   investigations Investigation[]
   consultation   Consultation?
 }
@@ -346,44 +388,43 @@ enum InvestigationStatus {
   AMENDED
 }
 
-
 model SpecialistNote {
-  id        String   @id @default(uuid())
+  id        String @id @default(uuid())
   patientId String
   authorId  String
-  
+
   // Header
-  date      DateTime @default(now())
-  shiftType String?  // "Day" | "Night"
+  date        DateTime @default(now())
+  shiftType   String? // "Day" | "Night"
   apacheScore String?
-  
+
   // Background
-  histHT    Boolean @default(false)
-  histDM    Boolean @default(false)
+  histHT     Boolean @default(false)
+  histDM     Boolean @default(false)
   histAsthma Boolean @default(false)
-  histCOPD  Boolean @default(false)
-  histIHD   Boolean @default(false)
+  histCOPD   Boolean @default(false)
+  histIHD    Boolean @default(false)
   histStroke Boolean @default(false)
-  histOther String?
+  histOther  String?
 
   // Neurological
   neuroGCS  String?
   neuroRASS String?
 
   // Ventilatory
-  respChest String? // "Chest..."
-  respRoomAir Boolean @default(false)
-  respO2Therapy Boolean @default(false)
-  respVentMode Boolean @default(false) // "Ventilatory mode"
+  respChest        String? // "Chest..."
+  respRoomAir      Boolean @default(false)
+  respO2Therapy    Boolean @default(false)
+  respVentMode     Boolean @default(false) // "Ventilatory mode"
   respVentModeText String? // The blank line after "Ventilatory mode"
-  respFio2  String?
-  respPS    String?
+  respFio2         String?
+  respPS           String?
 
   // Interventions (Checkboxes)
-  intCVLine    Boolean @default(false)
-  intArtLine   Boolean @default(false)
-  intETT       Boolean @default(false)
-  intTrach     Boolean @default(false)
+  intCVLine      Boolean @default(false)
+  intArtLine     Boolean @default(false)
+  intETT         Boolean @default(false)
+  intTrach       Boolean @default(false)
   intDoubleLumen Boolean @default(false)
 
   // Hydration
@@ -408,118 +449,224 @@ model SpecialistNote {
   ivFluidsRate String? // ml/hr
 
   // Sedation
-  sedPropofol Boolean @default(false)
-  sedKetamine Boolean @default(false)
+  sedPropofol  Boolean @default(false)
+  sedKetamine  Boolean @default(false)
   sedMidazolam Boolean @default(false)
-  sedRemif    Boolean @default(false)
-  sedMR       Boolean @default(false) // Muscle Relaxant?
-  sedOther    String?
+  sedRemif     Boolean @default(false)
+  sedMR        Boolean @default(false) // Muscle Relaxant?
+  sedOther     String?
 
   // Notes
   clinicalNotes String? @db.Text
 
   // Plan
-  planVentilatory String?
-  planPhysio      String?
-  planConsult     String?
+  planVentilatory   String?
+  planPhysio        String?
+  planConsult       String?
   planInvestigation String?
-  planOther       String?
-  planFuture      String?
-  planHomeTeam    String?
+  planOther         String?
+  planFuture        String?
+  planHomeTeam      String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  author    User    @relation(fields: [authorId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id])
 }
 
 model Investigation {
-  id        String    @id @default(uuid())
+  id        String  @id @default(uuid())
   patientId String
   orderId   String?
-  authorId  String    // Person who entered/verified result
-  
-  type      OrderType // Reusing OrderType (LAB, IMAGING)
-  category  String    // e.g. "Hematology", "CT Head"
-  title     String    // e.g. "CBC", "Non-contrast CT"
-  
-  status    InvestigationStatus @default(FINAL)
-  
-  result    Json?     // Struct: { "Hb": 12.5, "WBC": 11.2 } for labs. Text or URL for imaging.
-  impression String?  // Conclusion text
-  
+  authorId  String // Person who entered/verified result
+
+  type     OrderType // Reusing OrderType (LAB, IMAGING)
+  category String // e.g. "Hematology", "CT Head"
+  title    String // e.g. "CBC", "Non-contrast CT"
+
+  status InvestigationStatus @default(FINAL)
+
+  result     Json? // Struct: { "Hb": 12.5, "WBC": 11.2 } for labs. Text or URL for imaging.
+  impression String? // Conclusion text
+
   conductedAt DateTime @default(now()) // When the test was done
   createdAt   DateTime @default(now()) // When it was entered in system
-  
-  externalId  String?   // Lab Accession Number (Not unique, can have multiple reports per AccNo)
-  pdfFilename String?   // Unique identifier from portal PDF filename
 
-  patient   Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  externalId  String? // Lab Accession Number (Not unique, can have multiple reports per AccNo)
+  pdfFilename String? // Unique identifier from portal PDF filename
+
+  patient   Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
   order     ClinicalOrder? @relation(fields: [orderId], references: [id])
-  author    User          @relation(fields: [authorId], references: [id])
-  updatedAt DateTime      @default(now()) @updatedAt
+  author    User           @relation(fields: [authorId], references: [id])
+  updatedAt DateTime       @default(now()) @updatedAt
 }
 
 model VentilatorSetting {
-  id        String   @id @default(uuid())
+  id        String @id @default(uuid())
   patientId String
   userId    String
-  
-  mode      String
-  rate      Int
-  fio2      Int
-  ie        String   // e.g. "1:2"
-  ps        Int
-  vt        Int
-  
+
+  mode String
+  rate Int
+  fio2 Int
+  ie   String // e.g. "1:2"
+  ps   Int
+  vt   Int
+
+  peep    Float? // cmH2O
+  plateau Float? // plateau pressure, cmH2O
+  pao2    Float? // arterial PaO2 (mmHg) from the ABG taken at these settings
+
   timestamp DateTime @default(now())
-  
-  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 }
 
 model Consultation {
-  id          String   @id @default(uuid())
-  patientId   String
-  authorId    String
-  orderId     String?  @unique
-  
-  doctorName  String
-  specialty   String
-  imageUrl    String?
-  notes       String?  @db.Text
-  
-  timestamp   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
-  
-  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  order       ClinicalOrder? @relation(fields: [orderId], references: [id])
+  id        String  @id @default(uuid())
+  patientId String
+  authorId  String
+  orderId   String? @unique
+
+  doctorName String
+  specialty  String
+  imageUrl   String?
+  notes      String? @db.Text
+
+  timestamp DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  patient Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  order   ClinicalOrder? @relation(fields: [orderId], references: [id])
 }
 
-
 model SyncLog {
-  id        String   @id @default(uuid())
-  type      String   // e.g., "LAB_SYNC"
-  status    String   // "SUCCESS", "FAILED", "RUNNING"
-  message   String?
-  startedAt DateTime @default(now())
-  endedAt   DateTime?
-  resultsCount Int @default(0)
+  id           String    @id @default(uuid())
+  type         String // e.g., "LAB_SYNC"
+  status       String // "SUCCESS", "FAILED", "RUNNING"
+  message      String?
+  startedAt    DateTime  @default(now())
+  endedAt      DateTime?
+  resultsCount Int       @default(0)
 }
 
 model SkinAssessment {
-  id        String   @id @default(uuid())
+  id        String @id @default(uuid())
   patientId String
   authorId  String
-  
-  bodyPart  String   // e.g., "Left Shoulder"
-  view      String   // "FRONT" or "BACK"
-  type      String   // "LESION" or "DRESSING"
-  imageUrl  String?
-  notes     String? @db.Text
-  
+
+  bodyPart String // e.g., "Left Shoulder"
+  view     String // "FRONT" or "BACK"
+  type     String // "LESION" or "DRESSING"
+  imageUrl String?
+  notes    String? @db.Text
+
   timestamp DateTime @default(now())
-  
-  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  author    User    @relation(fields: [authorId], references: [id])
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id])
+}
+
+// Lines, tubes and drains currently in (or removed from) the patient.
+model PatientLine {
+  id            String    @id @default(uuid())
+  patientId     String
+  type          String // CVC, ARTERIAL, PIV, URINARY, ETT, TRACH, NGT, CHEST_DRAIN, DIALYSIS, DRAIN, OTHER
+  site          String? // e.g. "Right IJ"
+  size          String? // e.g. "7 Fr", "7.5 @ 22 cm"
+  insertedAt    DateTime
+  removedAt     DateTime?
+  removalReason String?
+  notes         String?
+  insertedById  String
+  removedById   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  patient    Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  insertedBy User              @relation("LineInsertedBy", fields: [insertedById], references: [id])
+  removedBy  User?             @relation("LineRemovedBy", fields: [removedById], references: [id])
+  checks     LineBundleCheck[]
+
+  @@index([patientId])
+}
+
+// One completed care-bundle checklist for a line (normally once per shift or day).
+model LineBundleCheck {
+  id        String   @id @default(uuid())
+  lineId    String
+  userId    String
+  items     Json // { "necessity": true, "dressing": false, ... }
+  notes     String?
+  timestamp DateTime @default(now())
+
+  line PatientLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  user User        @relation(fields: [userId], references: [id])
+
+  @@index([lineId])
+}
+
+// A calculated severity score (SOFA, APACHE II) with the values it was based on.
+model ClinicalScore {
+  id         String   @id @default(uuid())
+  patientId  String
+  authorId   String
+  type       String // SOFA | APACHE2
+  total      Int
+  components Json // points per component
+  inputs     Json // the measurements used
+  timestamp  DateTime @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id])
+
+  @@index([patientId, type])
+}
+
+// Electronic end-of-shift confirmation of the MAR by the nurse who gave the drugs.
+model MarSignOff {
+  id          String   @id @default(uuid())
+  patientId   String
+  userId      String
+  shiftType   String // DAY | NIGHT
+  periodStart DateTime
+  periodEnd   DateTime
+  summary     Json // snapshot of the administrations covered
+  contentHash String // SHA-256 of the snapshot, to show later edits
+  note        String?
+  signedAt    DateTime @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([patientId, periodStart])
+}
+
+// Remembers requests the phone app re-sends after a dropped connection, so a
+// retried entry (a dose, a set of vitals) is never saved twice.
+model ProcessedRequest {
+  id        String   @id // generated by the app for each entry
+  userId    String
+  method    String
+  path      String
+  status    Int
+  response  Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// App crashes and errors reported by the web and phone apps (no patient data).
+model ClientError {
+  id         String   @id @default(uuid())
+  userId     String?
+  platform   String // web | android | ios
+  appVersion String?
+  message    String
+  stack      String?  @db.Text
+  context    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
 }

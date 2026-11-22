@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { broadcastNotification } from '../routes/notifications.routes';
+import { notifyPatient } from '../services/pushService';
 
 const prisma = new PrismaClient();
 
@@ -63,6 +64,9 @@ export const startReminderScheduler = () => {
                     message: `Reminder: "${order.title}" is due for ${order.patient?.name}.`,
                     timestamp: new Date(),
                 });
+                // The phone of the nurse looking after this patient gets it too.
+                // @ts-ignore
+                notifyPatient(order.patientId, 'nurse', 'Reminder', `${order.title} is due for ${order.patient?.name || 'a patient'}`, { type: 'intervention_reminder', orderId: order.id });
 
                 // Recurrence: if this order has a repetition, schedule the next reminder
                 // (advance reminderAt by the interval, keep reminderSent=false so it fires again).

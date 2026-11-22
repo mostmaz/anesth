@@ -26,12 +26,12 @@ router.get('/:patientId', async (req, res) => {
 // Create Skin Assessment
 router.post('/', async (req, res) => {
     try {
-        const { patientId, authorId, bodyPart, view, type, imageUrl, notes } = req.body;
+        const { patientId, bodyPart, view, type, imageUrl, notes } = req.body;
 
         const assessment = await prisma.skinAssessment.create({
             data: {
                 patientId,
-                authorId,
+                authorId: req.user!.id,
                 bodyPart,
                 view,
                 type,

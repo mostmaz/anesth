@@ -176,10 +176,9 @@ router.get('/:patientId', async (req, res) => {
 // Create Order (RBAC Logic)
 router.post('/', async (req, res) => {
     try {
-        const { patientId, authorId, type, title, details, notes, priority, reminderAt } = req.body;
-
-        const user = await prisma.user.findUnique({ where: { id: authorId } });
-        if (!user) return res.status(404).json({ error: 'User not found' });
+        const { patientId, type, title, details, notes, priority, reminderAt } = req.body;
+        // The order is written by whoever is signed in, not by an id sent in the request.
+        const authorId = req.user!.id;
 
         // Logic: All orders are immediately APPROVED (Active) as per user request to remove Pending state
         const initialStatus = 'APPROVED';

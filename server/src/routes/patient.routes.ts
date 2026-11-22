@@ -2,7 +2,26 @@ import { Router } from 'express';
 import prisma from '../prisma';
 import { requireRole } from '../middleware/auth';
 import { broadcastNotification } from './notifications.routes';
-import { sendToAll } from '../services/pushService';
+import { notifyPatient, sendToAll } from '../services/pushService';
+import { recordPatientView } from '../middleware/audit';
+import { BadRequest, optionalNumber, requiredString, sendError } from '../lib/validate';
+import { PATIENT_LIMITS } from '../shared/ranges';
+import { cleanAllergyList } from '../shared/allergy';
+
+// Weight, height and allergies from a request body. Only the fields that were
+// sent are returned, so an update that omits them leaves them unchanged.
+function patientBasics(body: any) {
+    const data: {
+        weightKg?: number | null; heightCm?: number | null; allergies?: string[]; noKnownAllergies?: boolean;
+    } = {};
+    if (body.weightKg !== undefined) data.weightKg = optionalNumber(body.weightKg, PATIENT_LIMITS.weightKg);
+    if (body.heightCm !== undefined) data.heightCm = optionalNumber(body.heightCm, PATIENT_LIMITS.heightCm);
+    if (body.allergies !== undefined) data.allergies = cleanAllergyList(body.allergies);
+    if (body.noKnownAllergies !== undefined) data.noKnownAllergies = body.noKnownAllergies === true || body.noKnownAllergies === 'true';
+    // "No known allergies" cannot stand next to a list of allergies.
+    if (data.allergies && data.allergies.length) data.noKnownAllergies = false;
+    return data;
+}
 
 const router = Router();
 
@@ -59,6 +78,7 @@ router.get('/:id', async (req, res) => {
         if (!patient) {
             return res.status(404).json({ error: 'Patient not found' });
         }
+        recordPatientView(req, id);
         res.json(patient);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch patient' });
@@ -68,17 +88,22 @@ router.get('/:id', async (req, res) => {
 // CREATE patient
 router.post('/', async (req, res) => {
     try {
-        const { name, mrn, dob, gender, diagnosis, comorbidities, authorId, doctorId, specialtyId } = req.body;
+        const { gender, diagnosis, comorbidities, doctorId, specialtyId } = req.body;
+        const name = requiredString(req.body.name, 'Name', 200);
+        const mrn = requiredString(req.body.mrn, 'MRN', 60);
+        const dob = new Date(req.body.dob);
+        if (isNaN(dob.getTime()) || dob.getTime() > Date.now()) throw new BadRequest('Date of birth is not valid');
 
         // 1. Create Patient
         const patient = await prisma.patient.create({
             data: {
                 name,
                 mrn,
-                dob: new Date(dob),
+                dob,
                 gender,
                 diagnosis,
                 comorbidities,
+                ...patientBasics(req.body),
                 admissions: {
                     create: {
                         diagnosis: diagnosis,
@@ -93,11 +118,7 @@ router.post('/', async (req, res) => {
         // 2. Auto-create "Admit to HAMSA" Order
         // We need an authorId. If not provided, we try to find a default user or skip.
         // For now, let's assume the frontend sends 'authorId' or we use a fallback.
-        let orderAuthorId = authorId;
-        if (!orderAuthorId) {
-            const defaultUser = await prisma.user.findFirst();
-            orderAuthorId = defaultUser?.id;
-        }
+        const orderAuthorId = req.user!.id;
 
         if (orderAuthorId) {
             // 2. Admit to HAMSA
@@ -184,10 +205,11 @@ router.post('/', async (req, res) => {
         });
         sendToAll('New admission', `${patient.name} (MRN ${patient.mrn}) admitted to ICU`, { type: 'new_admission', patientId: patient.id });
 
+        res.locals.auditPatientId = patient.id;
         res.status(201).json(patient);
     } catch (error) {
-        console.error("Error creating patient:", error);
-        res.status(500).json({ error: 'Failed to create patient' });
+        if ((error as any)?.code === 'P2002') return res.status(409).json({ error: 'A patient with this MRN already exists' });
+        sendError(res, error, 'Failed to create patient');
     }
 });
 
@@ -205,7 +227,8 @@ router.patch('/:id', async (req, res) => {
                 dob: dob ? new Date(dob) : undefined,
                 gender,
                 diagnosis,
-                comorbidities
+                comorbidities,
+                ...patientBasics(req.body)
             }
         });
 
@@ -226,8 +249,7 @@ router.patch('/:id', async (req, res) => {
 
         res.json(patient);
     } catch (error) {
-        console.error("Error updating patient:", error);
-        res.status(500).json({ error: 'Failed to update patient' });
+        sendError(res, error, 'Failed to update patient');
     }
 });
 
@@ -256,7 +278,7 @@ router.patch('/:id/discharge', async (req, res) => {
                 }
             });
             const dp = await prisma.patient.findUnique({ where: { id }, select: { name: true, mrn: true } });
-            sendToAll('Patient discharged', `${dp?.name || 'Patient'} (MRN ${dp?.mrn || '—'}) has been discharged`, { type: 'discharge', patientId: id });
+            notifyPatient(id, 'team', 'Patient discharged', `${dp?.name || 'Patient'} (MRN ${dp?.mrn || '—'}) has been discharged`, { type: 'discharge' });
             res.json({ success: true, message: 'Patient discharged' });
         } else {
             // If no active admission, maybe they are already discharged?
@@ -392,12 +414,12 @@ router.get('/:id/consultations', async (req, res) => {
 router.post('/:id/consultations', async (req, res) => {
     try {
         const { id } = req.params;
-        const { doctorName, specialty, imageUrl, notes, authorId, orderId } = req.body;
+        const { doctorName, specialty, imageUrl, notes, orderId } = req.body;
 
         const consultation = await prisma.consultation.create({
             data: {
                 patientId: id,
-                authorId: authorId,
+                authorId: req.user!.id,
                 doctorName,
                 specialty,
                 imageUrl,
@@ -416,7 +438,7 @@ router.post('/:id/consultations', async (req, res) => {
         }
 
         const cp = await prisma.patient.findUnique({ where: { id }, select: { name: true } });
-        sendToAll('New consultation', `${specialty} consult added for ${cp?.name || 'patient'} by ${doctorName}`, { type: 'new_consultation', patientId: id });
+        notifyPatient(id, 'team', 'New consultation', `${specialty} consult added for ${cp?.name || 'patient'} by ${doctorName}`, { type: 'new_consultation' });
 
         res.status(201).json(consultation);
     } catch (error) {

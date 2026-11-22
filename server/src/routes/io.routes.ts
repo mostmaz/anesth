@@ -2,6 +2,8 @@
 import { Router } from 'express';
 import prisma from '../prisma';
 import { requireRole } from '../middleware/auth';
+import { BadRequest, oneOf, optionalString, requiredNumber, requiredString, sendError } from '../lib/validate';
+import { IO_AMOUNT_LIMIT } from '../shared/ranges';
 
 const router = Router();
 
@@ -24,29 +26,25 @@ router.get('/:patientId', async (req, res) => {
 // Record I/O
 router.post('/', async (req, res) => {
     try {
-        const { patientId, userId, shiftId, type, category, amount, notes } = req.body;
-
-        // Add basic validation
-        if (!amount || amount < 0) {
-            return res.status(400).json({ error: 'Invalid amount' });
-        }
+        const b = req.body || {};
+        const amount = requiredNumber(b.amount, IO_AMOUNT_LIMIT);
+        if (amount <= 0) throw new BadRequest('Amount must be more than 0 mL');
 
         const entry = await prisma.intakeOutput.create({
             data: {
-                patientId,
-                userId,
-                shiftId: shiftId || null,
-                type,
-                category,
-                amount: Number(amount),
-                notes
+                patientId: requiredString(b.patientId, 'Patient'),
+                userId: req.user!.id,
+                shiftId: typeof b.shiftId === 'string' && b.shiftId ? b.shiftId : null,
+                type: oneOf(b.type, 'Type', ['INPUT', 'OUTPUT'] as const),
+                category: requiredString(b.category, 'Category', 120),
+                amount,
+                notes: optionalString(b.notes, 'Notes', 500)
             },
             include: { user: { select: { name: true } } }
         });
         res.status(201).json(entry);
     } catch (error) {
-        console.error('Error recording I/O:', error);
-        res.status(500).json({ error: 'Failed to record I/O' });
+        sendError(res, error, 'Failed to record I/O');
     }
 });
 
@@ -54,7 +52,8 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { amount } = req.body;
+        const amount = requiredNumber(req.body?.amount, IO_AMOUNT_LIMIT);
+        if (amount <= 0) return res.status(400).json({ error: 'Amount must be more than 0 mL' });
         const user = req.user!;
 
         if (user.role === 'NURSE') {

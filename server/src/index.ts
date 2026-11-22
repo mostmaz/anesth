@@ -8,6 +8,8 @@ import notificationsRouter from './routes/notifications.routes';
 import { jwtSecret, requireFileAccess } from './middleware/auth';
 import { startLabSyncJob } from './jobs/labSyncScheduler';
 import { startReminderScheduler } from './jobs/reminderScheduler';
+import { startOverdueDoseScheduler } from './jobs/overdueDoseScheduler';
+import { startHousekeeping } from './jobs/housekeeping';
 
 // Refuse to start without a real signing secret.
 jwtSecret();
@@ -23,6 +25,8 @@ app.disable('x-powered-by');
 // Start Cron Jobs
 startLabSyncJob();
 startReminderScheduler();
+startOverdueDoseScheduler();
+startHousekeeping();
 
 // Browsers may only call the API from the listed origins. Requests with no
 // Origin header (the mobile apps, server-side tools) are not affected by CORS.

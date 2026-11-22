@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import prisma from '../prisma';
 import { requireRole } from '../middleware/auth';
-import { sendToAll } from '../services/pushService';
+import { notifyPatient } from '../services/pushService';
 
 const router = Router();
 
@@ -64,12 +64,12 @@ router.get('/:patientId', async (req, res) => {
 // Create Investigation Result
 router.post('/', async (req, res) => {
     try {
-        const { patientId, authorId, orderId, type, category, title, status, result, impression, conductedAt } = req.body;
+        const { patientId, orderId, type, category, title, status, result, impression, conductedAt } = req.body;
 
         const investigation = await prisma.investigation.create({
             data: {
                 patientId,
-                authorId,
+                authorId: req.user!.id,
                 orderId: orderId || null,
                 type,
                 category,
@@ -90,7 +90,7 @@ router.post('/', async (req, res) => {
         // Warning push when the new result contains an abnormal value.
         if (hasAbnormal(result)) {
             const wp = await prisma.patient.findUnique({ where: { id: patientId }, select: { name: true } });
-            sendToAll('Abnormal result', `${title} flagged abnormal for ${wp?.name || 'a patient'}`, { type: 'warning', patientId });
+            notifyPatient(patientId, 'team', 'Abnormal result', `${title} flagged abnormal for ${wp?.name || 'a patient'}`, { type: 'warning' });
         }
 
         res.status(201).json(investigation);

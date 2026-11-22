@@ -1,8 +1,13 @@
 import { Router } from 'express';
 import prisma from '../prisma';
 import { requireRole } from '../middleware/auth';
+import { BadRequest, optionalString, requiredString, sendError } from '../lib/validate';
+import { allergyWarnings } from '../shared/allergy';
 
 const router = Router();
+
+// Paused / Resumed are used for infusions.
+const ADMINISTRATION_STATUSES = ['Given', 'Held', 'NotGiven', 'Missed', 'Withheld', 'Scheduled', 'Paused', 'Resumed'];
 
 // GET /:patientId/mar - Get active medications (prescriptions) for a patient
 router.get('/:patientId/mar', async (req, res) => {
@@ -15,7 +20,8 @@ router.get('/:patientId/mar', async (req, res) => {
                 administrations: {
                     orderBy: { timestamp: 'desc' },
                     take: 200, // Get recent admin history (7 days approx)
-                    include: { user: true }
+                    // Name and role only — never the whole account record.
+                    include: { user: { select: { id: true, name: true, role: true } } }
                 }
             }
         });
@@ -69,7 +75,11 @@ router.delete('/catalog/:id', requireRole('SENIOR'), async (req, res) => {
 // POST /prescribe - Add new medication to patient
 router.post('/prescribe', async (req, res) => {
     try {
-        const { name, dose, route, frequency, infusionRate, otherInstructions, patientId, startedAt } = req.body;
+        const { frequency, infusionRate, otherInstructions, startedAt } = req.body;
+        const name = requiredString(req.body.name, 'Drug name', 120);
+        const dose = requiredString(req.body.dose, 'Dose', 120);
+        const route = requiredString(req.body.route, 'Route', 40);
+        const patientId = requiredString(req.body.patientId, 'Patient');
 
         // 1. Ensure in Catalog (Auto-add)
         // Check if exists first to avoid unique constraint if race condition, though upsert handles it.
@@ -104,21 +114,24 @@ router.post('/prescribe', async (req, res) => {
                 startedAt: startedAt ? new Date(startedAt) : undefined
             }
         });
-        res.json(prescription);
+        // Tell the prescriber if the drug matches a recorded allergy (the apps
+        // also warn before saving; this covers an allergy added in the meantime).
+        const patient = await prisma.patient.findUnique({ where: { id: patientId }, select: { allergies: true } });
+        res.json({ ...prescription, allergyWarnings: allergyWarnings(name, patient?.allergies) });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Failed to prescribe medication' });
+        sendError(res, error, 'Failed to prescribe medication');
     }
 });
 
 // POST /administer
 router.post('/administer', async (req, res) => {
     try {
-        const { patientId, medicationId, status, dose, userId, administeredAt } = req.body;
-
-        if (!userId) {
-            console.warn("Administer called without userId");
-        }
+        const { patientId, medicationId, dose, administeredAt } = req.body;
+        if (!patientId || !medicationId) throw new BadRequest('Patient and medication are required');
+        const status = String(req.body.status || '');
+        if (!ADMINISTRATION_STATUSES.includes(status)) throw new BadRequest('Unknown administration status');
+        // The entry is signed by whoever is signed in, not by an id in the request.
+        const userId = req.user!.id;
 
         const dilutionValue = req.body.dilution ? parseFloat(req.body.dilution) : null;
 
@@ -143,10 +156,10 @@ router.post('/administer', async (req, res) => {
                 status,
                 dose,
                 dilution: dilutionValue,
-                userId: userId || undefined, // Nurse ID
-                timestamp: actualTime
-                // chartedAt: now — enable once the audit column is migrated on prod
-            } as any
+                userId,
+                timestamp: actualTime,
+                chartedAt: now
+            }
         });
 
         if (status === 'Given') {
@@ -173,7 +186,7 @@ router.post('/administer', async (req, res) => {
                 await prisma.intakeOutput.create({
                     data: {
                         patientId,
-                        userId: userId || 'system',
+                        userId,
                         type: 'INPUT',
                         category: `IV · ${med.name}`,
                         amount: dilutionValue,
@@ -187,8 +200,7 @@ router.post('/administer', async (req, res) => {
 
         res.json(admin);
     } catch (error) {
-        console.error("Administer Error:", error);
-        res.status(500).json({ error: 'Failed to administer' });
+        sendError(res, error, 'Failed to administer');
     }
 });
 
@@ -224,7 +236,7 @@ router.put('/:id/status', async (req, res) => {
 
         const updated = await prisma.medication.update({
             where: { id },
-            data: { isActive }
+            data: { isActive: !!isActive, discontinuedAt: isActive ? null : new Date() }
         });
         res.json(updated);
     } catch (error) {

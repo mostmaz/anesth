@@ -24,12 +24,12 @@ router.get('/:patientId', async (req, res) => {
 // Create Check-in
 router.post('/', async (req, res) => {
     try {
-        const { patientId, userId, shiftId, airwaySafe, breathingOk, circulationOk, notes } = req.body;
+        const { patientId, shiftId, airwaySafe, breathingOk, circulationOk, notes } = req.body;
 
         const checkIn = await prisma.nurseCheckIn.create({
             data: {
                 patientId,
-                userId,
+                userId: req.user!.id,
                 shiftId: shiftId || null,
                 airwaySafe,
                 breathingOk,

@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import prisma from '../prisma';
+import { optionalNumber, optionalPastDate, optionalString, requiredNumber, requiredString, sendError } from '../lib/validate';
+import { VENT_LIMITS } from '../shared/ranges';
 
 const router = Router();
 
@@ -22,26 +24,27 @@ router.get('/:patientId', async (req, res) => {
 // POST new setting
 router.post('/', async (req, res) => {
     try {
-        const { patientId, userId, mode, rate, fio2, ie, ps, vt, timestamp } = req.body;
-
+        const b = req.body || {};
         const setting = await prisma.ventilatorSetting.create({
             data: {
-                patientId,
-                userId,
-                mode,
-                rate: Number(rate),
-                fio2: Number(fio2),
-                ie,
-                ps: Number(ps),
-                vt: Number(vt),
-                timestamp: timestamp ? new Date(timestamp) : new Date()
+                patientId: requiredString(b.patientId, 'Patient'),
+                userId: req.user!.id,
+                mode: requiredString(b.mode, 'Mode', 40),
+                rate: requiredNumber(b.rate, VENT_LIMITS.rate),
+                fio2: requiredNumber(b.fio2, VENT_LIMITS.fio2),
+                ie: optionalString(b.ie, 'I:E', 20) || '',
+                ps: requiredNumber(b.ps, VENT_LIMITS.ps),
+                vt: requiredNumber(b.vt, VENT_LIMITS.vt),
+                peep: optionalNumber(b.peep, VENT_LIMITS.peep),
+                plateau: optionalNumber(b.plateau, VENT_LIMITS.plateau),
+                pao2: optionalNumber(b.pao2, VENT_LIMITS.pao2),
+                timestamp: optionalPastDate(b.timestamp, 'Time') || new Date()
             }
         });
 
         res.status(201).json(setting);
     } catch (error) {
-        console.error("Error recording ventilator setting:", error);
-        res.status(500).json({ error: 'Failed to record ventilator setting' });
+        sendError(res, error, 'Failed to record ventilator setting');
     }
 });
 

@@ -4,6 +4,19 @@ import bcrypt from 'bcryptjs';
 import prisma from '../prisma';
 import { AuthUser, Role, forgetUser, signFileToken, signSessionToken } from '../middleware/auth';
 import { clearLoginFailures, recordLoginFailure } from '../middleware/rateLimit';
+import { recordAudit } from '../middleware/audit';
+
+// When set (an ISO date), every account whose password is older than this must
+// choose a new one at the next sign-in. Used after a suspected exposure.
+function passwordTooOld(changedAt: Date | null): boolean {
+    // The zero date marks a temporary password set by a senior.
+    if (changedAt && changedAt.getTime() === 0) return true;
+    const cutoff = process.env.REQUIRE_PASSWORD_CHANGE_BEFORE;
+    if (!cutoff) return false;
+    const time = Date.parse(cutoff);
+    if (isNaN(time)) return false;
+    return !changedAt || changedAt.getTime() < time;
+}
 
 export const MIN_PASSWORD_LENGTH = 8;
 
@@ -34,14 +47,17 @@ export const login = async (req: Request, res: Response) => {
 
         clearLoginFailures(req);
         const authUser: AuthUser = { id: user.id, username: user.username, role: user.role as Role };
-        const { passwordHash, ...userWithoutPassword } = user;
+        // Only what the apps need — never the hash or the device tokens.
+        const userWithoutPassword = { id: user.id, name: user.name, username: user.username, role: user.role };
+        prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } }).catch(() => { });
+        recordAudit({ userId: user.id, action: 'SIGN IN', method: 'POST', path: '/api/auth/login', status: 200, ip: req.ip });
 
         res.json({
             token: signSessionToken(authUser, user.passwordHash),
             fileToken: signFileToken(authUser, user.passwordHash),
             user: userWithoutPassword,
             // Lets the apps prompt for a change while the shared default is still in use.
-            mustChangePassword: password === 'password',
+            mustChangePassword: password === 'password' || passwordTooOld(user.passwordChangedAt),
         });
     } catch (error) {
         console.error('Login error:', (error as Error)?.message || error);
@@ -66,8 +82,9 @@ export const changePassword = async (req: Request, res: Response) => {
         }
 
         const passwordHash = await bcrypt.hash(newPassword, 10);
-        await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+        await prisma.user.update({ where: { id: user.id }, data: { passwordHash, passwordChangedAt: new Date() } });
         forgetUser(user.id);
+        recordAudit({ userId: user.id, action: 'CHANGE own password', method: 'POST', path: '/api/auth/change-password', status: 200, ip: req.ip });
 
         // Changing the password ends every session issued under the old one,
         // so this device is handed fresh tokens to stay signed in.

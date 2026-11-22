@@ -18,6 +18,19 @@ export function labCredentials(): { username: string; password: string } {
     return { username, password };
 }
 
+// Thrown when the lab portal refuses the configured username/password.
+export class LabLoginRejected extends Error {
+    constructor() {
+        super('The lab portal rejected the saved login. Update LAB_USER / LAB_PASSWORD on the server.');
+        this.name = 'LabLoginRejected';
+    }
+}
+
+// After a rejected login the scheduled sync pauses for this long instead of
+// retrying the same wrong password every run (which can lock the account).
+const LOGIN_RETRY_PAUSE_MS = 12 * 60 * 60 * 1000;
+let loginRejectedAt: number | null = null;
+
 export class LabImportService {
     private prisma = new PrismaClient();
 
@@ -34,7 +47,12 @@ export class LabImportService {
                 '--disable-setuid-sandbox',
                 '--disable-blink-features=AutomationControlled',
                 '--window-size=1920,1080',
-                '--lang=en-US,en;q=0.9'
+                '--lang=en-US,en;q=0.9',
+                // Keep Chromium small on the 1 GB server.
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--disable-extensions',
+                '--js-flags=--max-old-space-size=256'
             ],
             userDataDir,
             ignoreDefaultArgs: ['--enable-automation']
@@ -121,7 +139,11 @@ export class LabImportService {
                     const debugPath = path.join(__dirname, `../../uploads/LOGIN_FAIL_${Date.now()}.png`);
                     await page.screenshot({ path: debugPath });
                     console.log(`[SYNC] Screenshot saved: ${debugPath}`);
+                    loginRejectedAt = Date.now();
+                    throw new LabLoginRejected();
                 }
+            } else {
+                loginRejectedAt = null;
             }
         }
     }
@@ -508,6 +530,11 @@ export class LabImportService {
             include: { patient: true }
         });
 
+        if (loginRejectedAt && Date.now() - loginRejectedAt < LOGIN_RETRY_PAUSE_MS) {
+            console.warn('[SYNC] Skipped: the lab portal rejected the saved login earlier. Fix LAB_PASSWORD and restart the server.');
+            return;
+        }
+
         const browser = await this.launchBrowser();
         try {
             for (const admission of activeAdmissions) {
@@ -515,7 +542,12 @@ export class LabImportService {
                 try {
                     await this.syncAndSavePatientLabs(admission.patient.mrn, admission.patient.id, authorId, admission.patient.name, browser);
                 } catch (e: any) {
-                    console.error(`Sync failure for ${admission.patient.name}:`, e.message);
+                    if (e instanceof LabLoginRejected) {
+                        // Every other patient would fail the same way; stop here.
+                        console.error('[SYNC] Stopping this run:', e.message);
+                        break;
+                    }
+                    console.error(`Sync failure for patient ${admission.patient.id}:`, e.message);
                 }
             }
         } finally {

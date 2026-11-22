@@ -16,6 +16,7 @@ router.get('/', async (req, res) => {
                 name: true,
                 username: true,
                 role: true,
+                lastLoginAt: true,
                 createdAt: true,
                 dismissedLabs: true
             },
@@ -89,6 +90,8 @@ router.post('/', requireRole('SENIOR'), async (req, res) => {
                 name,
                 username,
                 passwordHash,
+                // Temporary until the new user signs in and chooses their own.
+                passwordChangedAt: new Date(0),
                 role
             },
             select: {
@@ -116,7 +119,9 @@ router.put('/:id/password', requireRole('SENIOR'), async (req, res) => {
         const target = await prisma.user.findUnique({ where: { id: req.params.id }, select: { id: true } });
         if (!target) return res.status(404).json({ error: 'User not found' });
 
-        await prisma.user.update({ where: { id: target.id }, data: { passwordHash: await bcrypt.hash(newPassword, 10) } });
+        // A password set by someone else is temporary: the zero date marks it so
+        // that its owner has to choose their own at the next sign-in.
+        await prisma.user.update({ where: { id: target.id }, data: { passwordHash: await bcrypt.hash(newPassword, 10), passwordChangedAt: new Date(0) } });
         forgetUser(target.id);
         res.json({ success: true });
     } catch (error) {

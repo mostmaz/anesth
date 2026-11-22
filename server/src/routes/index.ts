@@ -22,13 +22,24 @@ import ventilatorRoutes from './ventilator.routes';
 import skinRoutes from './skin.routes';
 import reportRoutes from './report.routes';
 import devicesRoutes from './devices.routes';
+import linesRoutes from './lines.routes';
+import scoresRoutes from './scores.routes';
+import signoffRoutes from './signoff.routes';
+import auditRoutes from './audit.routes';
+import clientErrorRoutes from './clientError.routes';
 import { requireAuth } from '../middleware/auth';
+import { auditTrail } from '../middleware/audit';
+import { idempotency } from '../middleware/idempotency';
 
 const router = Router();
 
 // Sign-in is public; every route below this line needs a valid session token.
 router.use('/auth', authRoutes);
 router.use(requireAuth);
+// Every change is written to the audit trail, and a request the phone app
+// re-sends after a dropped connection is answered without saving it twice.
+router.use(auditTrail);
+router.use(idempotency);
 
 router.use('/users', userRoutes);
 
@@ -52,5 +63,10 @@ router.use('/ventilator', ventilatorRoutes);
 router.use('/skin', skinRoutes);
 router.use('/reports', reportRoutes);
 router.use('/devices', devicesRoutes);
+router.use('/lines', linesRoutes);
+router.use('/scores', scoresRoutes);
+router.use('/mar-signoff', signoffRoutes);
+router.use('/audit', auditRoutes);
+router.use('/client-errors', clientErrorRoutes);
 
 export default router;

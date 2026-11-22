@@ -6,9 +6,9 @@
 # database are reachable only from this machine.
 #
 # The droplet is too small to build images, so code is built on a workstation
-# and synced here: the API runs from ./server/src and the web app is served
-# from ./client/dist, both mounted read-only over what the images contain.
-# After syncing new server code: docker restart icu_server_prod
+# and synced here (see scripts/deploy.sh): the API runs the compiled code in
+# ./server/dist with the schema in ./server/prisma, and the web app is served
+# from ./client/dist. All three are mounted read-only over what the images contain.
 #
 # Required in .env (same directory): JWT_SECRET, SITE_HOST, CORS_ORIGINS.
 
@@ -43,12 +43,22 @@ services:
       - FIREBASE_SERVICE_ACCOUNT_B64=${FIREBASE_SERVICE_ACCOUNT_B64:-}
       - LAB_USER=${LAB_USER:-}
       - LAB_PASSWORD=${LAB_PASSWORD:-}
+      - CHECKPOINT_DISABLE=1
+      # Optional. An ISO date: accounts whose password is older must choose a new one at sign-in.
+      - REQUIRE_PASSWORD_CHANGE_BEFORE=${REQUIRE_PASSWORD_CHANGE_BEFORE:-}
+    # The database client is regenerated from the synced schema at every start,
+    # so a schema change needs no new image.
+    command: ["sh", "-c", "npx prisma generate && exec node dist/index.js"]
+    # Chromium (lab import) runs inside this container; the cap keeps a memory
+    # spike from taking the whole droplet down. The container restarts instead.
+    mem_limit: 750m
     ports:
       # Local access only (debugging over SSH). The public route is Caddy.
       - "127.0.0.1:3001:3001"
     volumes:
       - uploads_data:/app/uploads
-      - ./server/src:/app/src:ro
+      - ./server/dist:/app/dist:ro
+      - ./server/prisma:/app/prisma:ro
     depends_on:
       - db
 
