@@ -15,12 +15,28 @@ const TIME_ZONE = process.env.CLINIC_TIME_ZONE || 'Asia/Baghdad';
 
 const clock = (d: Date) => d.toLocaleTimeString('en-GB', { timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit' });
 
-export async function checkOverdueDoses(now: Date = new Date()): Promise<number> {
+export interface OverdueDoseItem {
+    patientId: string;
+    patientName: string;
+    medicationId: string;
+    name: string;
+    dose: string;
+    route: string;
+    dueAt: Date;
+    overdueMinutes: number;
+    firstDose: boolean;
+    // The due time the nurse was already alerted about, if any.
+    alertedFor: Date | null;
+}
+
+// Scheduled doses that are overdue right now, for patients currently admitted
+// whose chart is in active use.
+export async function listOverdueDoses(now: Date = new Date(), patientId?: string): Promise<OverdueDoseItem[]> {
     const since = new Date(now.getTime() - 3 * 24 * 60 * 60_000);
     const meds = await prisma.medication.findMany({
         where: {
             isActive: true,
-            patientId: { not: null },
+            patientId: patientId ? patientId : { not: null },
             patient: { admissions: { some: { dischargedAt: null } } },
         },
         include: {
@@ -29,7 +45,7 @@ export async function checkOverdueDoses(now: Date = new Date()): Promise<number>
         },
     });
 
-    let alerts = 0;
+    const items: OverdueDoseItem[] = [];
     for (const med of meds) {
         if (!med.patient) continue;
         const due = overdueDose({
@@ -40,29 +56,49 @@ export async function checkOverdueDoses(now: Date = new Date()): Promise<number>
             administrations: med.administrations,
         }, now);
         if (!due) continue;
-        if (med.overdueAlertFor && med.overdueAlertFor.getTime() === due.dueAt.getTime()) continue;
 
-        // Only charts in active use raise alerts.
+        // Only charts in active use count.
         const lastActivity = Math.max(
             med.startedAt.getTime(),
             med.administrations[0]?.timestamp.getTime() ?? 0,
         );
         if (now.getTime() - lastActivity > ACTIVE_CHART_MS) continue;
 
-        await prisma.medication.update({ where: { id: med.id }, data: { overdueAlertFor: due.dueAt } });
-        const title = due.firstDose ? 'First dose not yet given' : 'Dose overdue';
-        const body = `${med.name} ${med.defaultDose} for ${med.patient.name} — due ${clock(due.dueAt)}`;
-        const nurses = await nursesFor(med.patient.id);
-        broadcastNotification('dose_overdue', {
-            _to: nurses,
+        items.push({
             patientId: med.patient.id,
             patientName: med.patient.name,
             medicationId: med.id,
-            title: `${med.name} ${med.defaultDose}`,
+            name: med.name,
+            dose: med.defaultDose,
+            route: med.route,
             dueAt: due.dueAt,
+            overdueMinutes: due.overdueMinutes,
+            firstDose: due.firstDose,
+            alertedFor: med.overdueAlertFor,
+        });
+    }
+    return items.sort((a, b) => b.overdueMinutes - a.overdueMinutes);
+}
+
+export async function checkOverdueDoses(now: Date = new Date()): Promise<number> {
+    let alerts = 0;
+    for (const item of await listOverdueDoses(now)) {
+        if (item.alertedFor && item.alertedFor.getTime() === item.dueAt.getTime()) continue;
+
+        await prisma.medication.update({ where: { id: item.medicationId }, data: { overdueAlertFor: item.dueAt } });
+        const title = item.firstDose ? 'First dose not yet given' : 'Dose overdue';
+        const body = `${item.name} ${item.dose} for ${item.patientName} — due ${clock(item.dueAt)}`;
+        const nurses = await nursesFor(item.patientId);
+        broadcastNotification('dose_overdue', {
+            _to: nurses,
+            patientId: item.patientId,
+            patientName: item.patientName,
+            medicationId: item.medicationId,
+            title: `${item.name} ${item.dose}`,
+            dueAt: item.dueAt,
             message: body,
         });
-        notifyPatient(med.patient.id, 'nurse', title, body, { type: 'dose_overdue', medicationId: med.id });
+        notifyPatient(item.patientId, 'nurse', title, body, { type: 'dose_overdue', medicationId: item.medicationId });
         alerts++;
     }
     return alerts;

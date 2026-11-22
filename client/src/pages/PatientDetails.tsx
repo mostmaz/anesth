@@ -33,6 +33,8 @@ import ConsultationTab from '../features/patient/ConsultationTab';
 import NursingTab from '../features/nursing/NursingTab';
 import HistoryTab from '../features/patient/HistoryTab';
 import EventsTab from '../features/events/EventsTab';
+import LinesTab from '../features/lines/LinesTab';
+import ScoresTab from '../features/scores/ScoresTab';
 
 import { Tabs, Icon, type TabItem, Sheet } from '../components/icu';
 import { useLang } from '../i18n';
@@ -197,6 +199,7 @@ export default function PatientDetails() {
     { value: 'events', label: t('tab.events') },
     { value: 'mar', label: t('tab.mar') },
     { value: 'nursing', label: t('tab.nursing') },
+    { value: 'lines', label: t('tab.lines', 'Lines') },
     { value: 'ventilator', label: t('tab.ventilator') },
     { value: 'orders', label: t('tab.orders') },
     { value: 'io', label: t('tab.io') },
@@ -208,6 +211,7 @@ export default function PatientDetails() {
     { value: 'interventions', label: t('tab.interventions'), dot: dueReminders.length > 0 },
     ...(user?.role !== 'NURSE' ? [
       { value: 'consultation', label: t('tab.consultation') },
+      { value: 'scores', label: t('tab.scores', 'Scores') },
     ] : []),
     { value: 'notes', label: t('tab.notes') },
     { value: 'history', label: t('tab.history') },
@@ -289,9 +293,9 @@ export default function PatientDetails() {
         )}
         {activeTab === 'rounds' && <RoundsTab patientId={patient.id} patient={patient} />}
         {activeTab === 'vitals' && <VitalsTab patientId={patient.id} />}
-        {activeTab === 'mar' && <MARTab patientId={patient.id} />}
+        {activeTab === 'mar' && <MARTab patientId={patient.id} patient={patient} />}
         {activeTab === 'orders' && <OrdersTab patientId={patient.id} />}
-        {activeTab === 'io' && <IOTab patientId={patient.id} />}
+        {activeTab === 'io' && <IOTab patientId={patient.id} patient={patient} />}
         {activeTab === 'investigations' && <InvestigationsTab patientId={patient.id} defaultTab="labs" />}
         {activeTab === 'radiology' && <InvestigationsTab patientId={patient.id} defaultTab="imaging" />}
         {activeTab === 'cardiology' && <InvestigationsTab patientId={patient.id} defaultTab="cardiology" />}
@@ -299,7 +303,9 @@ export default function PatientDetails() {
           <InterventionsTab patientId={patient.id} diagnosis={patient.diagnosis || undefined} />
         )}
         {activeTab === 'nursing' && <NursingTab patientId={patient.id} />}
-        {activeTab === 'ventilator' && <VentilatorTab patientId={patient.id} />}
+        {activeTab === 'lines' && <LinesTab patientId={patient.id} />}
+        {activeTab === 'scores' && user?.role !== 'NURSE' && <ScoresTab patientId={patient.id} patient={patient} />}
+        {activeTab === 'ventilator' && <VentilatorTab patientId={patient.id} patient={patient} />}
         {activeTab === 'consultation' && <ConsultationTab patientId={patient.id} />}
         {activeTab === 'events' && <EventsTab patientId={patient.id} />}
         {activeTab === 'notes' && <NotesTab patientId={patient.id} />}

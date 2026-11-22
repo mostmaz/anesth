@@ -9,6 +9,19 @@ export default defineConfig({
             "@": path.resolve(__dirname, "./src"),
         },
     },
+    build: {
+        rollupOptions: {
+            output: {
+                // Libraries change rarely, so they get their own files and stay cached
+                // in the browser when only the app code is updated.
+                manualChunks: {
+                    react: ['react', 'react-dom', 'react-router-dom'],
+                    charts: ['recharts'],
+                    ui: ['@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-tabs', '@radix-ui/react-checkbox', 'lucide-react', 'sonner'],
+                },
+            },
+        },
+    },
     server: {
         port: 5174,
         hmr: {

@@ -24,6 +24,7 @@ const TEMPLATES: Record<NoteType, string> = {
     NURSING: "Shift Summary:\n\nSkin/Wound Care:\n\nLines/Drains:",
     CONSULT: "Reason for Consult:\n\nRecommendations:",
     EVENT: "Event:\n\nDetails:",
+    ROUND: "", // rounds are written in the Rounds tab
     OTHER: ""
 };
 

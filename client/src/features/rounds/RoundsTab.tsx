@@ -4,7 +4,7 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Textarea } from '../../components/ui/textarea';
-import { notesApi, type ClinicalNote } from '../../api/notesApi';
+import { notesApi, isRoundNote, type ClinicalNote } from '../../api/notesApi';
 import { vitalsApi } from '../../api/vitalsApi';
 import { marApi } from '../../api/marApi';
 import { useAuthStore } from '../../stores/authStore';
@@ -57,7 +57,7 @@ export default function RoundsTab({ patientId, patient }: { patientId: string; p
         setLoading(true);
         try {
             const all = await notesApi.getAll(patientId);
-            setRounds(all.filter(n => n?.data && (n.data as any).kind === 'ROUND'));
+            setRounds(all.filter(isRoundNote));
         } catch (e) {
             console.error(e);
         } finally {
@@ -113,7 +113,7 @@ export default function RoundsTab({ patientId, patient }: { patientId: string; p
                 .concat(plan.trim() ? [`Assessment & Plan: ${plan.trim()}`] : [])
                 .join('\n');
             await notesApi.create({
-                patientId, authorId: user.id, type: 'PROGRESS',
+                patientId, type: 'ROUND',
                 title: tourType === 'MORNING' ? 'Morning Round' : 'Night Round',
                 content: content || `${tourType === 'MORNING' ? 'Morning' : 'Night'} round`,
                 data,

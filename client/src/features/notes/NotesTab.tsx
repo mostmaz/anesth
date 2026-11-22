@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { notesApi, ClinicalNote, NoteType } from '../../api/notesApi';
+import { notesApi, isRoundNote, ClinicalNote, NoteType } from '../../api/notesApi';
 import { User } from 'lucide-react';
 import CreateNoteDialog from './CreateNoteDialog';
 
@@ -20,7 +20,8 @@ export default function NotesTab({ patientId }: NotesTabProps) {
         setLoading(true);
         try {
             const data = await notesApi.getAll(patientId, filterType === 'ALL' ? undefined : filterType as NoteType);
-            setNotes(data);
+            // Ward rounds have their own tab.
+            setNotes(data.filter((note) => !isRoundNote(note)));
         } catch (error) {
             console.error(error);
         } finally {

@@ -13,6 +13,8 @@ import {
   Avatar, initialsFromName, colorFromId, Sheet, Sparkline,
 } from '../components/icu';
 import AddPatientForm from '../features/patient/AddPatientForm';
+import { marApi, type OverdueDose } from '../api/marApi';
+import { formatMinutes } from '../shared/dosing';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -24,6 +26,8 @@ export default function Dashboard() {
   const [pendingAssignments, setPendingAssignments] = useState<Assignment[]>([]);
   const [activeOrders, setActiveOrders] = useState<ClinicalOrder[]>([]);
   const [dueReminders, setDueReminders] = useState<ClinicalOrder[]>([]);
+  // Scheduled doses that are overdue right now, per patient.
+  const [overdue, setOverdue] = useState<Record<string, OverdueDose[]>>({});
   const [confirmCheck, setConfirmCheck] = useState<ClinicalOrder | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showStartShift, setShowStartShift] = useState(false);
@@ -54,6 +58,12 @@ export default function Dashboard() {
     try {
       const r = await ordersApi.getDueReminders();
       setDueReminders(r || []);
+    } catch { /* silent */ }
+    try {
+      const doses = await marApi.getOverdue();
+      const byPatient: Record<string, OverdueDose[]> = {};
+      for (const d of doses) (byPatient[d.patientId] ||= []).push(d);
+      setOverdue(byPatient);
     } catch { /* silent */ }
   };
 
@@ -297,6 +307,7 @@ export default function Dashboard() {
                 userId={user?.id}
                 userRole={user?.role}
                 isMine={myAssignments.has(p.id)}
+                overdue={overdue[p.id]}
                 onClick={() => navigate(`/patients/${p.id}`)}
               />
             ))}
@@ -489,10 +500,11 @@ interface PatientCardProps {
   userId?: string;
   userRole?: string;
   isMine: boolean;
+  overdue?: OverdueDose[];
   onClick: () => void;
 }
 
-function PatientCard({ patient, userRole, isMine, onClick }: PatientCardProps) {
+function PatientCard({ patient, userRole, isMine, overdue, onClick }: PatientCardProps) {
   const [latest, setLatest] = useState<{ hr?: number; spo?: number; sys?: number; dia?: number; temp?: number } | null>(null);
   const [series, setSeries] = useState<number[]>([]);
 
@@ -561,6 +573,14 @@ function PatientCard({ patient, userRole, isMine, onClick }: PatientCardProps) {
             )}
             {ventilated && <Pill tone="info"><Icon name="wind" size={10} />Vented</Pill>}
             {isMine && userRole === 'NURSE' && <Pill tone="ok">Yours</Pill>}
+            {overdue && overdue.length > 0 && (
+              <span title={overdue.map((d) => `${d.name} ${d.dose} — ${formatMinutes(d.overdueMinutes)}`).join('\n')}>
+                <Pill tone="crit"><Icon name="clock" size={10} /> {overdue.length} dose{overdue.length === 1 ? '' : 's'} overdue</Pill>
+              </span>
+            )}
+            {(patient.allergies?.length ?? 0) > 0 && (
+              <span title={patient.allergies!.join(', ')}><Pill tone="crit"><Icon name="alert" size={10} /> Allergy</Pill></span>
+            )}
           </div>
           <div className="icu-mono" style={{ fontSize: 11, color: 'var(--ink-3)', marginBottom: 6 }}>
             {patient.mrn} · {ageY}{genderCode} {(patient as any).bed ? `· ${(patient as any).bed}` : ''}

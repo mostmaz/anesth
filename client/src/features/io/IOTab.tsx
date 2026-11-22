@@ -13,18 +13,23 @@ import {
     SelectValue,
 } from "../../components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '../../components/ui/dialog';
-import { Plus, Droplets, ArrowDown, ArrowUp, Printer, Edit2, Check, X } from 'lucide-react';
+import { Plus, Droplets, Printer, Edit2, Check, X } from 'lucide-react';
 import { ioApi, type IOEntry } from '../../api/ioApi';
 import { useAuthStore } from '../../stores/authStore';
 import { useShiftStore } from '../../stores/shiftStore';
 
 import { useNavigate } from 'react-router-dom';
+import type { Patient } from '../../types';
+import { FluidBalanceSummary } from './FluidBalanceSummary';
+import { IO_AMOUNT_LIMIT, limitProblem } from '../../shared/ranges';
 
 interface IOTabProps {
     patientId: string;
+    // Weight and admission date for the balance summary.
+    patient?: Patient;
 }
 
-export default function IOTab({ patientId }: IOTabProps) {
+export default function IOTab({ patientId, patient }: IOTabProps) {
     const navigate = useNavigate();
     const { user } = useAuthStore();
     const { activeShift } = useShiftStore();
@@ -93,11 +98,12 @@ export default function IOTab({ patientId }: IOTabProps) {
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user || !amount || !category) return;
+        const problem = limitProblem(amount, IO_AMOUNT_LIMIT) || (Number(amount) <= 0 ? 'Amount must be more than 0 mL' : null);
+        if (problem) { toast.error(problem); return; }
 
         try {
             const newEntry = await ioApi.addEntry({
                 patientId,
-                userId: user.id,
                 shiftId: activeShift?.id,
                 type,
                 category,
@@ -108,8 +114,8 @@ export default function IOTab({ patientId }: IOTabProps) {
             setAmount('');
             setNotes('');
             toast.success("I/O recorded");
-        } catch (error) {
-            toast.error("Failed to record I/O");
+        } catch (error: any) {
+            toast.error(error?.message || "Failed to record I/O");
         }
     };
 
@@ -149,10 +155,6 @@ export default function IOTab({ patientId }: IOTabProps) {
             toast.error("Failed to reject");
         }
     };
-
-    const totalInput = history.filter(h => h.type === 'INPUT').reduce((acc, curr) => acc + curr.amount, 0);
-    const totalOutput = history.filter(h => h.type === 'OUTPUT').reduce((acc, curr) => acc + curr.amount, 0);
-    const balance = totalInput - totalOutput;
 
     return (
         <div className="space-y-6">
@@ -220,35 +222,12 @@ export default function IOTab({ patientId }: IOTabProps) {
                     </DialogContent>
                 </Dialog>
             </div>
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Card className="bg-blue-50 border-blue-200">
-                    <CardContent className="p-4 flex flex-col items-center">
-                        <span className="text-sm font-medium text-blue-600 mb-1">Total Input</span>
-                        <div className="flex items-center text-2xl font-bold text-blue-700">
-                            <ArrowDown className="w-5 h-5 mr-1" />
-                            {totalInput} mL
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="bg-amber-50 border-amber-200">
-                    <CardContent className="p-4 flex flex-col items-center">
-                        <span className="text-sm font-medium text-amber-600 mb-1">Total Output</span>
-                        <div className="flex items-center text-2xl font-bold text-amber-700">
-                            <ArrowUp className="w-5 h-5 mr-1" />
-                            {totalOutput} mL
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className={`${balance >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                    <CardContent className="p-4 flex flex-col items-center">
-                        <span className={`text-sm font-medium mb-1 ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>Net Balance</span>
-                        <div className={`text-2xl font-bold ${balance >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                            {balance > 0 ? '+' : ''}{balance} mL
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+            {/* Fluid balance by shift, day and stay */}
+            <FluidBalanceSummary
+                entries={history}
+                weightKg={patient?.weightKg}
+                admittedAt={patient?.admissions?.find((a) => !a.dischargedAt)?.admittedAt || patient?.createdAt}
+            />
 
             {/* Entry Form */}
             <Card>

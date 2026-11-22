@@ -12,13 +12,16 @@ import {
   Icon, Pill, Sheet, Avatar, initialsFromName, colorFromId,
 } from '../../components/icu';
 import { useLang } from '../../i18n';
+import EditPatientDialog from './EditPatientDialog';
+import { bmi } from '../../shared/vent';
+import { dayOfStay } from '../../shared/time';
 
 interface Props {
   patient: Patient;
   onUpdate?: () => void;
 }
 
-export default function PatientHeader({ patient }: Props) {
+export default function PatientHeader({ patient, onUpdate }: Props) {
   const { user } = useAuthStore();
   const { t } = useLang();
   const { activeShift } = useShiftStore();
@@ -35,15 +38,20 @@ export default function PatientHeader({ patient }: Props) {
   const bed = (patient as any).bed || 'ICU-?';
   const critical = !!(patient as any).critical;
   const ventilated = !!(patient as any).ventilated;
-  const admittedAt = (patient as any).admittedAt || (patient as any).createdAt;
-  const dayN = admittedAt ? Math.max(1, Math.floor((Date.now() - new Date(admittedAt).getTime()) / (24 * 60 * 60_000)) + 1) : 1;
+  // Day of stay counts from the current admission (a re-admitted patient was created earlier).
+  const currentAdmission = patient.admissions?.find((a) => !a.dischargedAt)
+    || [...(patient.admissions || [])].sort((a, b) => new Date(b.admittedAt).getTime() - new Date(a.admittedAt).getTime())[0];
+  const admittedAt = currentAdmission?.admittedAt || (patient as any).admittedAt || (patient as any).createdAt;
+  const dayN = dayOfStay(admittedAt);
+  const allergies = patient.allergies || [];
+  const bodyMass = bmi(patient.weightKg, patient.heightCm);
 
   const handleCheckIn = async () => {
     if (!user) return;
     try {
       await checkinApi.create({
         patientId: patient.id,
-        userId: user.id,
+        userId: user.id, // the server records the signed-in user
         shiftId: activeShift?.id,
         airwaySafe,
         breathingOk,
@@ -121,9 +129,26 @@ export default function PatientHeader({ patient }: Props) {
               <span>{bed}</span>
               <span>·</span>
               <span>{t('hdr.day')} {dayN}</span>
+              {patient.weightKg != null && (<><span>·</span><span>{patient.weightKg} kg</span></>)}
+              {patient.heightCm != null && (<><span>·</span><span>{patient.heightCm} cm</span></>)}
+              {bodyMass != null && (<><span>·</span><span>BMI {bodyMass}</span></>)}
+            </div>
+            {/* Allergies are always visible: recorded, none known, or not yet asked. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+              {allergies.length > 0 ? (
+                <>
+                  <Pill tone="crit"><Icon name="alert" size={10} /> {t('basics.allergyLabel', 'Allergy')}</Pill>
+                  {allergies.map((a) => <Pill key={a} tone="crit">{a}</Pill>)}
+                </>
+              ) : patient.noKnownAllergies ? (
+                <Pill tone="muted">{t('basics.nkdaShort', 'No known allergies')}</Pill>
+              ) : (
+                <Pill tone="warn"><Icon name="alert" size={10} /> {t('basics.allergiesUnknown', 'Allergies not recorded')}</Pill>
+              )}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <EditPatientDialog patient={patient} onUpdate={() => onUpdate?.()} />
             <button
               type="button"
               onClick={() => setDischargeOpen(true)}

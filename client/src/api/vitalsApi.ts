@@ -1,4 +1,4 @@
-import { authFetch } from './client';
+import { apiClient } from './client';
 
 export interface VitalSign {
     id: string;
@@ -11,34 +11,27 @@ export interface VitalSign {
     rr: number | null;
     rbs: number | null;
     imageUrl?: string | null;
+    // Neurological, sedation and pain scores charted with the observation.
+    gcsEye?: number | null;
+    gcsVerbal?: number | null;
+    gcsMotor?: number | null;
+    gcsIntubated?: boolean;
+    rass?: number | null;
+    painScore?: number | null;
+    painScale?: string | null;
+    user?: { id: string; name: string; role: string } | null;
     timestamp: string;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
 export const vitalsApi = {
-    getVitals: async (patientId: string, startTime?: string, endTime?: string): Promise<VitalSign[]> => {
-        let url = `${API_URL}/vitals/${patientId}`;
+    getVitals: (patientId: string, startTime?: string, endTime?: string) => {
         const params = new URLSearchParams();
         if (startTime) params.append('startTime', startTime);
         if (endTime) params.append('endTime', endTime);
-
-        if (params.toString()) {
-            url += `?${params.toString()}`;
-        }
-
-        const response = await authFetch(url);
-        if (!response.ok) throw new Error('Failed to fetch vitals');
-        return response.json();
+        const query = params.toString();
+        return apiClient.get<VitalSign[]>(`/vitals/${patientId}${query ? `?${query}` : ''}`);
     },
 
-    addVitals: async (data: any): Promise<VitalSign> => {
-        const response = await authFetch(`${API_URL}/vitals`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-        });
-        if (!response.ok) throw new Error('Failed to record vitals');
-        return response.json();
-    }
+    // Throws with the server's message when a value is outside the possible range.
+    addVitals: (data: Record<string, unknown>) => apiClient.post<VitalSign>('/vitals', data),
 };

@@ -1,7 +1,11 @@
 
 import { apiClient } from './client';
 
-export type NoteType = 'ADMISSION' | 'PROGRESS' | 'PROCEDURE' | 'DISCHARGE' | 'NURSING' | 'CONSULT' | 'EVENT' | 'OTHER';
+export type NoteType = 'ADMISSION' | 'PROGRESS' | 'PROCEDURE' | 'DISCHARGE' | 'NURSING' | 'CONSULT' | 'EVENT' | 'ROUND' | 'OTHER';
+
+// A ward round. New rounds are saved with the type ROUND; older ones were saved
+// as PROGRESS notes marked with data.kind = 'ROUND'.
+export const isRoundNote = (n: { type?: string; data?: any }) => n?.type === 'ROUND' || n?.data?.kind === 'ROUND';
 
 export interface ClinicalNote {
     id: string;
@@ -27,7 +31,7 @@ export const notesApi = {
 
     create: async (data: {
         patientId: string;
-        authorId: string;
+        authorId?: string;
         type: NoteType;
         title: string;
         content: string;

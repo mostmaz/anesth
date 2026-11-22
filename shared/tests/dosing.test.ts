@@ -132,7 +132,10 @@ describe('dose helpers', () => {
   });
   it('works out the dose per kg', () => {
     expect(dosePerKg('40 mg', 70)).toBe('0.57 mg/kg');
-    expect(dosePerKg('1 g', 80)).toBe('0.01 g/kg');
+    expect(dosePerKg('1 g', 80)).toBe('12.5 mg/kg');
+    expect(dosePerKg('4.5 g', 72.5)).toBe('62.1 mg/kg');
+    expect(dosePerKg('100 g', 50)).toBe('2 g/kg');
+    expect(dosePerKg('0.5 mg', 70)).toBe('7.1 mcg/kg');
     expect(dosePerKg('1000 mg', 50)).toBe('20 mg/kg');
     expect(dosePerKg('40 mg', null)).toBeNull();
     expect(dosePerKg('0.05 mcg/kg/min', 70)).toBeNull();

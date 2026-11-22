@@ -68,6 +68,15 @@ export default function AppShell() {
           case 'new_order': ring('New Clinical Order', `${patientName}: ${title}`, 'info'); break;
           case 'new_admission': ring('New Admission', `${patientName} admitted.`, 'success'); break;
           case 'system_update': ring('System Update', message || 'Updates available.', 'info'); break;
+          // Sent only to the nurse(s) looking after the patient.
+          case 'dose_overdue':
+            ring('Dose overdue', message || `${patientName}: ${title}`, 'warning',
+              { label: 'Open MAR', onClick: () => navigate(`/patients/${patientId}`) });
+            break;
+          case 'new_event':
+            ring(`Event — ${patientName || ''}`, title, data.severity === 'critical' ? 'error' : 'warning',
+              { label: 'View', onClick: () => navigate(`/patients/${patientId}`) });
+            break;
         }
       } catch (e) {
         console.error('SSE parse failed:', e);

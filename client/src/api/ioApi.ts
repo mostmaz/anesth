@@ -24,7 +24,7 @@ export const ioApi = {
 
     addEntry: async (data: {
         patientId: string;
-        userId: string;
+        userId?: string;
         shiftId?: string;
         type: 'INPUT' | 'OUTPUT';
         category: string;

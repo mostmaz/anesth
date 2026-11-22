@@ -54,15 +54,27 @@ async function fetchWithTimeout(resource: RequestInfo | URL, options: RequestIni
     }
 }
 
-// Prefer the server's own message ({ error: "…" }) so users see something useful.
-async function failure(response: Response): Promise<Error> {
+// An API failure: `message` is the server's own text, so users see something
+// useful; `status` and `code` let the caller react to specific cases.
+export class ApiError extends Error {
+    status: number;
+    code?: string;
+    constructor(message: string, status: number, code?: string) {
+        super(message);
+        this.name = 'ApiError';
+        this.status = status;
+        this.code = code;
+    }
+}
+
+async function failure(response: Response): Promise<ApiError> {
     const text = await response.text();
     try {
         const body = JSON.parse(text);
         const message = body?.error || body?.message;
-        if (message) return new Error(String(message));
+        if (message) return new ApiError(String(message), response.status, typeof body?.code === 'string' ? body.code : undefined);
     } catch { /* not JSON */ }
-    return new Error(`API Error: ${response.statusText} (${response.status})`);
+    return new ApiError(`API Error: ${response.statusText} (${response.status})`, response.status);
 }
 
 async function send<T>(method: string, endpoint: string, data?: unknown, timeout?: number): Promise<T> {

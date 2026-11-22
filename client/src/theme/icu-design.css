@@ -508,3 +508,7 @@ html[data-theme="dark"] input::placeholder, html[data-theme="dark"] textarea::pl
 /* Ring/hover accents on colored buttons stay, but plain white-on-white fixes */
 html[data-theme="dark"] .bg-white\/50, html[data-theme="dark"] .bg-white\/80, html[data-theme="dark"] .bg-white\/90 { background-color: var(--surface) !important; }
 
+/* Scores tab: stack the result under the form on narrow screens. */
+@media (max-width: 900px) {
+  .scores-layout { grid-template-columns: minmax(0, 1fr) !important; }
+}

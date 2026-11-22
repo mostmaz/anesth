@@ -43,7 +43,7 @@ export default function UserManagementTab() {
 
     // A senior can set a new password for any account (e.g. one still on the old shared default).
     const handleResetPassword = async (user: User) => {
-        const newPassword = prompt(`New password for ${user.name} (at least 8 characters):`);
+        const newPassword = prompt(`Temporary password for ${user.name} (at least 8 characters). They will be asked to choose their own at their next sign-in, and are signed out everywhere now:`);
         if (newPassword === null) return;
         try {
             await adminApi.resetPassword(user.id, newPassword);
@@ -92,16 +92,18 @@ export default function UserManagementTab() {
                     </div>
                     <Button type="submit">Create Account</Button>
                 </form>
+                <p className="text-xs text-slate-500 mt-3">The password you set is temporary: the new user is asked to choose their own the first time they sign in.</p>
             </div>
 
             {/* User List */}
-            <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-sm text-left">
+            <div className="border rounded-lg overflow-x-auto">
+                <table className="w-full text-sm text-left min-w-[560px]">
                     <thead className="bg-slate-100 text-slate-600 font-medium">
                         <tr>
                             <th className="p-3">Name</th>
                             <th className="p-3">Username</th>
                             <th className="p-3">Role</th>
+                            <th className="p-3">Last sign-in</th>
                             <th className="p-3 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -117,6 +119,11 @@ export default function UserManagementTab() {
                                         }`}>
                                         {user.role}
                                     </span>
+                                </td>
+                                <td className="p-3 text-muted-foreground whitespace-nowrap">
+                                    {user.lastLoginAt
+                                        ? new Date(user.lastLoginAt).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                                        : <span className="text-slate-400">Not since 20 Nov 2026</span>}
                                 </td>
                                 <td className="p-3 text-right">
                                     <Button variant="ghost" size="sm" title="Reset password" onClick={() => handleResetPassword(user)}>

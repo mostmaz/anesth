@@ -21,6 +21,12 @@ export interface Patient {
     gender: string;
     diagnosis?: string;
     comorbidities?: string[];
+    // Basics used for dosing, tidal-volume targets and prescribing warnings.
+    weightKg?: number | null;
+    heightCm?: number | null;
+    allergies?: string[];
+    // true = asked and none known; false with an empty list = not recorded yet.
+    noKnownAllergies?: boolean;
     admissions?: Admission[];
     createdAt: string;
 }

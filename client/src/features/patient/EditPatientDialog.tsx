@@ -8,6 +8,9 @@ import { doctorApi, Doctor, Specialty } from '../../api/doctorApi';
 import { Patient } from '../../types';
 import { toast } from 'sonner';
 import { Pencil, X } from 'lucide-react';
+import { useAuthStore } from '../../stores/authStore';
+import { useLang } from '../../i18n';
+import { PatientBasicsFields, basicsFromPatient, basicsPayload, basicsProblem, type BasicsValue } from './PatientBasicsFields';
 
 interface EditPatientDialogProps {
     patient: Patient;
@@ -17,6 +20,9 @@ interface EditPatientDialogProps {
 export default function EditPatientDialog({ patient, onUpdate }: EditPatientDialogProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const user = useAuthStore((s) => s.user);
+    const { t } = useLang();
+    const [basics, setBasics] = useState<BasicsValue>(basicsFromPatient(patient));
 
     // Find active admission
     const activeAdmission = patient.admissions?.find((a: any) => !a.dischargedAt);
@@ -49,6 +55,7 @@ export default function EditPatientDialog({ patient, onUpdate }: EditPatientDial
                         diagnosis: patient.diagnosis || '',
                     });
                     setComorbids(patient.comorbidities || []);
+                    setBasics(basicsFromPatient(patient));
 
                     const activeAdm = patient.admissions?.find((a: any) => !a.dischargedAt);
                     setDoctorName(activeAdm?.doctor?.name || '');
@@ -71,6 +78,8 @@ export default function EditPatientDialog({ patient, onUpdate }: EditPatientDial
     const removeComorbid = (tag: string) => setComorbids(comorbids.filter(c => c !== tag));
 
     const handleSubmit = async () => {
+        const problem = basicsProblem(basics);
+        if (problem) { toast.error(problem); return; }
         setLoading(true);
         try {
             // Resolve Specialty
@@ -107,6 +116,7 @@ export default function EditPatientDialog({ patient, onUpdate }: EditPatientDial
                 mrn: formData.mrn,
                 diagnosis: formData.diagnosis,
                 comorbidities: comorbids,
+                ...basicsPayload(basics),
                 doctorId: finalDoctorId,
                 specialtyId: finalSpecialtyId
             });
@@ -114,8 +124,8 @@ export default function EditPatientDialog({ patient, onUpdate }: EditPatientDial
             toast.success("Patient details updated");
             setOpen(false);
             onUpdate();
-        } catch (error) {
-            toast.error("Failed to update patient");
+        } catch (error: any) {
+            toast.error(error?.message || "Failed to update patient");
         } finally {
             setLoading(false);
         }
@@ -124,9 +134,9 @@ export default function EditPatientDialog({ patient, onUpdate }: EditPatientDial
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                    <Pencil className="w-3 h-3 text-slate-500" />
-                </Button>
+                <button type="button" className="icu-btn icu-btn-ghost icu-btn-sm" title={t('basics.edit', 'Edit patient details')}>
+                    <Pencil className="w-3.5 h-3.5" /> <span className="hidden lg:inline">{t('btn.edit', 'Edit')}</span>
+                </button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
@@ -203,19 +213,22 @@ export default function EditPatientDialog({ patient, onUpdate }: EditPatientDial
                             placeholder="Type and press enter or comma to add..."
                         />
                     </div>
+
+                    <PatientBasicsFields value={basics} onChange={setBasics} />
                 </div>
                 <DialogFooter className="mr-auto w-full flex justify-between sm:justify-between">
                     <Button
                         variant="destructive"
+                        style={{ visibility: user?.role === 'SENIOR' ? 'visible' : 'hidden' }}
                         onClick={async () => {
                             if (confirm("Are you SURE you want to delete this patient? ALL DATA will be lost permanently.")) {
                                 try {
                                     await apiClient.delete(`/patients/${patient.id}`);
                                     toast.success("Patient deleted");
                                     setOpen(false);
-                                    window.location.href = '/dashboard';
-                                } catch (e) {
-                                    toast.error("Failed to delete patient");
+                                    window.location.hash = '#/dashboard';
+                                } catch (e: any) {
+                                    toast.error(e?.message || "Failed to delete patient");
                                 }
                             }
                         }}

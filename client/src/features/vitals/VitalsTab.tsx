@@ -15,6 +15,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Printer, Image as ImageIcon, ExternalLink } from 'lucide-react';
 import { UploadVitalsDialog } from './UploadVitalsDialog';
 import { fileUrl } from '../../api/client';
+import { vitalsProblems, PAIN_SCALES } from '../../shared/ranges';
+import { GCS_EYE, GCS_MOTOR, GCS_VERBAL, RASS_LEVELS, gcsLabel, rassLabel } from '../../shared/scores';
+import { useLang } from '../../i18n';
+
+const emptyNeuro = () => ({ gcsEye: '', gcsVerbal: '', gcsMotor: '', gcsIntubated: false, rass: '', painScore: '', painScale: 'NRS' });
+const selectClass = 'flex h-10 w-full rounded-md border border-input bg-background px-2 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 // Any drug whose MAR route of administration is "Infusion" is charted alongside the
 // vitals: its ml/hr rate is recorded, and the volume infused since the last charted
@@ -35,6 +41,10 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
     const [meds, setMeds] = useState<Medication[]>([]);
     const [drugRates, setDrugRates] = useState<Record<string, string>>({});
     const [newEntry, setNewEntry] = useState({ hr: '', bpSys: '', bpDia: '', spo2: '', temp: '', rbs: '', rr: '', imageUrl: '' });
+    // Neurological, sedation and pain scores charted with the observation.
+    const [neuro, setNeuro] = useState(emptyNeuro());
+    const [saving, setSaving] = useState(false);
+    const { t } = useLang();
 
     useEffect(() => {
         if (patientId) {
@@ -77,21 +87,18 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
         e.preventDefault();
         if (!patientId) return;
 
-        // Validation — reject obvious typos before sending
-        const fieldErrors: string[] = [];
+        // Reject values that cannot be real (typing slips) before anything is sent.
         const hr = parseNum(newEntry.hr);
-        if (newEntry.hr && hr === null) fieldErrors.push('Heart Rate must be a number');
-        else if (hr !== null && (hr <= 0 || hr > 300)) fieldErrors.push('Heart Rate out of range (1–300)');
-
         const spo2 = parseNum(newEntry.spo2);
-        if (newEntry.spo2 && spo2 === null) fieldErrors.push('SpO₂ must be a number');
-        else if (spo2 !== null && (spo2 < 0 || spo2 > 100)) fieldErrors.push('SpO₂ out of range (0–100)');
-
-        // Any other field that has text but doesn't parse — flag too
-        (['bpSys', 'bpDia', 'temp', 'rbs', 'rr'] as const).forEach(k => {
-            const raw = newEntry[k];
-            if (raw && parseNum(raw) === null) fieldErrors.push(`${k} must be a number`);
-        });
+        const payload = {
+            heartRate: newEntry.hr, bpSys: newEntry.bpSys, bpDia: newEntry.bpDia, spo2: newEntry.spo2,
+            temp: newEntry.temp, rbs: newEntry.rbs, rr: newEntry.rr,
+            gcsEye: neuro.gcsEye, gcsVerbal: neuro.gcsIntubated ? '' : neuro.gcsVerbal, gcsMotor: neuro.gcsMotor,
+            rass: neuro.rass, painScore: neuro.painScore, painScale: neuro.painScale,
+        };
+        const fieldErrors = vitalsProblems(payload);
+        const gcsParts = [neuro.gcsEye, neuro.gcsMotor, neuro.gcsIntubated ? 'T' : neuro.gcsVerbal].filter(Boolean).length;
+        if (gcsParts > 0 && gcsParts < 3) fieldErrors.push(t('vitals.gcsIncomplete', 'GCS needs eye, verbal and motor'));
 
         if (fieldErrors.length > 0) {
             toast.error(fieldErrors.join(' · '));
@@ -103,13 +110,16 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
             .map(m => ({ m, rate: (drugRates[m.id] || '').trim() }))
             .filter(x => x.rate !== '' && Number.isFinite(Number(x.rate)) && Number(x.rate) > 0);
         const anyVitalTyped = (['hr', 'bpSys', 'bpDia', 'spo2', 'temp', 'rbs', 'rr'] as const)
-            .some(k => (newEntry[k] || '').trim() !== '');
+            .some(k => (newEntry[k] || '').trim() !== '')
+            || gcsParts === 3 || neuro.rass !== '' || neuro.painScore !== '';
 
         if (!anyVitalTyped && rateEntries.length === 0) {
             toast.error('Enter a vital sign or an infusion rate');
             return;
         }
 
+        if (saving) return;
+        setSaving(true);
         try {
             // Only create a vitals row when a vital was entered; a rate-only entry just
             // charts the infusion(s) without leaving an empty vitals record behind.
@@ -123,9 +133,17 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                     temp: parseNum(newEntry.temp),
                     rbs: parseNum(newEntry.rbs),
                     rr: parseNum(newEntry.rr),
+                    gcsEye: gcsParts === 3 ? parseNum(neuro.gcsEye) : null,
+                    gcsVerbal: gcsParts === 3 && !neuro.gcsIntubated ? parseNum(neuro.gcsVerbal) : null,
+                    gcsMotor: gcsParts === 3 ? parseNum(neuro.gcsMotor) : null,
+                    gcsIntubated: gcsParts === 3 && neuro.gcsIntubated,
+                    rass: parseNum(neuro.rass),
+                    painScore: parseNum(neuro.painScore),
+                    painScale: neuro.painScore !== '' ? neuro.painScale : null,
                     imageUrl: newEntry.imageUrl || null,
                 });
-                setVitals([entry, ...vitals]);
+                // Kept oldest → newest, as the server returns it; the table shows it newest first.
+                setVitals([...vitals, entry]);
             }
 
             // Record an administration for each charted rate, then derive the volume
@@ -137,12 +155,12 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                             .map(a => { const mt = rateRe.exec(a.dose || ''); return mt ? { r: parseFloat(mt[1]), t: new Date(a.timestamp).getTime() } : null; })
                             .filter((x): x is { r: number; t: number } => x !== null && Number.isFinite(x.r))
                             .sort((a, b) => b.t - a.t)[0];
-                        await marApi.administerMedication({ patientId, medicationId: m.id, status: 'Given', dose: `${rate} ml/hr`, userId: user.id });
+                        await marApi.administerMedication({ patientId, medicationId: m.id, status: 'Given', dose: `${rate} ml/hr` });
                         if (prev) {
                             const hours = (Date.now() - prev.t) / 3_600_000;
                             const vol = Math.round(prev.r * hours);
                             if (vol > 0 && hours > 0 && hours < 24) {
-                                await ioApi.addEntry({ patientId, userId: user.id, type: 'INPUT', category: `Infusion · ${m.name}`, amount: vol, notes: `${prev.r} ml/hr × ${hours.toFixed(1)}h` });
+                                await ioApi.addEntry({ patientId, type: 'INPUT', category: `Infusion · ${m.name}`, amount: vol, notes: `${prev.r} ml/hr × ${hours.toFixed(1)}h` });
                             }
                         }
                     } catch { /* skip this drug on failure */ }
@@ -151,12 +169,15 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
             }
 
             setNewEntry({ hr: '', bpSys: '', bpDia: '', spo2: '', temp: '', rbs: '', rr: '', imageUrl: '' });
+            setNeuro(emptyNeuro());
             setDrugRates({});
             if (anyVitalTyped && rateEntries.length) toast.success(`Vitals recorded · charted ${rateEntries.length} rate${rateEntries.length === 1 ? '' : 's'}`);
             else if (anyVitalTyped) toast.success('Vitals recorded successfully');
             else toast.success(`Charted ${rateEntries.length} infusion rate${rateEntries.length === 1 ? '' : 's'}`);
         } catch (error: any) {
             toast.error(error?.message || 'Failed to record vitals');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -362,6 +383,68 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                     value={newEntry.rbs} onChange={e => setNewEntry({ ...newEntry, rbs: e.target.value })}
                                 />
                             </div>
+                            <div className="pt-3 border-t space-y-3" style={{ borderColor: 'var(--line)' }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                    {t('vitals.neuro', 'Neuro · sedation · pain')}
+                                </div>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="gcsEye" style={{ fontSize: 12 }}>GCS · {t('vitals.eye', 'Eye')}</Label>
+                                        <select id="gcsEye" className={selectClass} value={neuro.gcsEye} onChange={e => setNeuro({ ...neuro, gcsEye: e.target.value })}>
+                                            <option value="">—</option>
+                                            {GCS_EYE.map(o => <option key={o.value} value={o.value}>{o.value} · {o.label}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="gcsVerbal" style={{ fontSize: 12 }}>{t('vitals.verbal', 'Verbal')}</Label>
+                                        <select id="gcsVerbal" className={selectClass} disabled={neuro.gcsIntubated} value={neuro.gcsIntubated ? '' : neuro.gcsVerbal} onChange={e => setNeuro({ ...neuro, gcsVerbal: e.target.value })}>
+                                            <option value="">{neuro.gcsIntubated ? 'T' : '—'}</option>
+                                            {GCS_VERBAL.map(o => <option key={o.value} value={o.value}>{o.value} · {o.label}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="gcsMotor" style={{ fontSize: 12 }}>{t('vitals.motor', 'Motor')}</Label>
+                                        <select id="gcsMotor" className={selectClass} value={neuro.gcsMotor} onChange={e => setNeuro({ ...neuro, gcsMotor: e.target.value })}>
+                                            <option value="">—</option>
+                                            {GCS_MOTOR.map(o => <option key={o.value} value={o.value}>{o.value} · {o.label}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between gap-2 flex-wrap">
+                                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                        <input type="checkbox" className="h-4 w-4" checked={neuro.gcsIntubated} onChange={e => setNeuro({ ...neuro, gcsIntubated: e.target.checked })} />
+                                        {t('vitals.intubated', 'Intubated (verbal not testable)')}
+                                    </label>
+                                    {(() => {
+                                        const label = gcsLabel({ eye: Number(neuro.gcsEye) || null, verbal: Number(neuro.gcsVerbal) || null, motor: Number(neuro.gcsMotor) || null, intubated: neuro.gcsIntubated });
+                                        return label ? <span className="text-sm font-semibold" style={{ color: 'var(--accent-ink)' }}>GCS {label}</span> : null;
+                                    })()}
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="rass" style={{ fontSize: 12 }}>RASS</Label>
+                                        <select id="rass" className={selectClass} value={neuro.rass} onChange={e => setNeuro({ ...neuro, rass: e.target.value })}>
+                                            <option value="">—</option>
+                                            {RASS_LEVELS.map(o => <option key={o.value} value={o.value}>{o.value > 0 ? `+${o.value}` : o.value} · {o.label}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="painScore" style={{ fontSize: 12 }}>{t('vitals.pain', 'Pain')}</Label>
+                                        <div className="flex gap-2">
+                                            <select aria-label={t('vitals.painScale', 'Pain scale')} className={selectClass} style={{ width: 92 }} value={neuro.painScale} onChange={e => setNeuro({ ...neuro, painScale: e.target.value })}>
+                                                {Object.keys(PAIN_SCALES).map(k => <option key={k} value={k}>{k}</option>)}
+                                            </select>
+                                            <Input
+                                                id="painScore" type="number" step="1"
+                                                min={PAIN_SCALES[neuro.painScale].min} max={PAIN_SCALES[neuro.painScale].max}
+                                                placeholder={`${PAIN_SCALES[neuro.painScale].min}–${PAIN_SCALES[neuro.painScale].max}`}
+                                                value={neuro.painScore} onChange={e => setNeuro({ ...neuro, painScore: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {newEntry.imageUrl && (
                                 <div className="text-sm text-green-600 flex items-center gap-1 bg-green-50 p-2 rounded">
                                     <ImageIcon className="w-4 h-4" />
@@ -393,7 +476,7 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                 </div>
                             )}
 
-                            <Button type="submit" className="w-full">Record Vitals</Button>
+                            <Button type="submit" className="w-full" disabled={saving}>{saving ? t('common.saving', 'Saving…') : 'Record Vitals'}</Button>
                         </form>
                     </CardContent>
                 </Card>
@@ -405,7 +488,7 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                     </CardHeader>
                     <CardContent>
                         <div className="overflow-x-auto">
-                            <Table className="min-w-[600px]">
+                            <Table className="min-w-[760px]">
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Date & Time</TableHead>
@@ -415,6 +498,9 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                         <TableHead>Temp</TableHead>
                                         <TableHead>RR</TableHead>
                                         <TableHead>RBS</TableHead>
+                                        <TableHead>GCS</TableHead>
+                                        <TableHead>RASS</TableHead>
+                                        <TableHead>{t('vitals.pain', 'Pain')}</TableHead>
                                         {supportCols.map(m => (
                                             <TableHead key={m.id} title={`${m.name} (ml/hr)`} className="whitespace-nowrap">
                                                 {m.name.length > 10 ? m.name.slice(0, 9) + '…' : m.name}<span className="text-[10px] text-muted-foreground"> ml/hr</span>
@@ -432,12 +518,17 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                                     <span className="text-xs text-slate-500">{new Date(entry.timestamp).toLocaleTimeString()}</span>
                                                 </div>
                                             </TableCell>
-                                            <TableCell>{entry.heartRate}</TableCell>
-                                            <TableCell>{entry.bpSys}/{entry.bpDia}</TableCell>
-                                            <TableCell>{entry.spo2}%</TableCell>
-                                            <TableCell>{entry.temp}°C</TableCell>
-                                            <TableCell>{entry.rr}</TableCell>
-                                            <TableCell>{entry.rbs}</TableCell>
+                                            <TableCell>{entry.heartRate ?? '—'}</TableCell>
+                                            <TableCell>{entry.bpSys != null || entry.bpDia != null ? `${entry.bpSys ?? '—'}/${entry.bpDia ?? '—'}` : '—'}</TableCell>
+                                            <TableCell>{entry.spo2 != null ? `${entry.spo2}%` : '—'}</TableCell>
+                                            <TableCell>{entry.temp != null ? `${entry.temp}°C` : '—'}</TableCell>
+                                            <TableCell>{entry.rr ?? '—'}</TableCell>
+                                            <TableCell>{entry.rbs ?? '—'}</TableCell>
+                                            <TableCell className="whitespace-nowrap" title={gcsLabel({ eye: entry.gcsEye, verbal: entry.gcsVerbal, motor: entry.gcsMotor, intubated: entry.gcsIntubated }) || undefined}>
+                                                {(() => { const g = gcsLabel({ eye: entry.gcsEye, verbal: entry.gcsVerbal, motor: entry.gcsMotor, intubated: entry.gcsIntubated }); return g ? g.split('= ')[1] : '—'; })()}
+                                            </TableCell>
+                                            <TableCell className="whitespace-nowrap" title={rassLabel(entry.rass) || undefined}>{entry.rass != null ? (entry.rass > 0 ? `+${entry.rass}` : entry.rass) : '—'}</TableCell>
+                                            <TableCell className="whitespace-nowrap">{entry.painScore != null ? `${entry.painScore}${entry.painScale && entry.painScale !== 'NRS' ? ` ${entry.painScale}` : '/10'}` : '—'}</TableCell>
                                             {supportCols.map(m => {
                                                 const r = rateAt(m, entry.timestamp);
                                                 return <TableCell key={m.id} className="font-medium" style={{ color: r ? 'var(--accent-ink)' : 'var(--ink-4)' }}>{r || '—'}</TableCell>;
@@ -453,7 +544,7 @@ export default function VitalsTab({ patientId: propPatientId }: VitalsTabProps) 
                                     ))}
                                     {vitals.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={8 + supportCols.length} className="text-center text-muted-foreground">No records found</TableCell>
+                                            <TableCell colSpan={11 + supportCols.length} className="text-center text-muted-foreground">No records found</TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>

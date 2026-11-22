@@ -1,9 +1,10 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { en } from './en';
 import { ar } from './ar';
+import { clinicalAr, clinicalEn } from './clinical';
 
 export type Lang = 'en' | 'ar';
-const dicts: Record<Lang, Record<string, string>> = { en, ar };
+const dicts: Record<Lang, Record<string, string>> = { en: { ...en, ...clinicalEn }, ar: { ...ar, ...clinicalAr } };
 
 interface LangCtx {
     lang: Lang;

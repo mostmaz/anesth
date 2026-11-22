@@ -3,6 +3,7 @@ import prisma from '../prisma';
 import { requireRole } from '../middleware/auth';
 import { BadRequest, optionalString, requiredString, sendError } from '../lib/validate';
 import { allergyWarnings } from '../shared/allergy';
+import { listOverdueDoses } from '../jobs/overdueDoseScheduler';
 
 const router = Router();
 
@@ -29,6 +30,18 @@ router.get('/:patientId/mar', async (req, res) => {
     } catch (error) {
         console.error("MAR Fetch Error:", error);
         res.status(500).json({ error: 'Failed to fetch MAR' });
+    }
+});
+
+// GET /overdue - Scheduled doses that are overdue right now (all admitted
+// patients, or one with ?patientId=). Used by the dashboards.
+router.get('/overdue', async (req, res) => {
+    try {
+        const patientId = typeof req.query.patientId === 'string' && req.query.patientId ? req.query.patientId : undefined;
+        const items = await listOverdueDoses(new Date(), patientId);
+        res.json(items.map(({ alertedFor, ...item }) => item));
+    } catch (error) {
+        sendError(res, error, 'Failed to load overdue doses');
     }
 });
 
@@ -77,7 +90,8 @@ router.post('/prescribe', async (req, res) => {
     try {
         const { frequency, infusionRate, otherInstructions, startedAt } = req.body;
         const name = requiredString(req.body.name, 'Drug name', 120);
-        const dose = requiredString(req.body.dose, 'Dose', 120);
+        // Fluids are prescribed without a dose, so it may be empty.
+        const dose = optionalString(req.body.dose, 'Dose', 120) || '';
         const route = requiredString(req.body.route, 'Route', 40);
         const patientId = requiredString(req.body.patientId, 'Patient');
 

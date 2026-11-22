@@ -1,4 +1,6 @@
-import { authFetch } from './client';
+import { apiClient } from './client';
+import type { AllergyWarning } from '../shared/allergy';
+
 export interface Medication {
     id: string;
     name: string;
@@ -13,37 +15,83 @@ export interface Medication {
     dilution?: number;
     durationReminder?: number;
     administrations: MedicationAdministration[];
+    // Present on the answer to a new prescription when the drug matches a recorded allergy.
+    allergyWarnings?: AllergyWarning[];
 }
+
+export type AdministrationStatus = 'Scheduled' | 'Given' | 'Held' | 'NotGiven' | 'Paused' | 'Resumed';
 
 export interface MedicationAdministration {
     id: string;
     patientId: string;
     medicationId: string;
-    status: 'Scheduled' | 'Given' | 'Held' | 'NotGiven';
+    status: AdministrationStatus;
     dose?: string;
     dilution?: number;
     timestamp: string;   // actual administration time (may be back-dated)
     chartedAt?: string;  // when charted; differs from timestamp on late entries
     userId?: string;
-    user?: { name: string }; // Nurse details
+    user?: { id?: string; name: string; role?: string }; // who charted it
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+export interface OverdueDose {
+    patientId: string;
+    patientName: string;
+    medicationId: string;
+    name: string;
+    dose: string;
+    route: string;
+    dueAt: string;
+    overdueMinutes: number;
+    firstDose: boolean;
+}
+
+export interface SignOffItem {
+    id: string;
+    medicationId: string;
+    drug: string;
+    dose: string | null;
+    route: string;
+    status: string;
+    timestamp: string;
+    chartedAt: string | null;
+    userId: string | null;
+    by: string | null;
+}
+
+export interface SignOffCounts {
+    total: number;
+    byStatus: Record<string, number>;
+}
+
+export interface SignOffPreview {
+    items: SignOffItem[];
+    counts: SignOffCounts;
+    contentHash: string;
+}
+
+export interface SignOff {
+    id: string;
+    shiftType: 'DAY' | 'NIGHT';
+    periodStart: string;
+    periodEnd: string;
+    signedAt: string;
+    note: string | null;
+    user: { id: string; name: string; role: string };
+    counts: SignOffCounts | null;
+    // true when the MAR entries for that period no longer match what was signed.
+    changedSince: boolean;
+}
 
 export const marApi = {
-    getMAR: async (patientId: string): Promise<Medication[]> => {
-        const response = await authFetch(`${API_URL}/medications/${patientId}/mar`);
-        if (!response.ok) throw new Error('Failed to fetch MAR');
-        return response.json();
-    },
+    getMAR: (patientId: string) => apiClient.get<Medication[]>(`/medications/${patientId}/mar`),
 
-    searchDrugs: async (query: string) => {
-        const response = await authFetch(`${API_URL}/medications/catalog?q=${encodeURIComponent(query)}`);
-        if (!response.ok) throw new Error('Failed to search drugs');
-        return response.json();
-    },
+    getOverdue: (patientId?: string) =>
+        apiClient.get<OverdueDose[]>(`/medications/overdue${patientId ? `?patientId=${encodeURIComponent(patientId)}` : ''}`),
 
-    prescribeMedication: async (data: {
+    searchDrugs: (query: string) => apiClient.get<any[]>(`/medications/catalog?q=${encodeURIComponent(query)}`),
+
+    prescribeMedication: (data: {
         patientId: string;
         name: string;
         dose: string;
@@ -54,51 +102,40 @@ export const marApi = {
         dilution?: number;
         durationReminder?: number;
         startedAt?: string;
-    }): Promise<Medication> => {
-        const response = await authFetch(`${API_URL}/medications/prescribe`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-        });
-        if (!response.ok) throw new Error('Failed to prescribe medication');
-        return response.json();
-    },
+    }) => apiClient.post<Medication>('/medications/prescribe', data),
 
-    administerMedication: async (data: { patientId: string; medicationId: string; status: string; dose?: string; dilution?: number; userId?: string; administeredAt?: string }): Promise<MedicationAdministration> => {
-        const response = await authFetch(`${API_URL}/medications/administer`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-        });
-        if (!response.ok) throw new Error('Failed to administer medication');
-        return response.json();
-    },
+    // The server records the signed-in user as the person who gave the dose.
+    administerMedication: (data: {
+        patientId: string;
+        medicationId: string;
+        status: AdministrationStatus;
+        dose?: string;
+        dilution?: number;
+        administeredAt?: string;
+    }) => apiClient.post<MedicationAdministration>('/medications/administer', data),
 
-    editMedication: async (id: string, data: { dose: string; route: string; frequency?: string; infusionRate?: string; otherInstructions?: string; dilution?: number; durationReminder?: number; }): Promise<Medication> => {
-        const response = await authFetch(`${API_URL}/medications/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-        });
-        if (!response.ok) throw new Error('Failed to edit medication');
-        return response.json();
-    },
+    editMedication: (id: string, data: {
+        dose: string; route: string; frequency?: string; infusionRate?: string;
+        otherInstructions?: string; dilution?: number; durationReminder?: number;
+    }) => apiClient.put<Medication>(`/medications/${id}`, data),
 
-    discontinueMedication: async (id: string): Promise<Medication> => {
-        const response = await authFetch(`${API_URL}/medications/${id}/status`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isActive: false }),
-        });
-        if (!response.ok) throw new Error('Failed to discontinue medication');
-        return response.json();
-    },
+    discontinueMedication: (id: string) => apiClient.put<Medication>(`/medications/${id}/status`, { isActive: false }),
 
-    deleteAdministration: async (id: string, userId: string): Promise<void> => {
-        const response = await authFetch(`${API_URL}/medications/administration/${id}`, {
-            method: 'DELETE',
-            headers: { 'X-User-Id': userId }
-        });
-        if (!response.ok) throw new Error('Failed to delete administration');
-    }
+    deleteAdministration: (id: string) => apiClient.delete<{ success: boolean }>(`/medications/administration/${id}`),
+
+    // ── End-of-shift sign-off ──────────────────────────────────
+    signOffPreview: (patientId: string, start: Date, end: Date) =>
+        apiClient.get<SignOffPreview>(`/mar-signoff/${patientId}/preview?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`),
+
+    signOffs: (patientId: string) => apiClient.get<SignOff[]>(`/mar-signoff/${patientId}`),
+
+    signOff: (data: {
+        patientId: string;
+        shiftType: 'DAY' | 'NIGHT';
+        periodStart: string;
+        periodEnd: string;
+        password: string;
+        contentHash: string;
+        note?: string;
+    }) => apiClient.post<SignOff>('/mar-signoff', data),
 };

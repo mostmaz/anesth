@@ -4,74 +4,34 @@ import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
-import { AlertCircle, Printer, Droplet, FileText, StopCircle, Trash2 } from 'lucide-react';
+import { AlertCircle, Printer, Droplet, FileText, StopCircle, Trash2, ClipboardCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui/dialog';
-import { marApi, type Medication } from '../../api/marApi';
+import { marApi, type Medication, type SignOff } from '../../api/marApi';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AddMedicationDialog } from './AddMedicationDialog';
 import { EditMedicationDialog } from './EditMedicationDialog';
 import { useAuthStore } from '../../stores/authStore';
+import type { Patient } from '../../types';
+import { useLang } from '../../i18n';
+import {
+    doseSchedule, dosePerKg, firstGivenAt, formatMinutes, freqDisplay, freqTimesPerDay,
+    isGivenDose, isInfusionPaused, overdueDose, STATUS_PAUSED, STATUS_RESUMED,
+} from '../../shared/dosing';
+import { MARSignOffDialog, shiftLabel } from './MARSignOffDialog';
 
 interface MARTabProps {
     patientId?: string;
+    // Used for the allergy check and dose-per-kg hint when prescribing.
+    patient?: Patient;
 }
 
-// Frequency → number of doses per day. Handles labels ("OD (Once Daily)",
-// "TDS (Thrice Daily)"), short codes and plain numbers. null = infusion/PRN/unknown.
-export function freqTimesPerDay(freq?: string): number | null {
-    const s = (freq || '').toLowerCase().trim();
-    if (!s || s.includes('infusion') || s.includes('prn')) return null;
-    if (s.includes('once only')) return 1;
-    if (/(^|\b)od\b|once daily/.test(s)) return 1;
-    if (/(^|\b)bd\b|twice/.test(s)) return 2;
-    if (/(^|\b)tds\b|thrice|three times/.test(s)) return 3;
-    if (/(^|\b)qid\b|four times/.test(s)) return 4;
-    if (/(^|\b)q12h\b/.test(s)) return 2;
-    if (/(^|\b)q8h\b/.test(s)) return 3;
-    if (/(^|\b)q6h\b/.test(s)) return 4;
-    if (/5\s*x|5 ?times|five times/.test(s)) return 5;
-    if (/6\s*x|q4h|six times/.test(s)) return 6;
-    const m = s.match(/^(\d+)\b/);
-    if (m) { const n = parseInt(m[1], 10); return n >= 1 && n <= 12 ? n : null; }
-    return null;
-}
-// Frequency shown as X1 / X2 / X3 … (or Infusion / PRN).
-function freqDisplay(freq?: string): string {
-    const n = freqTimesPerDay(freq);
-    if (n) return `X${n}`;
-    if ((freq || '').toLowerCase().includes('infusion')) return 'Infusion';
-    return freq || 'PRN';
-}
-// Earliest "Given" administration (the drug's first actual dose). The dose schedule
-// keys off this — not the MAR-prescription time — so the cadence follows when the drug
-// was really first given. Returns undefined until a dose has been charted.
-export function firstGivenAt(administrations?: Array<{ status: string; timestamp: string | Date }>): Date | undefined {
-    if (!administrations?.length) return undefined;
-    const given = administrations
-        .filter(a => a.status === 'Given')
-        .map(a => new Date(a.timestamp))
-        .filter(d => !isNaN(d.getTime()));
-    if (!given.length) return undefined;
-    return given.reduce((a, b) => (a.getTime() <= b.getTime() ? a : b));
-}
-// Scheduled dose clock-times ("HH:00"), evenly spread over 24h from the anchor hour
-// (rounded to the nearest hour). Anchor = first-given time. e.g. BD first given 14:25
-// → 14:00, 02:00.
-export function doseSchedule(anchorTime?: string | Date, freq?: string): string[] {
-    const n = freqTimesPerDay(freq);
-    if (!n || !anchorTime) return [];
-    const d = new Date(anchorTime);
-    if (isNaN(d.getTime())) return [];
-    const anchor = Math.round((d.getHours() * 60 + d.getMinutes()) / 60) % 24; // nearest hour
-    const step = 24 / n;
-    return Array.from({ length: n }, (_, i) => `${String(Math.round(anchor + i * step) % 24).padStart(2, '0')}:00`);
-}
 const isSameDay = (ts: string | Date) => {
     const d = new Date(ts), n = new Date();
     return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
 };
 
-export default function MARTab({ patientId: propPatientId }: MARTabProps) {
+export default function MARTab({ patientId: propPatientId, patient }: MARTabProps) {
+    const { t } = useLang();
     const { id: paramPatientId } = useParams();
     const navigate = useNavigate();
     const patientId = propPatientId || paramPatientId;
@@ -116,6 +76,14 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
         }
     };
 
+    // End-of-shift sign-off
+    const [signOffOpen, setSignOffOpen] = useState(false);
+    const [signOffs, setSignOffs] = useState<SignOff[]>([]);
+    const fetchSignOffs = () => {
+        if (patientId) marApi.signOffs(patientId).then(setSignOffs).catch(() => setSignOffs([]));
+    };
+    useEffect(() => { fetchSignOffs(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [patientId]);
+
     useEffect(() => {
         fetchMAR();
         const interval = setInterval(fetchMAR, 30000); // Poll every 30s
@@ -139,26 +107,22 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
                 status: 'Given',
                 dose: medToAdminister.defaultDose, // Assume default dose for 1-click
                 dilution: administerDilution ? parseFloat(administerDilution) : undefined,
-                userId: user.id,
                 administeredAt: timeToISO(administerTime)
             });
             toast.success("Medication administered");
             fetchMAR();
+            fetchSignOffs(); // a new entry can change a signed period
             setMedToAdminister(null);
-        } catch (error) {
-            toast.error('Failed to administer medication');
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to administer medication');
         } finally {
             setIsAdministering(false);
         }
     };
 
-    // Infusion pause/resume — recorded as a Held ("Paused") / Given ("Resumed")
-    // administration, so no schema change is needed; the current state is the most
-    // recent administration for that drug.
-    const isPaused = (med: Medication) => {
-        const last = med.administrations?.[0];
-        return med.route === 'Infusion' && last?.status === 'Held' && (last.dose || '').toLowerCase().includes('paus');
-    };
+    // Infusion pause/resume is charted as its own entry with the status Paused or
+    // Resumed; the current state is the most recent entry for that drug.
+    const isPaused = (med: Medication) => isInfusionPaused(med);
     const [pausingId, setPausingId] = useState<string | null>(null);
     const togglePause = async (med: Medication) => {
         if (!patientId || !user) return;
@@ -167,14 +131,12 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
         try {
             await marApi.administerMedication({
                 patientId, medicationId: med.id,
-                status: paused ? 'Given' : 'Held',
-                dose: paused ? 'Resumed' : 'Paused',
-                userId: user.id,
+                status: paused ? STATUS_RESUMED : STATUS_PAUSED,
             });
             toast.success(paused ? `${med.name} resumed` : `${med.name} paused`);
             fetchMAR();
-        } catch {
-            toast.error('Failed to update infusion');
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to update infusion');
         } finally {
             setPausingId(null);
         }
@@ -206,11 +168,12 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
         }
         if (!confirm("Are you sure you want to delete this administration record?")) return;
         try {
-            await marApi.deleteAdministration(adminId, user.id);
+            await marApi.deleteAdministration(adminId);
             toast.success("Administration deleted");
             fetchMAR();
-        } catch (error) {
-            toast.error('Failed to delete administration');
+            fetchSignOffs();
+        } catch (error: any) {
+            toast.error(error?.message || 'Failed to delete administration');
         }
     };
 
@@ -226,6 +189,10 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <CardTitle>Medication Administration Record</CardTitle>
                 <div className="flex gap-2 flex-wrap">
+                    <Button variant="outline" onClick={() => setSignOffOpen(true)} className="gap-2">
+                        <ClipboardCheck className="w-4 h-4" />
+                        {t('signoff.button', 'Sign off shift')}
+                    </Button>
                     <Button variant="outline" onClick={handlePrint} className="gap-2">
                         <Printer className="w-4 h-4" />
                         Print 7-Day MAR
@@ -234,14 +201,31 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
                         <AddMedicationDialog
                             patientId={patientId}
                             onMedicationAdded={fetchMAR}
+                            allergies={patient?.allergies}
+                            weightKg={patient?.weightKg}
                         />
                     )}
                 </div>
             </CardHeader>
             <CardContent>
+                {signOffs.length > 0 && (() => {
+                    const last = signOffs[0];
+                    return (
+                        <div className={`mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border px-3 py-2 text-xs ${last.changedSince ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-900'}`}>
+                            <ClipboardCheck className="w-3.5 h-3.5" />
+                            <span className="font-semibold">{t('signoff.last', 'Last sign-off')}:</span>
+                            <span>{shiftLabel({ start: last.periodStart, end: last.periodEnd }, last.shiftType, t)}</span>
+                            <span>· {last.user.name} · {new Date(last.signedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
+                            {last.counts && <span>· {last.counts.total} {t('signoff.entries', 'entries')}</span>}
+                            {last.changedSince && <span className="font-semibold">· {t('signoff.changedSince', 'entries changed after it was signed')}</span>}
+                        </div>
+                    );
+                })()}
                 <div className="space-y-4">
                     {medications.map((med) => {
                         const lastAdmin = med.administrations && med.administrations[0];
+                        const due = med.isActive ? overdueDose(med) : null;
+                        const perKg = dosePerKg(med.defaultDose, patient?.weightKg);
                         return (
                             <div key={med.id} className={`p-4 border rounded-lg transition-colors ${med.isActive ? 'hover:bg-slate-50' : 'bg-slate-50 opacity-75'}`}>
                                 <div className="flex flex-col md:flex-row md:justify-between items-start gap-4">
@@ -250,6 +234,14 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
                                             <h4 className="font-bold text-lg text-slate-900">{med.name}</h4>
                                             {!med.isActive && <Badge variant="destructive">Discontinued</Badge>}
                                             {isPaused(med) && <Badge className="bg-amber-100 text-amber-800 border-amber-200">⏸ Paused</Badge>}
+                                            {due && (
+                                                <Badge variant="destructive" className="flex gap-1 items-center" title={new Date(due.dueAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}>
+                                                    <AlertCircle className="w-3 h-3" />
+                                                    {due.firstDose
+                                                        ? `${t('mar.firstDoseDue', 'First dose not given')} · ${formatMinutes(due.overdueMinutes)}`
+                                                        : `${t('mar.overdue', 'Overdue')} ${formatMinutes(due.overdueMinutes)} · ${t('mar.due', 'due')} ${new Date(due.dueAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                                                </Badge>
+                                            )}
                                             <Badge variant="outline" className="font-mono">{med.route}</Badge>
                                             <Badge variant="secondary">{freqDisplay(med.frequency)}</Badge>
                                             {med.isActive && (() => {
@@ -259,7 +251,7 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
                                                 // is charted, preview from the prescription time.
                                                 const anchor = firstGivenAt(med.administrations) || med.startedAt;
                                                 const times = doseSchedule(anchor, med.frequency);
-                                                const givenToday = (med.administrations || []).filter(a => a.status === 'Given' && isSameDay(a.timestamp)).length;
+                                                const givenToday = (med.administrations || []).filter(a => isGivenDose(a) && isSameDay(a.timestamp)).length;
                                                 const notYetStarted = !firstGivenAt(med.administrations);
                                                 return (
                                                     <span className="inline-flex items-center gap-1 flex-wrap" title={notYetStarted ? `Planned times (from prescription) — will re-anchor to the first dose given. ${n}/day` : `${givenToday} of ${n} doses given today`}>
@@ -318,7 +310,7 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
                                             ) : null}
                                         </div>
                                         <div className="text-sm text-slate-600 font-medium flex items-center gap-2">
-                                            <span>Dose: {med.defaultDose}</span>
+                                            <span>Dose: {med.defaultDose}{perKg ? ` (${perKg})` : ''}</span>
                                             {med.isActive && user?.role !== 'NURSE' && (
                                                 <EditMedicationDialog
                                                     medication={med}
@@ -380,7 +372,7 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
                                             {lastAdmin ? (
                                                 <div className="text-slate-500 flex items-start gap-2 justify-end">
                                                     <div>
-                                                        <div className="font-medium text-slate-700">Last Given:</div>
+                                                        <div className="font-medium text-slate-700">{lastAdmin.status === 'Given' ? 'Last Given:' : `Last entry (${lastAdmin.status}):`}</div>
                                                         <div>{new Date(lastAdmin.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                                         {lastAdmin.chartedAt && (new Date(lastAdmin.chartedAt).getTime() - new Date(lastAdmin.timestamp).getTime() > 30 * 60 * 1000) && (
                                                             <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700" title={`Charted ${new Date(lastAdmin.chartedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}>
@@ -440,6 +432,15 @@ export default function MARTab({ patientId: propPatientId }: MARTabProps) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {patientId && (
+                <MARSignOffDialog
+                    patientId={patientId}
+                    open={signOffOpen}
+                    onClose={() => setSignOffOpen(false)}
+                    onSigned={fetchSignOffs}
+                />
+            )}
 
             {/* Administer Dialog */}
             <Dialog open={!!medToAdminister} onOpenChange={(open) => !open && setMedToAdminister(null)}>

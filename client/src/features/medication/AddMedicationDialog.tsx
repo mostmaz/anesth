@@ -13,12 +13,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../../components/ui/checkbox';
 import { marApi } from '../../api/marApi';
 import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
+import { Plus, AlertTriangle } from 'lucide-react';
+import { allergyWarnings } from '../../shared/allergy';
+import { dosePerKg } from '../../shared/dosing';
+import { useLang } from '../../i18n';
 
 interface AddMedicationDialogProps {
     patientId: string;
     onMedicationAdded: () => void;
+    // The patient's recorded allergies and weight, for the prescribing checks.
+    allergies?: string[];
+    weightKg?: number | null;
 }
+
+// Today's date in the user's own timezone, as YYYY-MM-DD for a date input.
+const localToday = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 const COMMON_ICU_DRUGS = [
     { name: 'Norepinephrine', defaultDose: '0.05 mcg/kg/min', defaultRoute: 'IV' },
@@ -39,8 +51,11 @@ const COMMON_ICU_DRUGS = [
     { name: 'Dobutamine', defaultDose: '250 mg', defaultRoute: 'IV' }
 ];
 
-export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicationDialogProps) {
+export function AddMedicationDialog({ patientId, onMedicationAdded, allergies, weightKg }: AddMedicationDialogProps) {
+    const { t } = useLang();
     const [open, setOpen] = useState(false);
+    // The prescriber must tick this when the drug matches a recorded allergy.
+    const [allergyAck, setAllergyAck] = useState(false);
     const [loading, setLoading] = useState(false);
 
     // Form State
@@ -53,7 +68,12 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
     const [dilution, setDilution] = useState('');
     const [durationReminder, setDurationReminder] = useState('');
     const [instructions, setInstructions] = useState('');
-    const [startedAt, setStartedAt] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [startedAt, setStartedAt] = useState<string>(localToday());
+
+    const warnings = allergyWarnings(name, allergies);
+    const perKg = dosePerKg(dose, weightKg);
+    // A different drug needs a fresh acknowledgement.
+    useEffect(() => { setAllergyAck(false); }, [name]);
 
     // Autocomplete State
     const [suggestions, setSuggestions] = useState<{ name: string, defaultDose?: string, defaultRoute?: string }[]>([]);
@@ -90,6 +110,10 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (warnings.length > 0 && !allergyAck) {
+            toast.error(t('rx.ackRequired', 'Review the allergy warning before adding this drug'));
+            return;
+        }
         setLoading(true);
         try {
             // Map frequency number to label if needed, or just save the number/code
@@ -110,7 +134,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
             const nowT = new Date();
             const startedDateTime = new Date(sy, (sm || 1) - 1, sd || 1, nowT.getHours(), nowT.getMinutes(), nowT.getSeconds());
 
-            await marApi.prescribeMedication({
+            const saved = await marApi.prescribeMedication({
                 patientId,
                 name,
                 dose,
@@ -122,6 +146,10 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                 otherInstructions: instructions,
                 startedAt: startedDateTime.toISOString()
             });
+            // The server checks again in case an allergy was recorded in the meantime.
+            if (saved.allergyWarnings?.length && warnings.length === 0) {
+                toast.warning(`${t('rx.allergyWarning', 'Allergy warning')}: ${saved.allergyWarnings.map((w) => w.reason).join(' · ')}`, { duration: 15000 });
+            }
             toast.success("Medication added");
             setOpen(false);
             onMedicationAdded();
@@ -134,9 +162,10 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
             setDurationReminder('');
             setInstructions('');
             setFrequency('1');
-            setStartedAt(new Date().toISOString().split('T')[0]);
-        } catch (error) {
-            toast.error("Failed to add medication");
+            setStartedAt(localToday());
+            setAllergyAck(false);
+        } catch (error: any) {
+            toast.error(error?.message || "Failed to add medication");
         } finally {
             setLoading(false);
         }
@@ -166,9 +195,10 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                             placeholder="Type or select common drug..."
                             autoComplete="off"
                         />
-                        {showSuggestions && (
+                        {/* Only when there is something to pick, so the list never covers the allergy warning. */}
+                        {showSuggestions && suggestions.length > 0 && (
                             <div className="absolute z-10 w-full bg-white border rounded shadow-lg max-h-60 overflow-auto top-full mt-1">
-                                {suggestions.length > 0 ? suggestions.map((drug) => (
+                                {suggestions.map((drug) => (
                                     <div
                                         key={drug.name}
                                         className="p-2 hover:bg-slate-100 cursor-pointer text-sm border-b last:border-0"
@@ -177,18 +207,36 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                                         <div className="font-medium">{drug.name}</div>
                                         {drug.defaultDose && <div className="text-xs text-slate-500">{drug.defaultDose}</div>}
                                     </div>
-                                )) : (
-                                    <div className="p-2 text-sm text-slate-500 italic">No matches found</div>
-                                )}
+                                ))}
                             </div>
                         )}
                     </div>
+
+                    {warnings.length > 0 && (
+                        <div
+                            role="alert"
+                            className={`rounded-md border p-3 text-sm ${warnings.some((w) => w.level !== 'cross') ? 'border-red-300 bg-red-50 text-red-900' : 'border-amber-300 bg-amber-50 text-amber-900'}`}
+                        >
+                            <div className="flex items-center gap-2 font-semibold">
+                                <AlertTriangle className="w-4 h-4" />
+                                {t('rx.allergyWarning', 'Allergy warning')}
+                            </div>
+                            <ul className="mt-1 list-disc ps-5 space-y-0.5">
+                                {warnings.map((w, i) => <li key={i}>{w.reason}</li>)}
+                            </ul>
+                            <label className="mt-2 flex items-center gap-2 font-medium cursor-pointer">
+                                <input type="checkbox" className="h-4 w-4" checked={allergyAck} onChange={(e) => setAllergyAck(e.target.checked)} />
+                                {t('rx.ack', 'I have reviewed this and want to prescribe it')}
+                            </label>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
                         {!isFluid && (
                             <div className="space-y-2">
                                 <Label htmlFor="dose">Dose</Label>
                                 <Input id="dose" required={!isFluid} value={dose} onChange={e => setDose(e.target.value)} placeholder="e.g. 1g, 500mg" />
+                                {perKg && <p className="text-xs text-slate-500">= {perKg} ({weightKg} kg)</p>}
                             </div>
                         )}
                         <div className={isFluid ? "col-span-2 space-y-2" : "space-y-2"}>
@@ -284,7 +332,7 @@ export function AddMedicationDialog({ patientId, onMedicationAdded }: AddMedicat
                         </div>
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={loading}>
+                    <Button type="submit" className="w-full" disabled={loading || (warnings.length > 0 && !allergyAck)}>
                         {loading ? 'Adding...' : 'Add Order'}
                     </Button>
                 </form>

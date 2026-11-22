@@ -1,6 +1,4 @@
-import { authFetch } from './client';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+import { apiClient } from './client';
 
 export interface VentilatorSetting {
     id: string;
@@ -12,23 +10,26 @@ export interface VentilatorSetting {
     ie: string;
     ps: number;
     vt: number;
+    peep?: number | null;
+    plateau?: number | null;
+    pao2?: number | null;
     timestamp: string;
 }
 
 export const ventilatorApi = {
-    getHistory: async (patientId: string): Promise<VentilatorSetting[]> => {
-        const response = await authFetch(`${API_URL}/ventilator/${patientId}`);
-        if (!response.ok) throw new Error('Failed to fetch ventilator history');
-        return response.json();
-    },
+    getHistory: (patientId: string) => apiClient.get<VentilatorSetting[]>(`/ventilator/${patientId}`),
 
-    recordSettings: async (data: Omit<VentilatorSetting, 'id'>): Promise<VentilatorSetting> => {
-        const response = await authFetch(`${API_URL}/ventilator`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-        });
-        if (!response.ok) throw new Error('Failed to record ventilator settings');
-        return response.json();
-    }
+    recordSettings: (data: {
+        patientId: string;
+        mode: string;
+        rate: number;
+        fio2: number;
+        ie: string;
+        ps: number;
+        vt: number;
+        peep?: number | null;
+        plateau?: number | null;
+        pao2?: number | null;
+        timestamp?: string;
+    }) => apiClient.post<VentilatorSetting>('/ventilator', data),
 };

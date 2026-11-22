@@ -2,14 +2,17 @@
 import { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
-import { Users, Pill, UserPlus } from 'lucide-react';
+import { Users, Pill, UserPlus, ScrollText } from 'lucide-react';
 
 import UserManagementTab from '../features/admin/UserManagementTab';
 import DrugCatalogTab from '../features/admin/DrugCatalogTab';
 import NurseAssignmentTab from '../features/admin/NurseAssignmentTab';
+import AuditLogTab from '../features/admin/AuditLogTab';
+import { useAuthStore } from '../stores/authStore';
 
 export default function AdminPanel() {
     const [activeTab, setActiveTab] = useState('users');
+    const isSenior = useAuthStore((s) => s.user?.role === 'SENIOR');
 
     return (
         <div className="container mx-auto p-6 space-y-6">
@@ -19,7 +22,7 @@ export default function AdminPanel() {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-                <TabsList className="grid w-full grid-cols-3 lg:w-[600px]">
+                <TabsList className="flex flex-wrap h-auto w-full justify-start gap-1 lg:w-fit">
                     <TabsTrigger value="users" className="gap-2">
                         <Users className="w-4 h-4" /> User Management
                     </TabsTrigger>
@@ -29,6 +32,11 @@ export default function AdminPanel() {
                     <TabsTrigger value="assignments" className="gap-2">
                         <UserPlus className="w-4 h-4" /> Nurse Assignments
                     </TabsTrigger>
+                    {isSenior && (
+                        <TabsTrigger value="audit" className="gap-2">
+                            <ScrollText className="w-4 h-4" /> Audit Log
+                        </TabsTrigger>
+                    )}
                 </TabsList>
 
                 <TabsContent value="users" className="space-y-4">
@@ -66,6 +74,20 @@ export default function AdminPanel() {
                         </CardContent>
                     </Card>
                 </TabsContent>
+
+                {isSenior && (
+                    <TabsContent value="audit" className="space-y-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Audit Log</CardTitle>
+                                <CardDescription>Every change, chart view and sign-in, with who did it and when.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <AuditLogTab />
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                )}
             </Tabs>
         </div>
     );

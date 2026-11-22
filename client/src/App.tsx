@@ -1,22 +1,26 @@
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense, type ReactNode } from 'react';
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import AppShell from './components/layout/AppShell';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
-import PatientDetails from './pages/PatientDetails';
-import PrintableChart from './features/reports/PrintableChart';
-import DischargeSummary from './features/reports/DischargeSummary';
 import ShiftGuard from './features/shift/ShiftGuard';
-import ShiftManager from './pages/ShiftManager';
-import VitalsPrintView from './features/vitals/VitalsPrintView';
-import IOPrintView from './features/io/IOPrintView';
-import MARPrintView from './features/medication/MARPrintView';
-import ShiftHistory from './pages/ShiftHistory';
-import ShiftPrintView from './pages/ShiftPrintView';
-import AdminPanel from './pages/AdminPanel';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { useAuthStore } from './stores/authStore';
-import { type ReactNode } from 'react';
 
 import { Toaster } from 'sonner';
+
+// Sign-in and the dashboard load immediately; everything else is fetched when
+// first opened, so the first screen appears quickly on a slow connection.
+const PatientDetails = lazy(() => import('./pages/PatientDetails'));
+const PrintableChart = lazy(() => import('./features/reports/PrintableChart'));
+const DischargeSummary = lazy(() => import('./features/reports/DischargeSummary'));
+const ShiftManager = lazy(() => import('./pages/ShiftManager'));
+const VitalsPrintView = lazy(() => import('./features/vitals/VitalsPrintView'));
+const IOPrintView = lazy(() => import('./features/io/IOPrintView'));
+const MARPrintView = lazy(() => import('./features/medication/MARPrintView'));
+const ShiftHistory = lazy(() => import('./pages/ShiftHistory'));
+const ShiftPrintView = lazy(() => import('./pages/ShiftPrintView'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -27,11 +31,17 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
   return isAuthenticated ? children : <Navigate to="/login" />;
 }
 
-function App() {
+const Loading = () => (
+  <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 14 }}>Loading…</div>
+);
+
+// One screen failing must not take the rest of the app with it; moving to
+// another route clears the error.
+function Screens() {
+  const location = useLocation();
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Toaster position="top-right" richColors />
-      <HashRouter>
+    <ErrorBoundary resetKey={location.pathname}>
+      <Suspense fallback={<Loading />}>
         <Routes>
           <Route path="/login" element={<Login />} />
 
@@ -73,7 +83,6 @@ function App() {
               </ShiftGuard>
             } />
 
-
             <Route path="/shift" element={<ShiftManager />} />
             <Route path="/shifts/history" element={<ShiftHistory />} />
             <Route path="/admin" element={
@@ -89,6 +98,17 @@ function App() {
             </ProtectedRoute>
           } />
         </Routes>
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+function App() {
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <Toaster position="top-right" richColors />
+      <HashRouter>
+        <Screens />
       </HashRouter>
     </div>
   );

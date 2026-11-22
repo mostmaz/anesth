@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
+import { PatientBasicsFields, basicsPayload, basicsProblem, emptyBasics, type BasicsValue } from './PatientBasicsFields';
 import { apiClient } from '../../api/client';
-import { useAuthStore } from '../../stores/authStore';
 import { doctorApi, Doctor, Specialty } from '../../api/doctorApi';
 import { X } from 'lucide-react';
 
@@ -20,6 +20,7 @@ export default function AddPatientForm({ onSuccess, onCancel }: AddPatientFormPr
     });
 
     const [comorbids, setComorbids] = useState<string[]>([]);
+    const [basics, setBasics] = useState<BasicsValue>(emptyBasics());
     const [comorbidInput, setComorbidInput] = useState('');
 
     const [doctorName, setDoctorName] = useState('');
@@ -66,6 +67,8 @@ export default function AddPatientForm({ onSuccess, onCancel }: AddPatientFormPr
             if (!formData.name || !formData.mrn || !formData.age) {
                 throw new Error('Please fill in all required fields.');
             }
+            const problem = basicsProblem(basics);
+            if (problem) throw new Error(problem);
 
             // Calculate DOB from Age
             const ageVal = parseInt(formData.age);
@@ -111,7 +114,7 @@ export default function AddPatientForm({ onSuccess, onCancel }: AddPatientFormPr
                 gender: formData.gender,
                 diagnosis: formData.diagnosis,
                 comorbidities: comorbids,
-                authorId: useAuthStore.getState().user?.id,
+                ...basicsPayload(basics),
                 doctorId: finalDoctorId,
                 specialtyId: finalSpecialtyId
             };
@@ -266,6 +269,8 @@ export default function AddPatientForm({ onSuccess, onCancel }: AddPatientFormPr
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                 </div>
+
+                <PatientBasicsFields value={basics} onChange={setBasics} />
 
                 <div className="flex justify-end space-x-3 pt-4 border-t">
                     <button

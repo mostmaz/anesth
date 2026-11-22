@@ -216,11 +216,16 @@ export function parseDose(dose?: string | null): ParsedDose | null {
   return { amount, unit };
 }
 
-// "40 mg" for a 70 kg patient → "0.57 mg/kg". null when it cannot be worked out.
+// "40 mg" for a 70 kg patient → "0.57 mg/kg"; "1 g" for 80 kg → "12.5 mg/kg".
+// null when it cannot be worked out.
 export function dosePerKg(dose: string | null | undefined, weightKg: number | null | undefined): string | null {
   const parsed = parseDose(dose);
   if (!parsed || !weightKg || weightKg <= 0) return null;
-  const perKg = parsed.amount / weightKg;
-  const shown = perKg >= 10 ? perKg.toFixed(0) : perKg >= 1 ? perKg.toFixed(1) : perKg.toFixed(2);
-  return `${shown} ${parsed.unit}/kg`;
+  let perKg = parsed.amount / weightKg;
+  let unit = parsed.unit;
+  // Show small amounts in the next unit down: 0.06 g/kg reads better as 62 mg/kg.
+  if (unit === 'g' && perKg < 1) { perKg *= 1000; unit = 'mg'; }
+  else if (unit === 'mg' && perKg < 0.01) { perKg *= 1000; unit = 'mcg'; }
+  const shown = (perKg >= 100 ? perKg.toFixed(0) : perKg >= 1 ? perKg.toFixed(1) : perKg.toFixed(2)).replace(/\.0+$/, '');
+  return `${shown} ${unit}/kg`;
 }
